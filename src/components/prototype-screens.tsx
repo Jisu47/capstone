@@ -233,13 +233,13 @@ export function HomeScreen() {
         <div className="mt-4 grid grid-cols-2 gap-3">
           <Link
             href="/create"
-            className="rounded-2xl bg-white px-4 py-3 text-center text-sm font-semibold text-slate-900"
+            className="rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-semibold tracking-[-0.02em] text-white shadow-[0_14px_30px_rgba(8,15,33,0.22)]"
           >
             모임 만들기
           </Link>
           <Link
             href={`/group/${groups[0]?.id ?? ""}`}
-            className="rounded-2xl border border-white/20 bg-white/12 px-4 py-3 text-center text-sm font-semibold text-white"
+            className="rounded-2xl border border-white/28 bg-white/12 px-4 py-3 text-center text-sm font-semibold tracking-[-0.02em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
           >
             대표 모임 보기
           </Link>
