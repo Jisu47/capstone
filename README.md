@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Study Flow Prototype
 
-## Getting Started
+스터디 모임용 AI 모바일 웹 프로토타입입니다.  
+실제 백엔드 없이 `Next.js + TypeScript + Tailwind CSS`로 핵심 사용자 흐름만 빠르게 확인할 수 있게 구성했습니다.
 
-First, run the development server:
+## 포함된 화면
+
+- 홈
+- 모임 생성
+- 모임 상세
+- 자료 업로드/목록
+- AI 질의응답
+- 주간 학습 계획
+- 팀원 진도
+
+## 실행 방법
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+브라우저에서 `http://localhost:3000`을 열면 바로 데모를 볼 수 있습니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 프로토타입 특징
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- 모든 화면에 mock 데이터가 바로 표시됩니다.
+- 모임 생성, 체크 토글, AI 질문, 자료 추가는 클라이언트 상태로만 동작합니다.
+- 실제 로그인, DB, 파일 업로드, AI API, RAG는 구현하지 않았습니다.
 
-## Learn More
+## 검증
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+pnpm lint
+pnpm build
+```
