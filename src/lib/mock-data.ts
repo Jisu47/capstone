@@ -176,7 +176,7 @@ function makeIsoDate(date: string) {
 
 function createInitialMembers(): Member[] {
   return [
-    { id: currentUserId, name: "지윤", role: "팀장", focus: "개념 구조화" },
+    { id: currentUserId, name: "영희", role: "팀장", focus: "개념 구조화" },
     { id: "member-minsu", name: "민수", role: "팀원", focus: "기출 풀이" },
     { id: "member-seoyeon", name: "서연", role: "팀원", focus: "오답 정리" },
     { id: "member-doyoon", name: "도윤", role: "팀원", focus: "자료 요약" },
@@ -201,7 +201,7 @@ function createInitialGroups(): StudyGroup[] {
       id: "mat-os-2",
       title: "발제문 초안.pdf",
       summary: "세마포어와 교착상태 예시 중심 발표 초안",
-      uploadedBy: "지윤",
+      uploadedBy: "영희",
       uploadedAt: makeIsoDate("2026-03-22"),
       format: "PDF",
       locationHint: "핵심 개념 요약",
@@ -231,7 +231,7 @@ function createInitialGroups(): StudyGroup[] {
       id: "mat-net-2",
       title: "라우팅 정리 노트.pdf",
       summary: "거리 벡터와 링크 상태 라우팅 비교표",
-      uploadedBy: "지윤",
+      uploadedBy: "영희",
       uploadedAt: makeIsoDate("2026-03-23"),
       format: "PDF",
       locationHint: "요약 노트",
@@ -336,7 +336,7 @@ export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
       id: `${groupId}-mat-1`,
       title: `${trimmedSubject} 공용 요약본.pdf`,
       summary: `${trimmedSubject} 범위를 빠르게 읽을 수 있는 mock 요약 자료`,
-      uploadedBy: "지윤",
+      uploadedBy: "영희",
       uploadedAt: createdAt,
       format: "PDF",
       locationHint: "요약 1장",

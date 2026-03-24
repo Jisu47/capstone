@@ -91,7 +91,7 @@ export function PrototypeProvider({
           id: `${group.id}-upload-${nextCount}`,
           title: `${group.subject} 추가 정리 ${nextCount}.pdf`,
           summary: "업로드 박스에서 추가된 mock 자료입니다. 실제 파일 업로드는 연결되지 않습니다.",
-          uploadedBy: "지윤",
+          uploadedBy: "영희",
           uploadedAt: new Date().toISOString(),
           format: "PDF" as const,
           locationHint: `업로드 박스 #${nextCount}`,
