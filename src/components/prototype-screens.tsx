@@ -7,6 +7,7 @@ import { usePrototype } from "@/components/prototype-provider";
 import {
   type CreateGroupInput,
   type StudyGroup,
+  type Weekday,
   currentUserId,
   formatExamDate,
   formatUploadDate,
@@ -14,6 +15,8 @@ import {
   getGroupProgress,
   getMemberProgress,
 } from "@/lib/mock-data";
+
+const weekdayOptions: Weekday[] = ["월", "화", "수", "목", "금"];
 
 function getGroupById(groups: StudyGroup[], groupId: string) {
   return groups.find((group) => group.id === groupId);
@@ -42,21 +45,6 @@ function getTodayTasks(groups: StudyGroup[]) {
           ...item,
         })),
     )
-    .slice(0, 4);
-}
-
-function getRecentMaterials(groups: StudyGroup[]) {
-  return groups
-    .flatMap((group) =>
-      sortMaterials(group).map((material) => ({
-        groupId: group.id,
-        groupName: group.name,
-        ...material,
-      })),
-    )
-    .sort((left, right) => {
-      return new Date(right.uploadedAt).getTime() - new Date(left.uploadedAt).getTime();
-    })
     .slice(0, 4);
 }
 
@@ -105,21 +93,22 @@ function AppShell({
   const pathname = usePathname();
   const { groups } = usePrototype();
   const featuredGroupId = groupId ?? groups[0]?.id;
+  const studyHref = featuredGroupId ? `/group/${featuredGroupId}` : "/";
+  const planHref = featuredGroupId ? `/group/${featuredGroupId}/plan` : "/";
+  const materialsHref = featuredGroupId ? `/group/${featuredGroupId}/materials` : "/";
 
   const globalTabs = [
     { label: "홈", href: "/" },
-    { label: "모임 생성", href: "/create" },
-    featuredGroupId
-      ? { label: "대표 모임", href: `/group/${featuredGroupId}` }
-      : { label: "대표 모임", href: "/" },
+    { label: "스터디", href: studyHref },
+    { label: "계획", href: planHref },
+    { label: "자료", href: materialsHref },
   ];
   const groupTabs = groupId
     ? [
-        { label: "개요", href: `/group/${groupId}` },
-        { label: "자료", href: `/group/${groupId}/materials` },
+        { label: "홈", href: "/" },
+        { label: "스터디", href: `/group/${groupId}` },
         { label: "계획", href: `/group/${groupId}/plan` },
-        { label: "AI", href: `/group/${groupId}/ai` },
-        { label: "진도", href: `/group/${groupId}/progress` },
+        { label: "자료", href: `/group/${groupId}/materials` },
       ]
     : globalTabs;
   const tabs = groupId ? groupTabs : globalTabs;
@@ -201,51 +190,15 @@ function MissingGroupState() {
 export function HomeScreen() {
   const { groups } = usePrototype();
   const todayTasks = getTodayTasks(groups);
-  const recentMaterials = getRecentMaterials(groups);
+  const dDayGroups = [...groups].sort((left, right) => {
+    return getDaysLeft(left.examDate) - getDaysLeft(right.examDate);
+  });
 
   return (
     <AppShell
-      title="같은 자료, 같은 일정으로 움직이는 스터디"
-      subtitle="시험 일정에 맞춘 주간 계획과 자료 기반 AI 질문 흐름을 한 화면씩 바로 확인할 수 있습니다."
+      title="한눈에 보는 스터디 홈"
+      subtitle="오늘 할 일, 시험 디데이, 내가 속한 모임만 먼저 확인하는 단순한 홈 화면입니다."
     >
-      <section className="overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,#20498f_0%,#2f6ee5_58%,#90b6ff_100%)] p-5 text-white shadow-[0_22px_70px_rgba(35,79,154,0.28)]">
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-blue-100">
-              AI Study Group Demo
-            </p>
-            <h1 className="max-w-[240px] font-[family:var(--font-study-display)] text-[32px] leading-[1.02] tracking-[-0.06em]">
-              자료 공유부터
-              <br />
-              계획 체크까지
-            </h1>
-          </div>
-          <div className="rounded-[22px] bg-white/12 px-3 py-2 text-right text-xs leading-5 text-blue-50">
-            <div>{groups.length}개 모임</div>
-            <div>오늘 할 일 {todayTasks.length}개</div>
-          </div>
-        </div>
-
-        <p className="text-sm leading-6 text-blue-50">
-          공용 자료 업로드, 시험일 기반 주간 학습 계획, AI 질의응답, 팀원 진도 관리를 모바일 흐름으로 빠르게 검증하는 프로토타입입니다.
-        </p>
-
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <Link
-            href="/create"
-            className="rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-semibold tracking-[-0.02em] text-white shadow-[0_14px_30px_rgba(8,15,33,0.22)]"
-          >
-            모임 만들기
-          </Link>
-          <Link
-            href={`/group/${groups[0]?.id ?? ""}`}
-            className="rounded-2xl border border-white/28 bg-white/12 px-4 py-3 text-center text-sm font-semibold tracking-[-0.02em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
-          >
-            대표 모임 보기
-          </Link>
-        </div>
-      </section>
-
       <SectionCard
         title="내가 속한 스터디 모임"
         action={
@@ -274,13 +227,20 @@ export function HomeScreen() {
               </span>
             </div>
 
-            <p className="mb-3 text-sm leading-6 text-[var(--ink-soft)]">{group.weeklyGoal}</p>
-
-            <div className="mb-2 flex items-center justify-between text-xs font-medium text-slate-500">
-              <span>개인 진행률</span>
-              <span>{getMemberProgress(group, currentUserId)}%</span>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl bg-slate-50 p-3">
+                <p className="text-[11px] font-medium text-slate-500">시험일</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  {formatExamDate(group.examDate)}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-3">
+                <p className="text-[11px] font-medium text-slate-500">오늘 할 일</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  {group.plan.filter((item) => !item.memberStatus[currentUserId]).length}개
+                </p>
+              </div>
             </div>
-            <ProgressBar value={getMemberProgress(group, currentUserId)} />
           </Link>
         ))}
       </SectionCard>
@@ -305,33 +265,23 @@ export function HomeScreen() {
         ))}
       </SectionCard>
 
-      <div className="grid grid-cols-2 gap-4">
-        <SectionCard title="최근 일정">
-          {groups.map((group) => (
-            <div key={group.id} className="rounded-2xl bg-white/80 p-3">
+      <SectionCard title="시험 디데이">
+        {dDayGroups.map((group) => (
+          <Link
+            key={group.id}
+            href={`/group/${group.id}`}
+            className="flex items-center justify-between rounded-2xl bg-white/80 p-3"
+          >
+            <div>
               <p className="text-sm font-semibold text-slate-900">{group.name}</p>
-              <p className="mt-1 text-xs text-[var(--ink-soft)]">
-                {formatExamDate(group.examDate)} · {getRelativeExamText(group.examDate)}
-              </p>
+              <p className="mt-1 text-xs text-[var(--ink-soft)]">{formatExamDate(group.examDate)}</p>
             </div>
-          ))}
-        </SectionCard>
-
-        <SectionCard title="최근 자료">
-          {recentMaterials.map((material) => (
-            <Link
-              key={material.id}
-              href={`/group/${material.groupId}/materials`}
-              className="block rounded-2xl bg-white/80 p-3"
-            >
-              <p className="line-clamp-2 text-sm font-semibold text-slate-900">{material.title}</p>
-              <p className="mt-1 text-xs text-[var(--ink-soft)]">
-                {material.groupName} · {formatUploadDate(material.uploadedAt)}
-              </p>
-            </Link>
-          ))}
-        </SectionCard>
-      </div>
+            <span className="rounded-full bg-[var(--brand-soft)] px-3 py-2 text-xs font-semibold text-[var(--brand)]">
+              {getRelativeExamText(group.examDate)}
+            </span>
+          </Link>
+        ))}
+      </SectionCard>
     </AppShell>
   );
 }
@@ -487,7 +437,7 @@ export function GroupOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="rounded-2xl bg-white/80 p-3">
-            <p className="text-xs text-slate-500">이번 주 목표</p>
+            <p className="text-xs text-slate-500">모임 목표</p>
             <p className="mt-1 text-sm font-semibold text-slate-900">{group.weeklyGoal}</p>
           </div>
           <div className="rounded-2xl bg-white/80 p-3">
@@ -497,46 +447,26 @@ export function GroupOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
         </div>
       </section>
 
-      <SectionCard title="빠른 이동">
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: "공용 자료", href: `/group/${group.id}/materials`, desc: "업로드 박스 + 자료 목록" },
-            { label: "주간 계획", href: `/group/${group.id}/plan`, desc: "요일별 체크 카드" },
-            { label: "AI 질문", href: `/group/${group.id}/ai`, desc: "추천 질문과 근거 카드" },
-            { label: "팀원 진도", href: `/group/${group.id}/progress`, desc: "멤버별 진행률 바" },
-          ].map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-[24px] bg-white/80 p-4 transition hover:bg-white"
-            >
-              <p className="text-sm font-semibold text-slate-900">{item.label}</p>
-              <p className="mt-1 text-xs leading-5 text-[var(--ink-soft)]">{item.desc}</p>
-            </Link>
-          ))}
-        </div>
-      </SectionCard>
-
-      <SectionCard title="팀원">
+      <SectionCard title="팀원과 진행 상황">
         {group.members.map((member) => (
-          <div
-            key={member.id}
-            className="flex items-center justify-between rounded-2xl bg-white/80 p-3"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-sm font-semibold text-slate-700">
-                {member.name.slice(0, 1)}
+          <div key={member.id} className="rounded-2xl bg-white/80 p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-sm font-semibold text-slate-700">
+                  {member.name.slice(0, 1)}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">{member.name}</p>
+                  <p className="text-xs text-[var(--ink-soft)]">
+                    {member.role} · {member.focus}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900">{member.name}</p>
-                <p className="text-xs text-[var(--ink-soft)]">
-                  {member.role} · {member.focus}
-                </p>
-              </div>
+              <span className="text-sm font-semibold text-[var(--brand)]">
+                {getMemberProgress(group, member.id)}%
+              </span>
             </div>
-            <span className="text-sm font-semibold text-[var(--brand)]">
-              {getMemberProgress(group, member.id)}%
-            </span>
+            <ProgressBar value={getMemberProgress(group, member.id)} />
           </div>
         ))}
       </SectionCard>
@@ -561,10 +491,10 @@ export function GroupOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
       </SectionCard>
 
       <SectionCard
-        title="이번 주 학습 계획"
+        title="이번 주 계획 요약"
         action={
           <Link href={`/group/${group.id}/plan`} className="text-sm font-semibold text-[var(--brand)]">
-            체크하기
+            계획 보기
           </Link>
         }
       >
@@ -585,8 +515,9 @@ export function GroupOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
 }
 
 export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
-  const { groups, queueMockUpload } = usePrototype();
+  const { groups, queueMockUpload, sendQuestion, isAnswering } = usePrototype();
   const group = getGroupById(groups, groupId);
+  const [draft, setDraft] = useState("");
 
   if (!group) {
     return (
@@ -596,13 +527,25 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
     );
   }
 
-  const materials = sortMaterials(group);
+  const activeGroup = group;
+  const materials = sortMaterials(activeGroup);
+  const recommendedQuestions = [
+    `${activeGroup.subject} 핵심 개념만 정리해줘`,
+    "시험 범위에서 중요한 자료를 알려줘",
+    "자료 기반으로 예상 질문 3개 만들어줘",
+  ];
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    sendQuestion(activeGroup.id, draft);
+    setDraft("");
+  }
 
   return (
     <AppShell
       groupId={groupId}
-      title="공용 자료"
-      subtitle={`${group.subject} 자료 ${materials.length}개 · 실제 업로드 없이 mock 상태로 동작합니다.`}
+      title="자료"
+      subtitle={`${activeGroup.subject} 자료 ${materials.length}개와 자료 기반 AI 질문을 한 메뉴에서 확인합니다.`}
     >
       <SectionCard title="자료 업로드 박스">
         <div className="rounded-[28px] border border-dashed border-[var(--brand)] bg-[linear-gradient(180deg,rgba(217,231,255,0.5),rgba(255,255,255,0.94))] p-5">
@@ -612,11 +555,11 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
           </p>
           <button
             type="button"
-            onClick={() => queueMockUpload(group.id)}
+            onClick={() => queueMockUpload(activeGroup.id)}
             className="mt-4 w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(47,110,229,0.24)]"
           >
-            {group.uploadDraftCount > 0
-              ? `Mock 자료 ${group.uploadDraftCount}개 추가됨`
+            {activeGroup.uploadDraftCount > 0
+              ? `Mock 자료 ${activeGroup.uploadDraftCount}개 추가됨`
               : "Mock 자료 추가해 보기"}
           </button>
         </div>
@@ -640,13 +583,109 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
           </div>
         ))}
       </SectionCard>
+
+      <SectionCard title="자료 기반 AI 질문">
+        <div className="flex flex-wrap gap-2">
+          {recommendedQuestions.map((question) => (
+            <button
+              key={question}
+              type="button"
+              onClick={() => sendQuestion(activeGroup.id, question)}
+              className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm"
+            >
+              {question}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-3">
+          {activeGroup.chat.map((message) => (
+            <div
+              key={message.id}
+              className={`rounded-[24px] p-4 ${
+                message.role === "assistant"
+                  ? "bg-white/90"
+                  : "ml-auto max-w-[82%] bg-[var(--brand)] text-white"
+              }`}
+            >
+              <p className="whitespace-pre-line text-sm leading-6">{message.text}</p>
+              <p
+                className={`mt-2 text-[11px] font-medium ${
+                  message.role === "assistant" ? "text-slate-400" : "text-blue-100"
+                }`}
+              >
+                {message.createdAt}
+              </p>
+
+              {message.role === "assistant" && message.sources && message.sources.length > 0 ? (
+                <div className="mt-3 space-y-2">
+                  {message.sources.map((source) => (
+                    <div key={source.id} className="rounded-2xl bg-slate-50 p-3">
+                      <p className="text-sm font-semibold text-slate-900">{source.title}</p>
+                      <p className="mt-1 text-xs font-medium text-[var(--brand)]">
+                        {source.locationHint}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-[var(--ink-soft)]">
+                        {source.summary}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ))}
+
+          {isAnswering(activeGroup.id) ? (
+            <div className="rounded-[24px] bg-white/90 p-4">
+              <p className="text-sm font-semibold text-slate-900">답변 생성 중...</p>
+              <p className="mt-1 text-xs text-[var(--ink-soft)]">
+                업로드된 자료를 근거 카드와 함께 보여주는 mock 응답입니다.
+              </p>
+            </div>
+          ) : null}
+        </div>
+
+        <form className="space-y-3" onSubmit={handleSubmit}>
+          <textarea
+            rows={3}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder={`${activeGroup.subject} 자료에서 궁금한 점을 입력하세요`}
+            className="w-full rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+          />
+          <button
+            type="submit"
+            className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(47,110,229,0.24)]"
+          >
+            AI에게 질문하기
+          </button>
+        </form>
+      </SectionCard>
     </AppShell>
   );
 }
 
 export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
-  const { groups, togglePlanItem } = usePrototype();
+  const { groups, togglePlanItem, updatePlanItem, addPlanItem } = usePrototype();
   const group = getGroupById(groups, groupId);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<{
+    day: Weekday;
+    title: string;
+    detail: string;
+    duration: string;
+  } | null>(null);
+  const [newItem, setNewItem] = useState<{
+    day: Weekday;
+    title: string;
+    detail: string;
+    duration: string;
+  }>({
+    day: "금",
+    title: "",
+    detail: "",
+    duration: "30분",
+  });
 
   if (!group) {
     return (
@@ -656,21 +695,60 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
     );
   }
 
-  const myProgress = getMemberProgress(group, currentUserId);
+  const activeGroup = group;
+  const myProgress = getMemberProgress(activeGroup, currentUserId);
+
+  function startEditing(item: (typeof activeGroup.plan)[number]) {
+    setEditingItemId(item.id);
+    setEditDraft({
+      day: item.day,
+      title: item.title,
+      detail: item.detail,
+      duration: item.duration,
+    });
+  }
+
+  function saveEditing() {
+    if (!editingItemId || !editDraft) {
+      return;
+    }
+
+    updatePlanItem(activeGroup.id, editingItemId, editDraft);
+    setEditingItemId(null);
+    setEditDraft(null);
+  }
+
+  function addCustomPlan() {
+    if (!newItem.title.trim() || !newItem.detail.trim()) {
+      return;
+    }
+
+    addPlanItem(activeGroup.id, {
+      ...newItem,
+      title: newItem.title.trim(),
+      detail: newItem.detail.trim(),
+    });
+    setNewItem({
+      day: "금",
+      title: "",
+      detail: "",
+      duration: "30분",
+    });
+  }
 
   return (
     <AppShell
       groupId={groupId}
       title="주간 학습 계획"
-      subtitle={`시험일까지 ${getDaysLeft(group.examDate)}일 남았습니다. 자료와 일정 기준으로 자동 생성된 mock 계획입니다.`}
+      subtitle={`자동 생성된 계획을 확인하고, 필요하면 직접 수정하거나 새 일정도 추가할 수 있습니다.`}
     >
       <SectionCard title="이번 주 요약">
         <div className="rounded-[24px] bg-[linear-gradient(140deg,#1e467f_0%,#2f6ee5_100%)] p-4 text-white">
           <p className="text-xs uppercase tracking-[0.2em] text-blue-100">Auto Plan</p>
-          <p className="mt-2 text-lg font-semibold tracking-[-0.03em]">{group.weeklyGoal}</p>
+          <p className="mt-2 text-lg font-semibold tracking-[-0.03em]">{activeGroup.weeklyGoal}</p>
           <div className="mt-4 flex items-center justify-between text-sm text-blue-50">
             <span>내 진행률 {myProgress}%</span>
-            <span>팀 평균 {getGroupProgress(group)}%</span>
+            <span>팀 평균 {getGroupProgress(activeGroup)}%</span>
           </div>
           <div className="mt-2 rounded-full bg-white/20 p-1">
             <ProgressBar value={myProgress} />
@@ -679,40 +757,180 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
       </SectionCard>
 
       <SectionCard title="요일별 카드">
-        {group.plan.map((item) => {
+        {activeGroup.plan.map((item) => {
           const checked = item.memberStatus[currentUserId];
+          const isEditing = editingItemId === item.id && editDraft;
 
           return (
             <div key={item.id} className="rounded-[26px] bg-white/85 p-4">
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
-                    {item.day}
-                  </p>
-                  <p className="mt-1 text-base font-semibold text-slate-900">{item.title}</p>
+              {isEditing ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-[88px_1fr] gap-3">
+                    <select
+                      value={editDraft.day}
+                      onChange={(event) =>
+                        setEditDraft((previous) =>
+                          previous
+                            ? { ...previous, day: event.target.value as Weekday }
+                            : previous,
+                        )
+                      }
+                      className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none"
+                    >
+                      {weekdayOptions.map((day) => (
+                        <option key={day} value={day}>
+                          {day}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      value={editDraft.title}
+                      onChange={(event) =>
+                        setEditDraft((previous) =>
+                          previous ? { ...previous, title: event.target.value } : previous,
+                        )
+                      }
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                    />
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={editDraft.detail}
+                    onChange={(event) =>
+                      setEditDraft((previous) =>
+                        previous ? { ...previous, detail: event.target.value } : previous,
+                      )
+                    }
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                  />
+                  <div className="flex gap-3">
+                    <input
+                      value={editDraft.duration}
+                      onChange={(event) =>
+                        setEditDraft((previous) =>
+                          previous ? { ...previous, duration: event.target.value } : previous,
+                        )
+                      }
+                      className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={saveEditing}
+                      className="rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
+                    >
+                      저장
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingItemId(null);
+                        setEditDraft(null);
+                      }}
+                      className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-600"
+                    >
+                      취소
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => togglePlanItem(group.id, item.id)}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
-                    checked
-                      ? "bg-[var(--brand)] text-white"
-                      : "bg-slate-100 text-slate-600"
-                  }`}
-                >
-                  {checked ? "완료" : "체크"}
-                </button>
-              </div>
-              <p className="text-sm leading-6 text-[var(--ink-soft)]">{item.detail}</p>
-              <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                <span>{item.duration}</span>
-                <span>
-                  완료 {Object.values(item.memberStatus).filter(Boolean).length}/{group.members.length}
-                </span>
-              </div>
+              ) : (
+                <>
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
+                        {item.day}
+                      </p>
+                      <p className="mt-1 text-base font-semibold text-slate-900">{item.title}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => startEditing(item)}
+                        className="rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-600"
+                      >
+                        수정
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => togglePlanItem(activeGroup.id, item.id)}
+                        className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                          checked
+                            ? "bg-[var(--brand)] text-white"
+                            : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {checked ? "완료" : "체크"}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-sm leading-6 text-[var(--ink-soft)]">{item.detail}</p>
+                  <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+                    <span>{item.duration}</span>
+                    <span>
+                      완료 {Object.values(item.memberStatus).filter(Boolean).length}/
+                      {activeGroup.members.length}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           );
         })}
+      </SectionCard>
+
+      <SectionCard title="직접 일정 추가">
+        <div className="space-y-3 rounded-[24px] bg-white/85 p-4">
+          <div className="grid grid-cols-[88px_1fr] gap-3">
+            <select
+              value={newItem.day}
+              onChange={(event) =>
+                setNewItem((previous) => ({
+                  ...previous,
+                  day: event.target.value as Weekday,
+                }))
+              }
+              className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none"
+            >
+              {weekdayOptions.map((day) => (
+                <option key={day} value={day}>
+                  {day}
+                </option>
+              ))}
+            </select>
+            <input
+              value={newItem.title}
+              onChange={(event) =>
+                setNewItem((previous) => ({ ...previous, title: event.target.value }))
+              }
+              placeholder="예: 오답노트 직접 정리"
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+            />
+          </div>
+          <textarea
+            rows={3}
+            value={newItem.detail}
+            onChange={(event) =>
+              setNewItem((previous) => ({ ...previous, detail: event.target.value }))
+            }
+            placeholder="직접 넣고 싶은 학습 내용을 적어주세요"
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+          />
+          <div className="flex gap-3">
+            <input
+              value={newItem.duration}
+              onChange={(event) =>
+                setNewItem((previous) => ({ ...previous, duration: event.target.value }))
+              }
+              className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+            />
+            <button
+              type="button"
+              onClick={addCustomPlan}
+              className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+            >
+              일정 추가
+            </button>
+          </div>
+        </div>
       </SectionCard>
     </AppShell>
   );

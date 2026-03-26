@@ -1,4 +1,4 @@
-import { ProgressScreen } from "@/components/prototype-screens";
+import { redirect } from "next/navigation";
 
 export default async function ProgressPage({
   params,
@@ -7,5 +7,5 @@ export default async function ProgressPage({
 }>) {
   const { id } = await params;
 
-  return <ProgressScreen groupId={id} />;
+  redirect(`/group/${id}`);
 }

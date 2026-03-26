@@ -1,4 +1,4 @@
-import { AiScreen } from "@/components/prototype-screens";
+import { redirect } from "next/navigation";
 
 export default async function AiPage({
   params,
@@ -7,5 +7,5 @@ export default async function AiPage({
 }>) {
   const { id } = await params;
 
-  return <AiScreen groupId={id} />;
+  redirect(`/group/${id}/materials`);
 }

@@ -4,6 +4,7 @@ import {
   type ChatMessage,
   type CreateGroupInput,
   type StudyGroup,
+  type Weekday,
   buildMockAnswer,
   createGroupFromInput,
   currentUserId,
@@ -22,6 +23,15 @@ type PrototypeContextValue = {
   currentUserId: string;
   createGroup: (input: CreateGroupInput) => string;
   togglePlanItem: (groupId: string, itemId: string) => void;
+  updatePlanItem: (
+    groupId: string,
+    itemId: string,
+    updates: { day: Weekday; title: string; detail: string; duration: string },
+  ) => void;
+  addPlanItem: (
+    groupId: string,
+    item: { day: Weekday; title: string; detail: string; duration: string },
+  ) => void;
   queueMockUpload: (groupId: string) => void;
   sendQuestion: (groupId: string, question: string) => void;
   isAnswering: (groupId: string) => boolean;
@@ -74,6 +84,61 @@ export function PrototypeProvider({
               },
             };
           }),
+        };
+      }),
+    );
+  }
+
+  function updatePlanItem(
+    groupId: string,
+    itemId: string,
+    updates: { day: Weekday; title: string; detail: string; duration: string },
+  ) {
+    setGroups((previous) =>
+      previous.map((group) => {
+        if (group.id !== groupId) {
+          return group;
+        }
+
+        return {
+          ...group,
+          plan: group.plan.map((item) => {
+            if (item.id !== itemId) {
+              return item;
+            }
+
+            return {
+              ...item,
+              ...updates,
+            };
+          }),
+        };
+      }),
+    );
+  }
+
+  function addPlanItem(
+    groupId: string,
+    item: { day: Weekday; title: string; detail: string; duration: string },
+  ) {
+    setGroups((previous) =>
+      previous.map((group) => {
+        if (group.id !== groupId) {
+          return group;
+        }
+
+        return {
+          ...group,
+          plan: [
+            ...group.plan,
+            {
+              id: `plan-custom-${Date.now().toString(36)}`,
+              ...item,
+              memberStatus: Object.fromEntries(
+                group.members.map((member) => [member.id, false]),
+              ),
+            },
+          ],
         };
       }),
     );
@@ -165,6 +230,8 @@ export function PrototypeProvider({
     currentUserId,
     createGroup,
     togglePlanItem,
+    updatePlanItem,
+    addPlanItem,
     queueMockUpload,
     sendQuestion,
     isAnswering: (groupId: string) => Boolean(pendingAnswers[groupId]),
