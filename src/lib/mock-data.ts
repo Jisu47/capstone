@@ -7,18 +7,23 @@ export type Member = {
   focus: string;
 };
 
+export type MaterialFormat = "PDF" | "DOC" | "TXT" | "MD";
+export type MaterialProcessingStatus = "processing" | "ready" | "failed";
+
 export type Material = {
   id: string;
   title: string;
   summary: string;
   uploadedBy: string;
   uploadedAt: string;
-  format: "PDF" | "DOC";
+  format: MaterialFormat;
   locationHint: string;
+  processingStatus?: MaterialProcessingStatus;
 };
 
 export type SourceCard = {
   id: string;
+  materialId?: string;
   title: string;
   locationHint: string;
   summary: string;
@@ -86,6 +91,7 @@ function createWelcomeChat(subject: string, materials: Material[]): ChatMessage[
         ? [
             {
               id: `${primaryMaterial.id}-source`,
+              materialId: primaryMaterial.id,
               title: primaryMaterial.title,
               locationHint: primaryMaterial.locationHint,
               summary: "핵심 개념이 먼저 정리된 기준 자료",
@@ -196,6 +202,7 @@ function createInitialGroups(): StudyGroup[] {
       uploadedAt: makeIsoDate("2026-03-23"),
       format: "PDF",
       locationHint: "p.12",
+      processingStatus: "ready",
     },
     {
       id: "mat-os-2",
@@ -205,6 +212,7 @@ function createInitialGroups(): StudyGroup[] {
       uploadedAt: makeIsoDate("2026-03-22"),
       format: "PDF",
       locationHint: "핵심 개념 요약",
+      processingStatus: "ready",
     },
     {
       id: "mat-os-3",
@@ -214,6 +222,7 @@ function createInitialGroups(): StudyGroup[] {
       uploadedAt: makeIsoDate("2026-03-21"),
       format: "DOC",
       locationHint: "빈출 파트",
+      processingStatus: "ready",
     },
   ];
 
@@ -226,6 +235,7 @@ function createInitialGroups(): StudyGroup[] {
       uploadedAt: makeIsoDate("2026-03-24"),
       format: "PDF",
       locationHint: "p.8",
+      processingStatus: "ready",
     },
     {
       id: "mat-net-2",
@@ -235,6 +245,7 @@ function createInitialGroups(): StudyGroup[] {
       uploadedAt: makeIsoDate("2026-03-23"),
       format: "PDF",
       locationHint: "요약 노트",
+      processingStatus: "ready",
     },
     {
       id: "mat-net-3",
@@ -244,6 +255,7 @@ function createInitialGroups(): StudyGroup[] {
       uploadedAt: makeIsoDate("2026-03-20"),
       format: "PDF",
       locationHint: "슬라이드 4",
+      processingStatus: "ready",
     },
   ];
 
@@ -340,6 +352,7 @@ export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
       uploadedAt: createdAt,
       format: "PDF",
       locationHint: "요약 1장",
+      processingStatus: "ready",
     },
     {
       id: `${groupId}-mat-2`,
@@ -349,6 +362,7 @@ export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
       uploadedAt: createdAt,
       format: "PDF",
       locationHint: "문제 1~3",
+      processingStatus: "ready",
     },
     {
       id: `${groupId}-mat-3`,
@@ -358,6 +372,7 @@ export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
       uploadedAt: createdAt,
       format: "PDF",
       locationHint: "토론 포인트",
+      processingStatus: "ready",
     },
   ];
 
@@ -374,72 +389,6 @@ export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
     plan: createAutoPlan(trimmedSubject, input.weeklyGoal, memberIds),
     chat: createWelcomeChat(trimmedSubject, materials),
     uploadDraftCount: 0,
-  };
-}
-
-export function buildMockAnswer(group: StudyGroup, question: string) {
-  const primary = group.materials[0];
-  const secondary = group.materials[1] ?? group.materials[0];
-  const normalized = question.replace(/\s+/g, "");
-
-  if (normalized.includes("핵심개념")) {
-    return {
-      text: `${group.subject} 기준으로 이번 주에는 "${group.plan[1]?.title ?? "핵심 개념 학습"}"가 가장 중요합니다.\n먼저 용어 정의를 맞춘 뒤, 자료에 나온 예시를 기준으로 비교표를 만들어 두면 시험 대비가 빨라집니다.`,
-      sources: [
-        {
-          id: `${primary.id}-answer-1`,
-          title: primary.title,
-          locationHint: primary.locationHint,
-          summary: "핵심 개념과 예시가 가장 먼저 정리된 기준 자료",
-        },
-      ],
-    };
-  }
-
-  if (normalized.includes("시험범위") || normalized.includes("중요")) {
-    return {
-      text: `시험 범위에서는 "${group.plan[0]?.title}"와 "${group.plan[2]?.title}"를 우선 보세요.\n개념 설명형과 비교형 문제가 섞여 나올 가능성이 높아서 정의, 차이점, 예시까지 한 번에 정리하는 편이 좋습니다.`,
-      sources: [
-        {
-          id: `${primary.id}-answer-2`,
-          title: primary.title,
-          locationHint: primary.locationHint,
-          summary: "시험 범위 기준 핵심 파트가 정리된 자료",
-        },
-        {
-          id: `${secondary.id}-answer-2`,
-          title: secondary.title,
-          locationHint: secondary.locationHint,
-          summary: "추가 예시와 서술형 포인트를 확인할 수 있는 자료",
-        },
-      ],
-    };
-  }
-
-  if (normalized.includes("토론") || normalized.includes("발표")) {
-    return {
-      text: `토론 질문은 이렇게 가져가면 자연스럽습니다.\n1. 이번 범위에서 가장 헷갈리는 개념은 무엇인가?\n2. 실제 사례에 대입하면 어떤 차이가 생기나?\n3. 시험형 서술 문제로 바꾸면 어떤 답안 구조가 적절한가?`,
-      sources: [
-        {
-          id: `${secondary.id}-answer-3`,
-          title: secondary.title,
-          locationHint: secondary.locationHint,
-          summary: "발표/토론용 구조를 참고하기 좋은 보조 자료",
-        },
-      ],
-    };
-  }
-
-  return {
-    text: `${group.subject} 공용 자료를 기준으로 답하면, 이번 주 우선순위는 "${group.weeklyGoal}"입니다.\n자료 먼저 읽기 -> 주간 계획 체크 -> 막히는 부분만 다시 질문하는 흐름으로 보면 가장 빠릅니다.`,
-    sources: [
-      {
-        id: `${primary.id}-answer-default`,
-        title: primary.title,
-        locationHint: primary.locationHint,
-        summary: "질문과 가장 가까운 기본 참고 자료",
-      },
-    ],
   };
 }
 
