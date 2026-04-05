@@ -1,4 +1,4 @@
-import { GroupOverviewScreen } from "@/components/prototype-screens";
+import { StudyOverviewScreen } from "@/components/study-overview-screen";
 
 export default async function GroupPage({
   params,
@@ -7,5 +7,5 @@ export default async function GroupPage({
 }>) {
   const { id } = await params;
 
-  return <GroupOverviewScreen groupId={id} />;
+  return <StudyOverviewScreen groupId={id} />;
 }

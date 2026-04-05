@@ -48,7 +48,10 @@ export type StudyGroup = {
   name: string;
   subject: string;
   examDate: string;
+  presentationDate: string | null;
+  deadlineDate: string | null;
   weeklyGoal: string;
+  overallGoal: string;
   description: string;
   recentUpdate: string;
   members: Member[];
@@ -58,12 +61,17 @@ export type StudyGroup = {
   uploadDraftCount: number;
 };
 
-export type CreateGroupInput = {
+export type GroupDetailsInput = {
   name: string;
   subject: string;
   examDate: string;
+  presentationDate: string;
+  deadlineDate: string;
   weeklyGoal: string;
+  overallGoal: string;
 };
+
+export type CreateGroupInput = GroupDetailsInput;
 
 export const currentUserId = "member-jiyoon";
 
@@ -80,7 +88,7 @@ function createWelcomeChat(subject: string, materials: Material[]): ChatMessage[
     {
       id: `chat-welcome-${subject}`,
       role: "assistant",
-      text: `${subject} 스터디 자료를 바탕으로 핵심 개념 요약, 시험 범위 정리, 토론 질문 생성까지 도와드릴게요.`,
+      text: `${subject} 스터디 자료를 바탕으로 핵심 개념 요약, 시험 범위 정리, 후속 질문 생성을 도와드릴게요.`,
       createdAt: "방금 전",
       sources: primaryMaterial
         ? [
@@ -88,7 +96,7 @@ function createWelcomeChat(subject: string, materials: Material[]): ChatMessage[
               id: `${primaryMaterial.id}-source`,
               title: primaryMaterial.title,
               locationHint: primaryMaterial.locationHint,
-              summary: "핵심 개념이 먼저 정리된 기준 자료",
+              summary: "스터디 시작 전에 먼저 읽으면 좋은 핵심 정리 자료",
             },
           ]
         : [],
@@ -123,6 +131,20 @@ function parseGoals(weeklyGoal: string) {
     .filter(Boolean);
 }
 
+function normalizeOptionalDate(value: string) {
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+export function buildGroupDescription(subject: string, overallGoal: string) {
+  return `${subject} 학습 범위를 함께 관리하고 ${overallGoal.trim()}을 준비하는 스터디 모임`;
+}
+
+export function buildRecentUpdateFromGoal(weeklyGoal: string) {
+  const focus = parseGoals(weeklyGoal)[0] ?? "이번 주 목표";
+  return `${focus} 기준으로 모임 운영 정보가 업데이트되었습니다.`;
+}
+
 function createAutoPlan(subject: string, weeklyGoal: string, memberIds: string[]) {
   const goals = parseGoals(weeklyGoal);
   const teammateA = memberIds[1];
@@ -132,36 +154,36 @@ function createAutoPlan(subject: string, weeklyGoal: string, memberIds: string[]
     [
       {
         day: "월",
-        title: goals[0] ?? `${subject} 1~2주차 흐름 정리`,
-        detail: `${subject} 전체 맥락을 빠르게 잡고 이번 주 범위를 표로 정리`,
+        title: goals[0] ?? `${subject} 1~2주차 핵심 개념 정리`,
+        detail: `${subject} 전체 범위를 빠르게 훑고 이번 주 우선 범위를 서로 정리합니다.`,
         duration: "45분",
         completedMemberIds: [currentUserId, teammateA].filter(Boolean) as string[],
       },
       {
         day: "화",
-        title: goals[1] ?? `${subject} 핵심 개념 학습`,
-        detail: "공용 자료 기준으로 빈출 개념과 용어를 묶어서 암기",
+        title: goals[1] ?? `${subject} 핵심 개념 복습`,
+        detail: "공용 자료를 기준으로 빈출 개념과 용어를 묶어서 정리합니다.",
         duration: "50분",
         completedMemberIds: [teammateB].filter(Boolean) as string[],
       },
       {
         day: "수",
-        title: `${subject} 예상문제 풀이`,
-        detail: "시험 범위에서 자주 나오는 주제를 묶어 3문제 풀이",
+        title: `${subject} 예상문제 대비`,
+        detail: "시험 범위에서 자주 나오는 주제를 묶어 3문제를 준비합니다.",
         duration: "40분",
         completedMemberIds: [teammateA].filter(Boolean) as string[],
       },
       {
         day: "목",
         title: goals[2] ?? `${subject} 취약 파트 보완`,
-        detail: "AI 질의응답으로 헷갈리는 개념을 다시 확인",
+        detail: "AI 질의응답에서 막히는 개념을 다시 확인합니다.",
         duration: "35분",
         completedMemberIds: [currentUserId].filter(Boolean) as string[],
       },
       {
         day: "금",
-        title: `${subject} 주간 리캡`,
-        detail: "모임원별 완료 항목을 확인하고 다음 주 우선순위 정리",
+        title: `${subject} 주간 리뷰`,
+        detail: "모임 전체 완료 항목을 확인하고 다음 주 우선순위를 정리합니다.",
         duration: "30분",
         completedMemberIds: [],
       },
@@ -176,9 +198,9 @@ function makeIsoDate(date: string) {
 
 function createInitialMembers(): Member[] {
   return [
-    { id: currentUserId, name: "영희", role: "팀장", focus: "개념 구조화" },
-    { id: "member-minsu", name: "민수", role: "팀원", focus: "기출 풀이" },
-    { id: "member-seoyeon", name: "서연", role: "팀원", focus: "오답 정리" },
+    { id: currentUserId, name: "지윤", role: "팀장", focus: "개념 구조화" },
+    { id: "member-minsu", name: "민수", role: "팀원", focus: "기출 대비" },
+    { id: "member-seoyeon", name: "서연", role: "팀원", focus: "질답 정리" },
     { id: "member-doyoon", name: "도윤", role: "팀원", focus: "자료 요약" },
   ];
 }
@@ -191,7 +213,7 @@ function createInitialGroups(): StudyGroup[] {
     {
       id: "mat-os-1",
       title: "운영체제 3주차.pdf",
-      summary: "프로세스, 스레드, 컨텍스트 스위칭 핵심 정리",
+      summary: "프로세스, 스레드, 컨텍스트 스위치 핵심 정리",
       uploadedBy: "도윤",
       uploadedAt: makeIsoDate("2026-03-23"),
       format: "PDF",
@@ -200,8 +222,8 @@ function createInitialGroups(): StudyGroup[] {
     {
       id: "mat-os-2",
       title: "발제문 초안.pdf",
-      summary: "세마포어와 교착상태 예시 중심 발표 초안",
-      uploadedBy: "영희",
+      summary: "교수님 수업 흐름과 중간 대비 포인트 정리",
+      uploadedBy: "지윤",
       uploadedAt: makeIsoDate("2026-03-22"),
       format: "PDF",
       locationHint: "핵심 개념 요약",
@@ -209,7 +231,7 @@ function createInitialGroups(): StudyGroup[] {
     {
       id: "mat-os-3",
       title: "운영체제 기출 체크리스트.doc",
-      summary: "교수님 기출 키워드와 예상 서술 포인트",
+      summary: "자주 나오는 서술형 포인트와 체크 질문",
       uploadedBy: "민수",
       uploadedAt: makeIsoDate("2026-03-21"),
       format: "DOC",
@@ -229,9 +251,9 @@ function createInitialGroups(): StudyGroup[] {
     },
     {
       id: "mat-net-2",
-      title: "라우팅 정리 노트.pdf",
-      summary: "거리 벡터와 링크 상태 라우팅 비교표",
-      uploadedBy: "영희",
+      title: "라우터 정리 노트.pdf",
+      summary: "거리 벡터와 링크 상태 라우팅 비교",
+      uploadedBy: "지윤",
       uploadedAt: makeIsoDate("2026-03-23"),
       format: "PDF",
       locationHint: "요약 노트",
@@ -239,7 +261,7 @@ function createInitialGroups(): StudyGroup[] {
     {
       id: "mat-net-3",
       title: "발표 자료 초안.pdf",
-      summary: "토큰 버킷과 혼잡 제어 발표용 구조 초안",
+      summary: "후속 발표에 필요한 슬라이드 구조 초안",
       uploadedBy: "도윤",
       uploadedAt: makeIsoDate("2026-03-20"),
       format: "PDF",
@@ -253,7 +275,10 @@ function createInitialGroups(): StudyGroup[] {
       name: "운영체제 중간 대비",
       subject: "운영체제",
       examDate: "2026-04-18",
+      presentationDate: "2026-04-11",
+      deadlineDate: "2026-04-15",
       weeklyGoal: "프로세스/스레드 정리, 교착상태 이해, 기출 서술형 대비",
+      overallGoal: "운영체제 중간고사 범위를 팀 전체가 일정에 맞춰 완주하기",
       description: "같은 시험 범위를 공유하는 팀이 공용 자료를 함께 보고 정리하는 스터디",
       recentUpdate: "발제문 초안이 업로드됐고 이번 주 계획이 자동 갱신됨",
       members,
@@ -262,36 +287,36 @@ function createInitialGroups(): StudyGroup[] {
         [
           {
             day: "월",
-            title: "1~2주차 흐름 복습",
-            detail: "운영체제 구조와 인터럽트 흐름 다시 읽기",
+            title: "1~2주차 개념 복습",
+            detail: "운영체제 구조와 인터럽트 흐름을 다시 읽습니다.",
             duration: "35분",
             completedMemberIds: [currentUserId, "member-minsu"],
           },
           {
             day: "화",
-            title: "3주차 핵심 개념 학습",
-            detail: "프로세스 상태, PCB, 스케줄링 포인트 정리",
+            title: "3주차 핵심 개념 복습",
+            detail: "프로세스 상태, PCB, 스케줄링 차이를 정리합니다.",
             duration: "50분",
             completedMemberIds: ["member-seoyeon"],
           },
           {
             day: "수",
-            title: "예상문제 풀이",
-            detail: "컨텍스트 스위칭과 스레드 비교 서술형 3문제",
+            title: "예상문제 대비",
+            detail: "컨텍스트 스위치와 스레드 비교 서술형 3문제를 풉니다.",
             duration: "40분",
             completedMemberIds: ["member-minsu"],
           },
           {
             day: "목",
-            title: "AI로 취약 개념 재질문",
-            detail: "세마포어, 뮤텍스, 모니터 차이점 확인",
+            title: "AI로 취약 개념 점검",
+            detail: "메모리 계층, 뮤텍스, 세마포어 차이를 다시 확인합니다.",
             duration: "30분",
             completedMemberIds: [currentUserId],
           },
           {
             day: "금",
-            title: "주간 합본 요약 정리",
-            detail: "모임 발표용 한 장 요약 업데이트",
+            title: "주간 학습 요약 정리",
+            detail: "모임 발표용 핵심 문장과 진행 현황을 갱신합니다.",
             duration: "25분",
             completedMemberIds: [],
           },
@@ -306,12 +331,19 @@ function createInitialGroups(): StudyGroup[] {
       name: "데이터통신 범위 정리",
       subject: "데이터통신",
       examDate: "2026-05-02",
-      weeklyGoal: "계층별 핵심 개념 정리, 라우팅 비교, 예상문제 풀이",
-      description: "시험 범위를 함께 압축해서 보는 자료 공유형 스터디",
-      recentUpdate: "범위 PDF가 올라왔고 라우팅 파트가 이번 주 우선 학습으로 지정됨",
+      presentationDate: "2026-04-26",
+      deadlineDate: "2026-04-29",
+      weeklyGoal: "계층별 핵심 개념 정리, 라우팅 비교, 예상문제 대비",
+      overallGoal: "중간고사와 발표 준비에 필요한 네트워크 핵심 범위를 함께 정리하기",
+      description: "시험 범위를 빠르게 훑기보다 체계적으로 보는 자료 공유형 스터디",
+      recentUpdate: "범위 PDF가 올라왔고 라우터 파트가 이번 주 우선 순위로 지정됨",
       members,
       materials: networkMaterials,
-      plan: createAutoPlan("데이터통신", "계층 구조 정리, 라우팅 비교, 예상문제 풀이", memberIds),
+      plan: createAutoPlan(
+        "데이터통신",
+        "계층 구조 정리, 라우팅 비교, 예상문제 대비",
+        memberIds,
+      ),
       chat: createWelcomeChat("데이터통신", networkMaterials),
       uploadDraftCount: 0,
     },
@@ -328,15 +360,21 @@ export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
   const createdAt = new Date().toISOString();
   const trimmedSubject = input.subject.trim();
   const trimmedName = input.name.trim();
-  const goals = parseGoals(input.weeklyGoal);
+  const trimmedWeeklyGoal = input.weeklyGoal.trim();
+  const trimmedOverallGoal = input.overallGoal.trim();
+  const goals = parseGoals(trimmedWeeklyGoal);
   const groupId = `group-${Date.now().toString(36)}`;
+
+  if (!trimmedName || !trimmedSubject || !input.examDate || !trimmedWeeklyGoal || !trimmedOverallGoal) {
+    throw new Error("스터디 생성에 필요한 기본 정보가 비어 있습니다.");
+  }
 
   const materials: Material[] = [
     {
       id: `${groupId}-mat-1`,
       title: `${trimmedSubject} 공용 요약본.pdf`,
-      summary: `${trimmedSubject} 범위를 빠르게 읽을 수 있는 mock 요약 자료`,
-      uploadedBy: "영희",
+      summary: `${trimmedSubject} 범위를 빠르게 훑을 수 있는 기본 정리 자료`,
+      uploadedBy: "지윤",
       uploadedAt: createdAt,
       format: "PDF",
       locationHint: "요약 1장",
@@ -353,11 +391,11 @@ export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
     {
       id: `${groupId}-mat-3`,
       title: `${trimmedSubject} 발표 준비 메모.pdf`,
-      summary: "발표/토론용 질문과 요점만 모은 mock 자료",
+      summary: "발표와 질의응답 대비 포인트를 정리한 보조 자료",
       uploadedBy: "서연",
       uploadedAt: createdAt,
       format: "PDF",
-      locationHint: "토론 포인트",
+      locationHint: "질문 포인트",
     },
   ];
 
@@ -366,12 +404,15 @@ export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
     name: trimmedName,
     subject: trimmedSubject,
     examDate: input.examDate,
-    weeklyGoal: input.weeklyGoal.trim(),
-    description: `${trimmedSubject} 시험 일정과 공용 자료를 기준으로 움직이는 새 스터디 모임`,
+    presentationDate: normalizeOptionalDate(input.presentationDate),
+    deadlineDate: normalizeOptionalDate(input.deadlineDate),
+    weeklyGoal: trimmedWeeklyGoal,
+    overallGoal: trimmedOverallGoal,
+    description: buildGroupDescription(trimmedSubject, trimmedOverallGoal),
     recentUpdate: `${goals[0] ?? "핵심 개념 정리"} 기준으로 자동 계획이 생성됨`,
     members,
     materials,
-    plan: createAutoPlan(trimmedSubject, input.weeklyGoal, memberIds),
+    plan: createAutoPlan(trimmedSubject, trimmedWeeklyGoal, memberIds),
     chat: createWelcomeChat(trimmedSubject, materials),
     uploadDraftCount: 0,
   };
@@ -384,13 +425,13 @@ export function buildMockAnswer(group: StudyGroup, question: string) {
 
   if (normalized.includes("핵심개념")) {
     return {
-      text: `${group.subject} 기준으로 이번 주에는 "${group.plan[1]?.title ?? "핵심 개념 학습"}"가 가장 중요합니다.\n먼저 용어 정의를 맞춘 뒤, 자료에 나온 예시를 기준으로 비교표를 만들어 두면 시험 대비가 빨라집니다.`,
+      text: `${group.subject} 기준으로 이번 주에는 "${group.plan[1]?.title ?? "핵심 개념 복습"}"이 가장 중요합니다.\n먼저 용어 정의를 맞춘 뒤 자료에 있는 예시를 기준으로 비교표를 만들면 시험 대비가 빨라집니다.`,
       sources: [
         {
           id: `${primary.id}-answer-1`,
           title: primary.title,
           locationHint: primary.locationHint,
-          summary: "핵심 개념과 예시가 가장 먼저 정리된 기준 자료",
+          summary: "핵심 개념과 예시가 먼저 정리된 기본 자료",
         },
       ],
     };
@@ -398,40 +439,40 @@ export function buildMockAnswer(group: StudyGroup, question: string) {
 
   if (normalized.includes("시험범위") || normalized.includes("중요")) {
     return {
-      text: `시험 범위에서는 "${group.plan[0]?.title}"와 "${group.plan[2]?.title}"를 우선 보세요.\n개념 설명형과 비교형 문제가 섞여 나올 가능성이 높아서 정의, 차이점, 예시까지 한 번에 정리하는 편이 좋습니다.`,
+      text: `시험 범위에서는 "${group.plan[0]?.title}"와 "${group.plan[2]?.title}"를 우선 보세요.\n개념 설명과 비교형 문제가 같이 나올 가능성이 높아서 정의, 차이점, 예시까지 한 번에 정리하는 편이 좋습니다.`,
       sources: [
         {
           id: `${primary.id}-answer-2`,
           title: primary.title,
           locationHint: primary.locationHint,
-          summary: "시험 범위 기준 핵심 파트가 정리된 자료",
+          summary: "시험 범위 기준 핵심 포인트가 정리된 자료",
         },
         {
           id: `${secondary.id}-answer-2`,
           title: secondary.title,
           locationHint: secondary.locationHint,
-          summary: "추가 예시와 서술형 포인트를 확인할 수 있는 자료",
+          summary: "추가 예시와 서술형 체크 포인트를 확인할 수 있는 자료",
         },
       ],
     };
   }
 
-  if (normalized.includes("토론") || normalized.includes("발표")) {
+  if (normalized.includes("질문") || normalized.includes("발표")) {
     return {
-      text: `토론 질문은 이렇게 가져가면 자연스럽습니다.\n1. 이번 범위에서 가장 헷갈리는 개념은 무엇인가?\n2. 실제 사례에 대입하면 어떤 차이가 생기나?\n3. 시험형 서술 문제로 바꾸면 어떤 답안 구조가 적절한가?`,
+      text: `후속 질문은 이렇게 가져가면 자연스럽습니다.\n1. 이번 범위에서 가장 헷갈리는 개념은 무엇인가요?\n2. 실제 사례에 대입하면 어떤 차이가 생기나요?\n3. 시험 서술형으로 바꾸면 어떤 답안 구조가 적절한가요?`,
       sources: [
         {
           id: `${secondary.id}-answer-3`,
           title: secondary.title,
           locationHint: secondary.locationHint,
-          summary: "발표/토론용 구조를 참고하기 좋은 보조 자료",
+          summary: "발표와 질의응답 구조를 잡기에 좋은 보조 자료",
         },
       ],
     };
   }
 
   return {
-    text: `${group.subject} 공용 자료를 기준으로 답하면, 이번 주 우선순위는 "${group.weeklyGoal}"입니다.\n자료 먼저 읽기 -> 주간 계획 체크 -> 막히는 부분만 다시 질문하는 흐름으로 보면 가장 빠릅니다.`,
+    text: `${group.subject} 공용 자료를 기준으로 보면 이번 주 우선순위는 "${group.weeklyGoal}"입니다.\n자료 먼저 읽기 -> 주간 계획 체크 -> 막히는 부분만 다시 질문하는 흐름으로 보면 가장 효율적입니다.`,
     sources: [
       {
         id: `${primary.id}-answer-default`,

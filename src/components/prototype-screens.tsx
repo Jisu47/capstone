@@ -91,7 +91,7 @@ function AppShell({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const { groups } = usePrototype();
+  const { groups, error, isLoading, isMutating } = usePrototype();
   const featuredGroupId = groupId ?? groups[0]?.id;
   const studyHref = featuredGroupId ? `/group/${featuredGroupId}` : "/";
   const planHref = featuredGroupId ? `/group/${featuredGroupId}/plan` : "/";
@@ -134,6 +134,16 @@ function AppShell({
             </p>
             <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
           </div>
+          {isLoading || isMutating ? (
+            <div className="mt-3 rounded-2xl bg-white/80 px-3 py-2 text-[11px] font-medium text-slate-600">
+              {isLoading ? "Syncing Supabase data..." : "Saving changes..."}
+            </div>
+          ) : null}
+          {error ? (
+            <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              {error}
+            </div>
+          ) : null}
         </header>
 
         <main className="flex-1 space-y-4 overflow-y-auto px-4 pb-28 pt-4">{children}</main>
@@ -187,8 +197,20 @@ function MissingGroupState() {
   );
 }
 
+function LoadingState({
+  message = "Loading data from Supabase...",
+}: Readonly<{
+  message?: string;
+}>) {
+  return (
+    <SectionCard title="Loading">
+      <p className="text-sm leading-6 text-[var(--ink-soft)]">{message}</p>
+    </SectionCard>
+  );
+}
+
 export function HomeScreen() {
-  const { groups } = usePrototype();
+  const { groups, isLoading } = usePrototype();
   const todayTasks = getTodayTasks(groups);
   const dDayGroups = [...groups].sort((left, right) => {
     return getDaysLeft(left.examDate) - getDaysLeft(right.examDate);
@@ -207,6 +229,16 @@ export function HomeScreen() {
           </Link>
         }
       >
+        {isLoading && groups.length === 0 ? (
+          <p className="text-sm leading-6 text-[var(--ink-soft)]">
+            Loading study groups from Supabase...
+          </p>
+        ) : null}
+        {!isLoading && groups.length === 0 ? (
+          <p className="text-sm leading-6 text-[var(--ink-soft)]">
+            No study groups yet. Create one to start.
+          </p>
+        ) : null}
         {groups.map((group) => (
           <Link
             key={group.id}
@@ -287,13 +319,16 @@ export function HomeScreen() {
 }
 
 export function CreateGroupScreen() {
-  const { createGroup } = usePrototype();
+  const { createGroup, isMutating } = usePrototype();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState<CreateGroupInput>({
     name: "알고리즘 기말 대비",
     subject: "알고리즘",
     examDate: "2026-04-30",
+    presentationDate: "2026-04-24",
+    deadlineDate: "2026-04-27",
+    overallGoal: "기말고사 전까지 팀 전체가 안정적으로 문제를 풀 수 있는 상태 만들기",
     weeklyGoal: "그래프/DP 정리, 기출 2회독, 발표 질문 준비",
   });
 
@@ -307,13 +342,16 @@ export function CreateGroupScreen() {
     }));
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const groupId = createGroup(form);
 
-    startTransition(() => {
-      router.push(`/group/${groupId}`);
-    });
+    try {
+      const groupId = await createGroup(form);
+
+      startTransition(() => {
+        router.push(`/group/${groupId}`);
+      });
+    } catch {}
   }
 
   return (
@@ -367,7 +405,7 @@ export function CreateGroupScreen() {
 
           <button
             type="submit"
-            disabled={isPending}
+            disabled={isPending || isMutating}
             className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(47,110,229,0.26)] transition hover:brightness-105 disabled:opacity-70"
           >
             {isPending ? "모임 생성 중..." : "모임 생성하기"}
@@ -393,8 +431,16 @@ export function CreateGroupScreen() {
 }
 
 export function GroupOverviewScreen({ groupId }: Readonly<{ groupId: string }>) {
-  const { groups } = usePrototype();
+  const { groups, isLoading } = usePrototype();
   const group = getGroupById(groups, groupId);
+
+  if (isLoading && !group) {
+    return (
+      <AppShell title="Loading group..." subtitle="Waiting for the latest group snapshot from Supabase.">
+        <LoadingState message="Loading group snapshot..." />
+      </AppShell>
+    );
+  }
 
   if (!group) {
     return (
@@ -515,9 +561,17 @@ export function GroupOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
 }
 
 export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
-  const { groups, queueMockUpload, sendQuestion, isAnswering } = usePrototype();
+  const { groups, queueMockUpload, sendQuestion, isAnswering, isLoading } = usePrototype();
   const group = getGroupById(groups, groupId);
   const [draft, setDraft] = useState("");
+
+  if (isLoading && !group) {
+    return (
+      <AppShell title="Loading materials..." subtitle="Waiting for group materials from Supabase.">
+        <LoadingState message="Loading materials..." />
+      </AppShell>
+    );
+  }
 
   if (!group) {
     return (
@@ -537,7 +591,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    sendQuestion(activeGroup.id, draft);
+    void sendQuestion(activeGroup.id, draft);
     setDraft("");
   }
 
@@ -555,7 +609,9 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
           </p>
           <button
             type="button"
-            onClick={() => queueMockUpload(activeGroup.id)}
+            onClick={() => {
+              void queueMockUpload(activeGroup.id);
+            }}
             className="mt-4 w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(47,110,229,0.24)]"
           >
             {activeGroup.uploadDraftCount > 0
@@ -590,7 +646,9 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
             <button
               key={question}
               type="button"
-              onClick={() => sendQuestion(activeGroup.id, question)}
+              onClick={() => {
+                void sendQuestion(activeGroup.id, question);
+              }}
               className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm"
             >
               {question}
@@ -666,7 +724,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
 }
 
 export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
-  const { groups, togglePlanItem, updatePlanItem, addPlanItem } = usePrototype();
+  const { groups, togglePlanItem, updatePlanItem, addPlanItem, isLoading } = usePrototype();
   const group = getGroupById(groups, groupId);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<{
@@ -686,6 +744,14 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
     detail: "",
     duration: "30분",
   });
+
+  if (isLoading && !group) {
+    return (
+      <AppShell title="Loading plan..." subtitle="Waiting for the latest plan data from Supabase.">
+        <LoadingState message="Loading plan items..." />
+      </AppShell>
+    );
+  }
 
   if (!group) {
     return (
@@ -708,22 +774,22 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
     });
   }
 
-  function saveEditing() {
+  async function saveEditing() {
     if (!editingItemId || !editDraft) {
       return;
     }
 
-    updatePlanItem(activeGroup.id, editingItemId, editDraft);
+    await updatePlanItem(activeGroup.id, editingItemId, editDraft);
     setEditingItemId(null);
     setEditDraft(null);
   }
 
-  function addCustomPlan() {
+  async function addCustomPlan() {
     if (!newItem.title.trim() || !newItem.detail.trim()) {
       return;
     }
 
-    addPlanItem(activeGroup.id, {
+    await addPlanItem(activeGroup.id, {
       ...newItem,
       title: newItem.title.trim(),
       detail: newItem.detail.trim(),
@@ -815,7 +881,9 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
                     />
                     <button
                       type="button"
-                      onClick={saveEditing}
+                      onClick={() => {
+                        void saveEditing();
+                      }}
                       className="rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
                     >
                       저장
@@ -851,7 +919,9 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => togglePlanItem(activeGroup.id, item.id)}
+                        onClick={() => {
+                          void togglePlanItem(activeGroup.id, item.id);
+                        }}
                         className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
                           checked
                             ? "bg-[var(--brand)] text-white"
@@ -924,7 +994,9 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
             />
             <button
               type="button"
-              onClick={addCustomPlan}
+              onClick={() => {
+                void addCustomPlan();
+              }}
               className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
             >
               일정 추가
@@ -937,9 +1009,17 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
 }
 
 export function AiScreen({ groupId }: Readonly<{ groupId: string }>) {
-  const { groups, sendQuestion, isAnswering } = usePrototype();
+  const { groups, sendQuestion, isAnswering, isLoading } = usePrototype();
   const group = getGroupById(groups, groupId);
   const [draft, setDraft] = useState("");
+
+  if (isLoading && !group) {
+    return (
+      <AppShell title="Loading chat..." subtitle="Waiting for the latest AI chat history from Supabase.">
+        <LoadingState message="Loading chat history..." />
+      </AppShell>
+    );
+  }
 
   if (!group) {
     return (
@@ -959,7 +1039,7 @@ export function AiScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    sendQuestion(activeGroup.id, draft);
+    void sendQuestion(activeGroup.id, draft);
     setDraft("");
   }
 
@@ -975,7 +1055,9 @@ export function AiScreen({ groupId }: Readonly<{ groupId: string }>) {
             <button
               key={question}
               type="button"
-              onClick={() => sendQuestion(activeGroup.id, question)}
+              onClick={() => {
+                void sendQuestion(activeGroup.id, question);
+              }}
               className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm"
             >
               {question}
@@ -1053,8 +1135,16 @@ export function AiScreen({ groupId }: Readonly<{ groupId: string }>) {
 }
 
 export function ProgressScreen({ groupId }: Readonly<{ groupId: string }>) {
-  const { groups } = usePrototype();
+  const { groups, isLoading } = usePrototype();
   const group = getGroupById(groups, groupId);
+
+  if (isLoading && !group) {
+    return (
+      <AppShell title="Loading progress..." subtitle="Waiting for the latest progress snapshot from Supabase.">
+        <LoadingState message="Loading progress..." />
+      </AppShell>
+    );
+  }
 
   if (!group) {
     return (

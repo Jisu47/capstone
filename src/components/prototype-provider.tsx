@@ -1,15 +1,25 @@
 "use client";
 
 import {
-  type ChatMessage,
+  currentUserId,
   type CreateGroupInput,
+  type GroupDetailsInput,
   type StudyGroup,
   type Weekday,
-  buildMockAnswer,
-  createGroupFromInput,
-  currentUserId,
-  getInitialGroups,
 } from "@/lib/mock-data";
+import {
+  addPrototypeAssistantAnswer,
+  addPrototypePlanItem,
+  addPrototypeUpload,
+  addPrototypeUserQuestion,
+  bootstrapPrototypeGroups,
+  createPrototypeGroup,
+  listPrototypeGroups,
+  togglePrototypePlanItem,
+  type PlanItemDraft,
+  updatePrototypeGroupDetails,
+  updatePrototypePlanItem,
+} from "@/lib/prototype-repository";
 import {
   createContext,
   useContext,
@@ -21,205 +31,218 @@ import {
 type PrototypeContextValue = {
   groups: StudyGroup[];
   currentUserId: string;
-  createGroup: (input: CreateGroupInput) => string;
-  togglePlanItem: (groupId: string, itemId: string) => void;
+  error: string | null;
+  isLoading: boolean;
+  isMutating: boolean;
+  createGroup: (input: CreateGroupInput) => Promise<string>;
+  updateGroupDetails: (groupId: string, updates: GroupDetailsInput) => Promise<void>;
+  togglePlanItem: (groupId: string, itemId: string) => Promise<void>;
   updatePlanItem: (
     groupId: string,
     itemId: string,
     updates: { day: Weekday; title: string; detail: string; duration: string },
-  ) => void;
+  ) => Promise<void>;
   addPlanItem: (
     groupId: string,
     item: { day: Weekday; title: string; detail: string; duration: string },
-  ) => void;
-  queueMockUpload: (groupId: string) => void;
-  sendQuestion: (groupId: string, question: string) => void;
+  ) => Promise<void>;
+  queueMockUpload: (groupId: string) => Promise<void>;
+  sendQuestion: (groupId: string, question: string) => Promise<void>;
   isAnswering: (groupId: string) => boolean;
 };
 
 const PrototypeContext = createContext<PrototypeContextValue | null>(null);
+
+function getGroupById(groups: StudyGroup[], groupId: string) {
+  return groups.find((group) => group.id === groupId);
+}
+
+function toErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    if (
+      error.message.includes("study_groups") ||
+      error.message.includes("relation") ||
+      error.message.includes("schema cache") ||
+      error.message.includes("inspect study groups") ||
+      error.message.includes("presentation_date") ||
+      error.message.includes("deadline_date") ||
+      error.message.includes("overall_goal")
+    ) {
+      return "Supabase schema is missing. Run supabase/bootstrap.sql in the Supabase SQL editor.";
+    }
+
+    if (error.message.includes("NEXT_PUBLIC_SUPABASE")) {
+      return "Supabase environment variables are missing.";
+    }
+
+    return error.message;
+  }
+
+  return "Unexpected error.";
+}
 
 export function PrototypeProvider({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [groups, setGroups] = useState<StudyGroup[]>(() => getInitialGroups());
+  const [groups, setGroups] = useState<StudyGroup[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [mutationCount, setMutationCount] = useState(0);
   const [pendingAnswers, setPendingAnswers] = useState<Record<string, boolean>>({});
   const timeoutIds = useRef<number[]>([]);
 
+  async function refreshGroups() {
+    const nextGroups = await listPrototypeGroups();
+    setGroups(nextGroups);
+  }
+
+  async function runMutation<T>(action: () => Promise<T>) {
+    setMutationCount((count) => count + 1);
+
+    try {
+      const result = await action();
+      setError(null);
+      return result;
+    } catch (caughtError) {
+      setError(toErrorMessage(caughtError));
+      throw caughtError;
+    } finally {
+      setMutationCount((count) => Math.max(0, count - 1));
+    }
+  }
+
   useEffect(() => {
+    let cancelled = false;
     const timeouts = timeoutIds;
 
+    async function bootstrap() {
+      try {
+        const nextGroups = await bootstrapPrototypeGroups();
+
+        if (cancelled) {
+          return;
+        }
+
+        setGroups(nextGroups);
+        setError(null);
+      } catch (caughtError) {
+        if (!cancelled) {
+          setError(toErrorMessage(caughtError));
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void bootstrap();
+
     return () => {
+      cancelled = true;
       timeouts.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
     };
   }, []);
 
-  function createGroup(input: CreateGroupInput) {
-    const group = createGroupFromInput(input);
-    setGroups((previous) => [group, ...previous]);
-    return group.id;
+  async function createGroup(input: CreateGroupInput) {
+    return runMutation(async () => {
+      const groupId = await createPrototypeGroup(input);
+      await refreshGroups();
+      return groupId;
+    });
   }
 
-  function togglePlanItem(groupId: string, itemId: string) {
-    setGroups((previous) =>
-      previous.map((group) => {
-        if (group.id !== groupId) {
-          return group;
-        }
-
-        return {
-          ...group,
-          plan: group.plan.map((item) => {
-            if (item.id !== itemId) {
-              return item;
-            }
-
-            return {
-              ...item,
-              memberStatus: {
-                ...item.memberStatus,
-                [currentUserId]: !item.memberStatus[currentUserId],
-              },
-            };
-          }),
-        };
-      }),
-    );
+  async function updateGroupDetails(groupId: string, updates: GroupDetailsInput) {
+    await runMutation(async () => {
+      await updatePrototypeGroupDetails(groupId, updates);
+      await refreshGroups();
+    });
   }
 
-  function updatePlanItem(
-    groupId: string,
+  async function togglePlanItem(_groupId: string, itemId: string) {
+    await runMutation(async () => {
+      await togglePrototypePlanItem(itemId);
+      await refreshGroups();
+    });
+  }
+
+  async function updatePlanItem(
+    _groupId: string,
     itemId: string,
-    updates: { day: Weekday; title: string; detail: string; duration: string },
+    updates: PlanItemDraft,
   ) {
-    setGroups((previous) =>
-      previous.map((group) => {
-        if (group.id !== groupId) {
-          return group;
-        }
-
-        return {
-          ...group,
-          plan: group.plan.map((item) => {
-            if (item.id !== itemId) {
-              return item;
-            }
-
-            return {
-              ...item,
-              ...updates,
-            };
-          }),
-        };
-      }),
-    );
+    await runMutation(async () => {
+      await updatePrototypePlanItem(itemId, updates);
+      await refreshGroups();
+    });
   }
 
-  function addPlanItem(
-    groupId: string,
-    item: { day: Weekday; title: string; detail: string; duration: string },
-  ) {
-    setGroups((previous) =>
-      previous.map((group) => {
-        if (group.id !== groupId) {
-          return group;
-        }
+  async function addPlanItem(groupId: string, item: PlanItemDraft) {
+    const group = getGroupById(groups, groupId);
 
-        return {
-          ...group,
-          plan: [
-            ...group.plan,
-            {
-              id: `plan-custom-${Date.now().toString(36)}`,
-              ...item,
-              memberStatus: Object.fromEntries(
-                group.members.map((member) => [member.id, false]),
-              ),
-            },
-          ],
-        };
-      }),
-    );
-  }
-
-  function queueMockUpload(groupId: string) {
-    setGroups((previous) =>
-      previous.map((group) => {
-        if (group.id !== groupId) {
-          return group;
-        }
-
-        const nextCount = group.uploadDraftCount + 1;
-        const newMaterial = {
-          id: `${group.id}-upload-${nextCount}`,
-          title: `${group.subject} 추가 정리 ${nextCount}.pdf`,
-          summary: "업로드 박스에서 추가된 mock 자료입니다. 실제 파일 업로드는 연결되지 않습니다.",
-          uploadedBy: "영희",
-          uploadedAt: new Date().toISOString(),
-          format: "PDF" as const,
-          locationHint: `업로드 박스 #${nextCount}`,
-        };
-
-        return {
-          ...group,
-          uploadDraftCount: nextCount,
-          recentUpdate: `업로드 박스에서 mock 자료 ${nextCount}건이 추가됨`,
-          materials: [newMaterial, ...group.materials],
-        };
-      }),
-    );
-  }
-
-  function sendQuestion(groupId: string, question: string) {
-    const trimmedQuestion = question.trim();
-
-    if (!trimmedQuestion) {
+    if (!group) {
       return;
     }
 
-    const userMessage: ChatMessage = {
-      id: `chat-user-${Date.now().toString(36)}`,
-      role: "user",
-      text: trimmedQuestion,
-      createdAt: "방금 전",
-    };
+    await runMutation(async () => {
+      await addPrototypePlanItem(group, item);
+      await refreshGroups();
+    });
+  }
 
-    setGroups((previous) =>
-      previous.map((group) =>
-        group.id === groupId ? { ...group, chat: [...group.chat, userMessage] } : group,
-      ),
-    );
-    setPendingAnswers((previous) => ({ ...previous, [groupId]: true }));
+  async function queueMockUpload(groupId: string) {
+    const group = getGroupById(groups, groupId);
 
-    const timeoutId = window.setTimeout(() => {
-      setGroups((previous) =>
-        previous.map((group) => {
-          if (group.id !== groupId) {
-            return group;
-          }
+    if (!group) {
+      return;
+    }
 
-          const answer = buildMockAnswer(group, trimmedQuestion);
-          const assistantMessage: ChatMessage = {
-            id: `chat-assistant-${Date.now().toString(36)}`,
-            role: "assistant",
-            text: answer.text,
-            createdAt: "방금 전",
-            sources: answer.sources,
-          };
+    await runMutation(async () => {
+      await addPrototypeUpload(group);
+      await refreshGroups();
+    });
+  }
 
-          return {
-            ...group,
-            chat: [...group.chat, assistantMessage],
-          };
-        }),
-      );
+  async function sendQuestion(groupId: string, question: string) {
+    const trimmedQuestion = question.trim();
+    const group = getGroupById(groups, groupId);
 
+    if (!trimmedQuestion || !group) {
+      return;
+    }
+
+    try {
+      await runMutation(async () => {
+        await addPrototypeUserQuestion(groupId, trimmedQuestion);
+        await refreshGroups();
+      });
+    } catch {
       setPendingAnswers((previous) => ({
         ...previous,
         [groupId]: false,
       }));
+      return;
+    }
+
+    setPendingAnswers((previous) => ({
+      ...previous,
+      [groupId]: true,
+    }));
+
+    const timeoutId = window.setTimeout(() => {
+      void runMutation(async () => {
+        try {
+          await addPrototypeAssistantAnswer(group, trimmedQuestion);
+          await refreshGroups();
+        } finally {
+          setPendingAnswers((previous) => ({
+            ...previous,
+            [groupId]: false,
+          }));
+        }
+      }).catch(() => undefined);
     }, 700);
 
     timeoutIds.current.push(timeoutId);
@@ -228,7 +251,11 @@ export function PrototypeProvider({
   const value: PrototypeContextValue = {
     groups,
     currentUserId,
+    error,
+    isLoading,
+    isMutating: mutationCount > 0,
     createGroup,
+    updateGroupDetails,
     togglePlanItem,
     updatePlanItem,
     addPlanItem,

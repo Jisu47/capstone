@@ -1,5 +1,5 @@
-import { CreateGroupScreen } from "@/components/prototype-screens";
+import { StudyCreateScreen } from "@/components/study-create-screen";
 
 export default function CreatePage() {
-  return <CreateGroupScreen />;
+  return <StudyCreateScreen />;
 }
