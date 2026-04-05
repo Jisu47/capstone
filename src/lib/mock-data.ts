@@ -7,18 +7,23 @@ export type Member = {
   focus: string;
 };
 
+export type MaterialFormat = "PDF" | "DOC" | "TXT" | "MD";
+export type MaterialProcessingStatus = "processing" | "ready" | "failed";
+
 export type Material = {
   id: string;
   title: string;
   summary: string;
   uploadedBy: string;
   uploadedAt: string;
-  format: "PDF" | "DOC";
+  format: MaterialFormat;
   locationHint: string;
+  processingStatus?: MaterialProcessingStatus;
 };
 
 export type SourceCard = {
   id: string;
+  materialId?: string;
   title: string;
   locationHint: string;
   summary: string;
@@ -94,6 +99,7 @@ function createWelcomeChat(subject: string, materials: Material[]): ChatMessage[
         ? [
             {
               id: `${primaryMaterial.id}-source`,
+              materialId: primaryMaterial.id,
               title: primaryMaterial.title,
               locationHint: primaryMaterial.locationHint,
               summary: "스터디 시작 전에 먼저 읽으면 좋은 핵심 정리 자료",
@@ -218,6 +224,7 @@ function createInitialGroups(): StudyGroup[] {
       uploadedAt: makeIsoDate("2026-03-23"),
       format: "PDF",
       locationHint: "p.12",
+      processingStatus: "ready",
     },
     {
       id: "mat-os-2",
@@ -227,6 +234,7 @@ function createInitialGroups(): StudyGroup[] {
       uploadedAt: makeIsoDate("2026-03-22"),
       format: "PDF",
       locationHint: "핵심 개념 요약",
+      processingStatus: "ready",
     },
     {
       id: "mat-os-3",
@@ -236,6 +244,7 @@ function createInitialGroups(): StudyGroup[] {
       uploadedAt: makeIsoDate("2026-03-21"),
       format: "DOC",
       locationHint: "빈출 파트",
+      processingStatus: "ready",
     },
   ];
 
@@ -248,6 +257,7 @@ function createInitialGroups(): StudyGroup[] {
       uploadedAt: makeIsoDate("2026-03-24"),
       format: "PDF",
       locationHint: "p.8",
+      processingStatus: "ready",
     },
     {
       id: "mat-net-2",
@@ -257,6 +267,7 @@ function createInitialGroups(): StudyGroup[] {
       uploadedAt: makeIsoDate("2026-03-23"),
       format: "PDF",
       locationHint: "요약 노트",
+      processingStatus: "ready",
     },
     {
       id: "mat-net-3",
@@ -266,6 +277,7 @@ function createInitialGroups(): StudyGroup[] {
       uploadedAt: makeIsoDate("2026-03-20"),
       format: "PDF",
       locationHint: "슬라이드 4",
+      processingStatus: "ready",
     },
   ];
 
@@ -378,6 +390,7 @@ export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
       uploadedAt: createdAt,
       format: "PDF",
       locationHint: "요약 1장",
+      processingStatus: "ready",
     },
     {
       id: `${groupId}-mat-2`,
@@ -387,6 +400,7 @@ export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
       uploadedAt: createdAt,
       format: "PDF",
       locationHint: "문제 1~3",
+      processingStatus: "ready",
     },
     {
       id: `${groupId}-mat-3`,
@@ -396,6 +410,7 @@ export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
       uploadedAt: createdAt,
       format: "PDF",
       locationHint: "질문 포인트",
+      processingStatus: "ready",
     },
   ];
 
@@ -429,6 +444,7 @@ export function buildMockAnswer(group: StudyGroup, question: string) {
       sources: [
         {
           id: `${primary.id}-answer-1`,
+          materialId: primary.id,
           title: primary.title,
           locationHint: primary.locationHint,
           summary: "핵심 개념과 예시가 먼저 정리된 기본 자료",
@@ -443,12 +459,14 @@ export function buildMockAnswer(group: StudyGroup, question: string) {
       sources: [
         {
           id: `${primary.id}-answer-2`,
+          materialId: primary.id,
           title: primary.title,
           locationHint: primary.locationHint,
           summary: "시험 범위 기준 핵심 포인트가 정리된 자료",
         },
         {
           id: `${secondary.id}-answer-2`,
+          materialId: secondary.id,
           title: secondary.title,
           locationHint: secondary.locationHint,
           summary: "추가 예시와 서술형 체크 포인트를 확인할 수 있는 자료",
@@ -463,6 +481,7 @@ export function buildMockAnswer(group: StudyGroup, question: string) {
       sources: [
         {
           id: `${secondary.id}-answer-3`,
+          materialId: secondary.id,
           title: secondary.title,
           locationHint: secondary.locationHint,
           summary: "발표와 질의응답 구조를 잡기에 좋은 보조 자료",
@@ -476,6 +495,7 @@ export function buildMockAnswer(group: StudyGroup, question: string) {
     sources: [
       {
         id: `${primary.id}-answer-default`,
+        materialId: primary.id,
         title: primary.title,
         locationHint: primary.locationHint,
         summary: "질문과 가장 가까운 기본 참고 자료",
