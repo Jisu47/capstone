@@ -15,7 +15,11 @@ export function StudyOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
 
   if (isLoading && !group) {
     return (
-      <AppShell title="Loading group..." subtitle="Waiting for the latest group snapshot from Supabase.">
+      <AppShell
+        groupId={groupId}
+        title="Loading group..."
+        subtitle="Waiting for the latest group snapshot from Supabase."
+      >
         <LoadingState message="Loading group snapshot..." />
       </AppShell>
     );
@@ -23,7 +27,11 @@ export function StudyOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
 
   if (!group) {
     return (
-      <AppShell title="모임을 찾을 수 없어요" subtitle="데이터가 아직 동기화되지 않았다면 잠시 후 다시 열어주세요.">
+      <AppShell
+        groupId={groupId}
+        title="모임을 찾을 수 없어요"
+        subtitle="데이터가 아직 동기화되지 않았다면 잠시 후 다시 열어주세요."
+      >
         <MissingGroupState />
       </AppShell>
     );

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { BottomNavigation } from "@/components/bottom-navigation";
 import { usePrototype } from "@/components/prototype-provider";
 
 export function SectionCard({
@@ -65,19 +65,8 @@ export function AppShell({
   groupId?: string;
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
   const { groups, error, isLoading, isMutating } = usePrototype();
   const featuredGroupId = groupId ?? groups[0]?.id;
-  const studyHref = featuredGroupId ? `/group/${featuredGroupId}` : "/";
-  const planHref = featuredGroupId ? `/group/${featuredGroupId}/plan` : "/";
-  const materialsHref = featuredGroupId ? `/group/${featuredGroupId}/materials` : "/";
-
-  const tabs = [
-    { label: "홈", href: "/" },
-    { label: "스터디", href: studyHref },
-    { label: "계획", href: planHref },
-    { label: "자료", href: materialsHref },
-  ];
 
   return (
     <div className="min-h-screen bg-transparent px-3 py-4 text-slate-900">
@@ -117,30 +106,7 @@ export function AppShell({
 
         <main className="flex-1 space-y-4 overflow-y-auto px-4 pb-28 pt-4">{children}</main>
 
-        <nav className="sticky bottom-0 z-20 border-t border-white/80 bg-[rgba(248,251,255,0.94)] px-3 py-3 backdrop-blur-xl">
-          <div className="grid grid-cols-4 gap-2">
-            {tabs.map((tab) => {
-              const active =
-                tab.href === "/"
-                  ? pathname === tab.href
-                  : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
-
-              return (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={`rounded-2xl px-2 py-2 text-center text-[11px] font-semibold transition ${
-                    active
-                      ? "bg-[var(--brand)] text-white shadow-[0_10px_24px_rgba(47,110,229,0.26)]"
-                      : "bg-white/75 text-slate-600"
-                  }`}
-                >
-                  {tab.label}
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
+        <BottomNavigation groupId={featuredGroupId} />
       </div>
     </div>
   );

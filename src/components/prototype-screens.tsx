@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { BottomNavigation } from "@/components/bottom-navigation";
 import { usePrototype } from "@/components/prototype-provider";
 import {
   type CreateGroupInput,
@@ -90,28 +91,8 @@ function AppShell({
   groupId?: string;
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
   const { groups, error, isLoading, isMutating } = usePrototype();
   const featuredGroupId = groupId ?? groups[0]?.id;
-  const studyHref = featuredGroupId ? `/group/${featuredGroupId}` : "/";
-  const planHref = featuredGroupId ? `/group/${featuredGroupId}/plan` : "/";
-  const materialsHref = featuredGroupId ? `/group/${featuredGroupId}/materials` : "/";
-
-  const globalTabs = [
-    { label: "홈", href: "/" },
-    { label: "스터디", href: studyHref },
-    { label: "계획", href: planHref },
-    { label: "자료", href: materialsHref },
-  ];
-  const groupTabs = groupId
-    ? [
-        { label: "홈", href: "/" },
-        { label: "스터디", href: `/group/${groupId}` },
-        { label: "계획", href: `/group/${groupId}/plan` },
-        { label: "자료", href: `/group/${groupId}/materials` },
-      ]
-    : globalTabs;
-  const tabs = groupId ? groupTabs : globalTabs;
 
   return (
     <div className="min-h-screen bg-transparent px-3 py-4 text-slate-900">
@@ -148,33 +129,7 @@ function AppShell({
 
         <main className="flex-1 space-y-4 overflow-y-auto px-4 pb-28 pt-4">{children}</main>
 
-        <nav className="sticky bottom-0 z-20 border-t border-white/80 bg-[rgba(248,251,255,0.94)] px-3 py-3 backdrop-blur-xl">
-          <div
-            className="grid gap-2"
-            style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
-          >
-            {tabs.map((tab) => {
-              const active =
-                tab.href === "/"
-                  ? pathname === tab.href
-                  : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
-
-              return (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={`rounded-2xl px-2 py-2 text-center text-[11px] font-semibold transition ${
-                    active
-                      ? "bg-[var(--brand)] text-white shadow-[0_10px_24px_rgba(47,110,229,0.26)]"
-                      : "bg-white/75 text-slate-600"
-                  }`}
-                >
-                  {tab.label}
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
+        <BottomNavigation groupId={featuredGroupId} />
       </div>
     </div>
   );
@@ -436,7 +391,11 @@ export function GroupOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
 
   if (isLoading && !group) {
     return (
-      <AppShell title="Loading group..." subtitle="Waiting for the latest group snapshot from Supabase.">
+      <AppShell
+        groupId={groupId}
+        title="Loading group..."
+        subtitle="Waiting for the latest group snapshot from Supabase."
+      >
         <LoadingState message="Loading group snapshot..." />
       </AppShell>
     );
@@ -444,7 +403,11 @@ export function GroupOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
 
   if (!group) {
     return (
-      <AppShell title="모임을 찾을 수 없어요" subtitle="데모 상태가 초기화된 경우 홈에서 다시 진입해 주세요.">
+      <AppShell
+        groupId={groupId}
+        title="모임을 찾을 수 없어요"
+        subtitle="데모 상태가 초기화된 경우 홈에서 다시 진입해 주세요."
+      >
         <MissingGroupState />
       </AppShell>
     );
@@ -567,7 +530,11 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   if (isLoading && !group) {
     return (
-      <AppShell title="Loading materials..." subtitle="Waiting for group materials from Supabase.">
+      <AppShell
+        groupId={groupId}
+        title="Loading materials..."
+        subtitle="Waiting for group materials from Supabase."
+      >
         <LoadingState message="Loading materials..." />
       </AppShell>
     );
@@ -575,7 +542,11 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   if (!group) {
     return (
-      <AppShell title="자료를 불러오지 못했습니다" subtitle="홈에서 다시 진입해 주세요.">
+      <AppShell
+        groupId={groupId}
+        title="자료를 불러오지 못했습니다"
+        subtitle="홈에서 다시 진입해 주세요."
+      >
         <MissingGroupState />
       </AppShell>
     );
@@ -747,7 +718,11 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   if (isLoading && !group) {
     return (
-      <AppShell title="Loading plan..." subtitle="Waiting for the latest plan data from Supabase.">
+      <AppShell
+        groupId={groupId}
+        title="Loading plan..."
+        subtitle="Waiting for the latest plan data from Supabase."
+      >
         <LoadingState message="Loading plan items..." />
       </AppShell>
     );
@@ -755,7 +730,11 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   if (!group) {
     return (
-      <AppShell title="학습 계획을 불러오지 못했습니다" subtitle="홈에서 다시 진입해 주세요.">
+      <AppShell
+        groupId={groupId}
+        title="학습 계획을 불러오지 못했습니다"
+        subtitle="홈에서 다시 진입해 주세요."
+      >
         <MissingGroupState />
       </AppShell>
     );
@@ -1015,7 +994,11 @@ export function AiScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   if (isLoading && !group) {
     return (
-      <AppShell title="Loading chat..." subtitle="Waiting for the latest AI chat history from Supabase.">
+      <AppShell
+        groupId={groupId}
+        title="Loading chat..."
+        subtitle="Waiting for the latest AI chat history from Supabase."
+      >
         <LoadingState message="Loading chat history..." />
       </AppShell>
     );
@@ -1023,7 +1006,11 @@ export function AiScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   if (!group) {
     return (
-      <AppShell title="AI 질문 화면을 불러오지 못했습니다" subtitle="홈에서 다시 진입해 주세요.">
+      <AppShell
+        groupId={groupId}
+        title="AI 질문 화면을 불러오지 못했습니다"
+        subtitle="홈에서 다시 진입해 주세요."
+      >
         <MissingGroupState />
       </AppShell>
     );
@@ -1140,7 +1127,11 @@ export function ProgressScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   if (isLoading && !group) {
     return (
-      <AppShell title="Loading progress..." subtitle="Waiting for the latest progress snapshot from Supabase.">
+      <AppShell
+        groupId={groupId}
+        title="Loading progress..."
+        subtitle="Waiting for the latest progress snapshot from Supabase."
+      >
         <LoadingState message="Loading progress..." />
       </AppShell>
     );
@@ -1148,7 +1139,11 @@ export function ProgressScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   if (!group) {
     return (
-      <AppShell title="팀원 진도를 불러오지 못했습니다" subtitle="홈에서 다시 진입해 주세요.">
+      <AppShell
+        groupId={groupId}
+        title="팀원 진도를 불러오지 못했습니다"
+        subtitle="홈에서 다시 진입해 주세요."
+      >
         <MissingGroupState />
       </AppShell>
     );
