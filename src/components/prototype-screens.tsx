@@ -84,15 +84,21 @@ function AppShell({
   title,
   subtitle,
   groupId,
+  navGroupId,
+  navReady,
   children,
 }: Readonly<{
   title: string;
   subtitle: string;
   groupId?: string;
+  navGroupId?: string | null;
+  navReady?: boolean;
   children: React.ReactNode;
 }>) {
   const { groups, error, isLoading, isMutating } = usePrototype();
-  const featuredGroupId = groupId ?? groups[0]?.id;
+  const resolvedNavGroupId =
+    navGroupId === undefined ? (groupId ?? groups[0]?.id ?? null) : navGroupId;
+  const resolvedNavReady = navReady ?? (groupId ? true : !isLoading);
 
   return (
     <div className="min-h-screen bg-transparent px-3 py-4 text-slate-900">
@@ -129,7 +135,7 @@ function AppShell({
 
         <main className="flex-1 space-y-4 overflow-y-auto px-4 pb-28 pt-4">{children}</main>
 
-        <BottomNavigation groupId={featuredGroupId} />
+        <BottomNavigation navReady={resolvedNavReady} navGroupId={resolvedNavGroupId} />
       </div>
     </div>
   );
@@ -173,6 +179,8 @@ export function HomeScreen() {
 
   return (
     <AppShell
+      navGroupId={groups[0]?.id ?? null}
+      navReady={!isLoading}
       title="한눈에 보는 스터디 홈"
       subtitle="오늘 할 일, 시험 디데이, 내가 속한 모임만 먼저 확인하는 단순한 홈 화면입니다."
     >

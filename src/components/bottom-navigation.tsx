@@ -6,57 +6,77 @@ import { usePathname } from "next/navigation";
 type BottomTab = {
   id: "home" | "study" | "plan" | "materials";
   label: string;
-  href?: string;
+  enabled: boolean;
+  href: string;
 };
 
-function getTabs(groupId?: string): BottomTab[] {
+function getTabs(navReady: boolean, navGroupId?: string | null): BottomTab[] {
+  const hasActiveGroup = navReady && Boolean(navGroupId);
+  const studyHref = navGroupId ? `/group/${navGroupId}` : "/";
+  const planHref = navGroupId ? `/group/${navGroupId}/plan` : "/";
+  const materialsHref = navGroupId ? `/group/${navGroupId}/materials` : "/";
+
   return [
-    { id: "home", label: "홈", href: "/" },
-    { id: "study", label: "스터디", href: groupId ? `/group/${groupId}` : undefined },
-    { id: "plan", label: "계획", href: groupId ? `/group/${groupId}/plan` : undefined },
+    { id: "home", label: "홈", enabled: true, href: "/" },
+    { id: "study", label: "스터디", enabled: hasActiveGroup, href: studyHref },
+    { id: "plan", label: "계획", enabled: hasActiveGroup, href: planHref },
     {
       id: "materials",
       label: "자료",
-      href: groupId ? `/group/${groupId}/materials` : undefined,
+      enabled: hasActiveGroup,
+      href: materialsHref,
     },
   ];
 }
 
-function isActiveTab(pathname: string, href?: string) {
-  if (!href) {
+function isActiveTab(pathname: string, tab: BottomTab) {
+  if (!tab.enabled) {
     return false;
   }
 
-  return href === "/" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  return tab.href === "/"
+    ? pathname === tab.href
+    : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
 }
 
-export function BottomNavigation({ groupId }: Readonly<{ groupId?: string }>) {
+export function BottomNavigation({
+  navReady = false,
+  navGroupId,
+}: Readonly<{
+  navReady?: boolean;
+  navGroupId?: string | null;
+}>) {
   const pathname = usePathname();
-  const tabs = getTabs(groupId);
+  const tabs = getTabs(navReady, navGroupId);
 
   return (
     <nav className="sticky bottom-0 z-20 border-t border-white/80 bg-[rgba(248,251,255,0.94)] px-3 py-3 backdrop-blur-xl">
       <div className="grid grid-cols-4 gap-2">
         {tabs.map((tab) => {
-          const active = isActiveTab(pathname, tab.href);
+          const active = isActiveTab(pathname, tab);
           const className = `rounded-2xl px-2 py-2 text-center text-[11px] font-semibold transition ${
             active
               ? "bg-[var(--brand)] text-white shadow-[0_10px_24px_rgba(47,110,229,0.26)]"
-              : tab.href
+              : tab.enabled
                 ? "bg-white/75 text-slate-600 hover:bg-white"
-                : "cursor-not-allowed bg-slate-100/90 text-slate-400"
+                : "pointer-events-none cursor-not-allowed select-none bg-slate-100/90 text-slate-400"
           }`;
 
-          if (!tab.href) {
-            return (
-              <span key={tab.id} aria-disabled="true" className={className}>
-                {tab.label}
-              </span>
-            );
-          }
-
           return (
-            <Link key={tab.id} href={tab.href} className={className}>
+            <Link
+              key={tab.id}
+              aria-current={active ? "page" : undefined}
+              aria-disabled={tab.enabled ? undefined : true}
+              className={className}
+              href={tab.enabled ? tab.href : pathname}
+              onClick={(event) => {
+                if (!tab.enabled) {
+                  event.preventDefault();
+                }
+              }}
+              prefetch={tab.enabled ? null : false}
+              tabIndex={tab.enabled ? undefined : -1}
+            >
               {tab.label}
             </Link>
           );

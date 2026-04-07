@@ -58,15 +58,21 @@ export function AppShell({
   title,
   subtitle,
   groupId,
+  navGroupId,
+  navReady,
   children,
 }: Readonly<{
   title: string;
   subtitle: string;
   groupId?: string;
+  navGroupId?: string | null;
+  navReady?: boolean;
   children: React.ReactNode;
 }>) {
   const { groups, error, isLoading, isMutating } = usePrototype();
-  const featuredGroupId = groupId ?? groups[0]?.id;
+  const resolvedNavGroupId =
+    navGroupId === undefined ? (groupId ?? groups[0]?.id ?? null) : navGroupId;
+  const resolvedNavReady = navReady ?? (groupId ? true : !isLoading);
 
   return (
     <div className="min-h-screen bg-transparent px-3 py-4 text-slate-900">
@@ -106,7 +112,7 @@ export function AppShell({
 
         <main className="flex-1 space-y-4 overflow-y-auto px-4 pb-28 pt-4">{children}</main>
 
-        <BottomNavigation groupId={featuredGroupId} />
+        <BottomNavigation navReady={resolvedNavReady} navGroupId={resolvedNavGroupId} />
       </div>
     </div>
   );
