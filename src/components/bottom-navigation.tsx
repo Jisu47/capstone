@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+type BottomTabId = "home" | "study" | "plan" | "materials";
+
 type BottomTab = {
-  id: "home" | "study" | "plan" | "materials";
+  id: BottomTabId;
   label: string;
   enabled: boolean;
   href: string;
@@ -12,19 +14,21 @@ type BottomTab = {
 
 function getTabs(navReady: boolean, navGroupId?: string | null): BottomTab[] {
   const hasActiveGroup = navReady && Boolean(navGroupId);
-  const studyHref = navGroupId ? `/group/${navGroupId}` : "/";
-  const planHref = navGroupId ? `/group/${navGroupId}/plan` : "/";
-  const materialsHref = navGroupId ? `/group/${navGroupId}/materials` : "/";
 
   return [
     { id: "home", label: "홈", enabled: true, href: "/" },
-    { id: "study", label: "스터디", enabled: hasActiveGroup, href: studyHref },
-    { id: "plan", label: "계획", enabled: hasActiveGroup, href: planHref },
+    { id: "study", label: "스터디", enabled: true, href: "/study" },
+    {
+      id: "plan",
+      label: "계획",
+      enabled: hasActiveGroup,
+      href: hasActiveGroup ? `/group/${navGroupId}/plan` : "/",
+    },
     {
       id: "materials",
       label: "자료",
       enabled: hasActiveGroup,
-      href: materialsHref,
+      href: hasActiveGroup ? `/group/${navGroupId}/materials` : "/",
     },
   ];
 }
@@ -34,9 +38,18 @@ function isActiveTab(pathname: string, tab: BottomTab) {
     return false;
   }
 
-  return tab.href === "/"
-    ? pathname === tab.href
-    : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+  switch (tab.id) {
+    case "home":
+      return pathname === "/";
+    case "study":
+      return pathname === "/study" || /^\/group\/[^/]+$/.test(pathname);
+    case "plan":
+      return /^\/group\/[^/]+\/plan(?:\/.*)?$/.test(pathname);
+    case "materials":
+      return /^\/group\/[^/]+\/materials(?:\/.*)?$/.test(pathname);
+    default:
+      return false;
+  }
 }
 
 export function BottomNavigation({

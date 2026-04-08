@@ -16,7 +16,9 @@ export function SectionCard({
   return (
     <section className="rounded-[28px] border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[0_18px_60px_rgba(28,64,120,0.08)] backdrop-blur">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-slate-900">{title}</h2>
+        <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-slate-900">
+          {title}
+        </h2>
         {action}
       </div>
       <div className="space-y-3">{children}</div>
@@ -39,16 +41,16 @@ export function LoadingState({
 export function MissingGroupState() {
   return (
     <SectionCard
-      title="모임 정보를 아직 불러오지 못했어요"
+      title="그룹 정보를 아직 불러오지 못했어요"
       action={
-        <Link href="/" className="text-sm font-semibold text-[var(--brand)]">
-          홈으로
+        <Link href="/study" className="text-sm font-semibold text-[var(--brand)]">
+          그룹 선택
         </Link>
       }
     >
       <p className="text-sm leading-6 text-[var(--ink-soft)]">
-        새로 만든 모임이 아직 동기화되지 않았거나 접근 가능한 모임이 없습니다. 홈으로 이동해
-        다시 확인해주세요.
+        새로 만든 그룹이 아직 동기화되지 않았거나 접근 가능한 그룹이 없습니다. 스터디
+        목록으로 돌아가서 다시 선택해 주세요.
       </p>
     </SectionCard>
   );
@@ -110,9 +112,14 @@ export function AppShell({
           ) : null}
         </header>
 
-        <main className="flex-1 space-y-4 overflow-y-auto px-4 pb-28 pt-4">{children}</main>
+        <main className="flex-1 space-y-4 overflow-y-auto px-4 pb-28 pt-4">
+          {children}
+        </main>
 
-        <BottomNavigation navReady={resolvedNavReady} navGroupId={resolvedNavGroupId} />
+        <BottomNavigation
+          navReady={resolvedNavReady}
+          navGroupId={resolvedNavGroupId}
+        />
       </div>
     </div>
   );

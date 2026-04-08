@@ -1,6 +1,10 @@
 "use client";
 
-import { AppShell, LoadingState, MissingGroupState } from "@/components/mobile-shell";
+import {
+  AppShell,
+  LoadingState,
+  MissingGroupState,
+} from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
 import { StudyHub } from "@/components/study-hub";
 import { formatExamDate, type StudyGroup } from "@/lib/mock-data";
@@ -17,10 +21,10 @@ export function StudyOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
     return (
       <AppShell
         groupId={groupId}
-        title="Loading group..."
-        subtitle="Waiting for the latest group snapshot from Supabase."
+        title="그룹 불러오는 중"
+        subtitle="최신 스터디그룹 정보를 불러오고 있어요."
       >
-        <LoadingState message="Loading group snapshot..." />
+        <LoadingState message="그룹 정보를 불러오는 중입니다." />
       </AppShell>
     );
   }
@@ -29,8 +33,8 @@ export function StudyOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
     return (
       <AppShell
         groupId={groupId}
-        title="모임을 찾을 수 없어요"
-        subtitle="데이터가 아직 동기화되지 않았다면 잠시 후 다시 열어주세요."
+        title="그룹을 찾을 수 없어요"
+        subtitle="목록에서 다시 선택하거나 새로 만든 그룹이 아직 동기화되지 않았는지 확인해 주세요."
       >
         <MissingGroupState />
       </AppShell>
@@ -40,8 +44,8 @@ export function StudyOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
   return (
     <AppShell
       groupId={groupId}
-      title="스터디"
-      subtitle={`${group.subject} · ${formatExamDate(group.examDate)} · 계획과 연결되는 운영 정보`}
+      title={group.name}
+      subtitle={`${group.subject} · 시험 ${formatExamDate(group.examDate)} · 그룹 정보와 진행 현황`}
     >
       <StudyHub group={group} groups={groups} />
     </AppShell>

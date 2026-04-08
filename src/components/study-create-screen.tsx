@@ -16,8 +16,9 @@ export function StudyCreateScreen() {
     examDate: "2026-04-30",
     presentationDate: "2026-04-24",
     deadlineDate: "2026-04-27",
-    weeklyGoal: "그래프/DP 정리, 기출 2회독, 발표 질문 준비",
-    overallGoal: "기말고사 전까지 핵심 유형을 팀 전체가 안정적으로 풀 수 있는 상태 만들기",
+    weeklyGoal: "그리디와 DP 정리, 기출 2회독, 발표 질문 준비",
+    overallGoal:
+      "기말고사 직전까지 전 범위를 안정적으로 설명하고 문제 풀이 흐름을 공유할 수 있는 상태 만들기",
   });
 
   function handleChange<Key extends keyof CreateGroupInput>(
@@ -44,8 +45,8 @@ export function StudyCreateScreen() {
 
   return (
     <AppShell
-      title="새 스터디 모임"
-      subtitle="시험 일정과 공동 목표를 먼저 정의하면 스터디 탭과 계획 탭이 같은 기준 데이터를 공유합니다."
+      title="새 스터디 그룹"
+      subtitle="시험 일정과 공동 목표를 먼저 정의하면 스터디 탭에서 그룹을 선택하고, 각 그룹의 상세 화면으로 이어갈 수 있어요."
     >
       <SectionCard title="기본 정보 입력">
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -86,7 +87,9 @@ export function StudyCreateScreen() {
               <input
                 type="date"
                 value={form.presentationDate}
-                onChange={(event) => handleChange("presentationDate", event.target.value)}
+                onChange={(event) =>
+                  handleChange("presentationDate", event.target.value)
+                }
                 className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
               />
             </label>
@@ -134,14 +137,17 @@ export function StudyCreateScreen() {
         </form>
       </SectionCard>
 
-      <SectionCard title="생성 후 바로 연결되는 흐름">
+      <SectionCard title="생성 후 바로 이어지는 흐름">
         <div className="grid gap-3">
           {[
-            "스터디 탭에서 현재 모임, 시험 일정, 공동 목표, 팀원 상태를 한 번에 관리합니다.",
-            "계획 탭은 방금 입력한 시험일과 목표를 기준으로 주간 체크 흐름을 이어갑니다.",
-            "자료와 AI 화면은 팀원 B 담당 영역으로 유지되고 같은 모임 데이터를 함께 참조합니다.",
+            "스터디 탭에서 내 그룹 카드 목록을 보고 원하는 그룹을 선택할 수 있어요.",
+            "그룹을 선택하면 시험 일정, 공동 목표, 팀원 진행 상태가 담긴 그룹 정보 화면으로 이어져요.",
+            "계획 탭과 자료 탭은 선택한 그룹 기준으로 같은 데이터를 공유해요.",
           ].map((item) => (
-            <div key={item} className="rounded-2xl bg-white/80 p-3 text-sm leading-6 text-slate-700">
+            <div
+              key={item}
+              className="rounded-2xl bg-white/80 p-3 text-sm leading-6 text-slate-700"
+            >
               {item}
             </div>
           ))}
