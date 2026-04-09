@@ -87,9 +87,6 @@ export function AppShell({
             >
               STUDY FLOW
             </Link>
-            <div className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--brand)]">
-              Mobile Prototype
-            </div>
           </div>
 
           <div className="space-y-1">

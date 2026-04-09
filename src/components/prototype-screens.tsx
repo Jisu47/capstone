@@ -111,9 +111,6 @@ function AppShell({
             >
               STUDY FLOW
             </Link>
-            <div className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--brand)]">
-              Mobile Prototype
-            </div>
           </div>
           <div className="space-y-1">
             <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
