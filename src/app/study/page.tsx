@@ -1,5 +1,5 @@
-import { StudyGroupsScreen } from "@/components/study-groups-screen";
+import { redirect } from "next/navigation";
 
 export default function StudyPage() {
-  return <StudyGroupsScreen />;
+  redirect("/");
 }

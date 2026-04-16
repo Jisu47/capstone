@@ -16,8 +16,18 @@ function getTabs(navReady: boolean, navGroupId?: string | null): BottomTab[] {
   const hasActiveGroup = navReady && Boolean(navGroupId);
 
   return [
-    { id: "home", label: "홈", enabled: true, href: "/" },
-    { id: "study", label: "스터디", enabled: true, href: "/study" },
+    {
+      id: "home",
+      label: "홈",
+      enabled: hasActiveGroup,
+      href: hasActiveGroup ? `/group/${navGroupId}` : "/",
+    },
+    {
+      id: "study",
+      label: "스터디",
+      enabled: hasActiveGroup,
+      href: hasActiveGroup ? `/group/${navGroupId}/study` : "/",
+    },
     {
       id: "plan",
       label: "계획",
@@ -40,9 +50,9 @@ function isActiveTab(pathname: string, tab: BottomTab) {
 
   switch (tab.id) {
     case "home":
-      return pathname === "/";
+      return /^\/group\/[^/]+$/.test(pathname);
     case "study":
-      return pathname === "/study" || /^\/group\/[^/]+$/.test(pathname);
+      return /^\/group\/[^/]+\/study(?:\/.*)?$/.test(pathname);
     case "plan":
       return /^\/group\/[^/]+\/plan(?:\/.*)?$/.test(pathname);
     case "materials":

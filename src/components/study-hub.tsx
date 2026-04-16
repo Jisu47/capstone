@@ -207,7 +207,7 @@ export function StudyHub({ group, groups }: Readonly<StudyHubProps>) {
               return (
                 <Link
                   key={candidate.id}
-                  href={`/group/${candidate.id}`}
+                  href={`/group/${candidate.id}/study`}
                   className={`shrink-0 rounded-full px-3 py-2 text-xs font-semibold transition ${
                     active
                       ? "bg-[var(--brand)] text-white shadow-[0_12px_28px_rgba(47,110,229,0.24)]"

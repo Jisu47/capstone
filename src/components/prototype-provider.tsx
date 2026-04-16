@@ -31,9 +31,13 @@ import {
 type PrototypeContextValue = {
   groups: StudyGroup[];
   currentUserId: string;
+  isAuthReady: boolean;
+  sessionName: string | null;
   error: string | null;
   isLoading: boolean;
   isMutating: boolean;
+  signIn: (name: string) => void;
+  signOut: () => void;
   createGroup: (input: CreateGroupInput) => Promise<string>;
   updateGroupDetails: (groupId: string, updates: GroupDetailsInput) => Promise<void>;
   togglePlanItem: (groupId: string, itemId: string) => Promise<void>;
@@ -52,6 +56,7 @@ type PrototypeContextValue = {
 };
 
 const PrototypeContext = createContext<PrototypeContextValue | null>(null);
+const sessionStorageKey = "study-flow-session-name";
 
 function getGroupById(groups: StudyGroup[], groupId: string) {
   return groups.find((group) => group.id === groupId);
@@ -87,6 +92,8 @@ export function PrototypeProvider({
   children: React.ReactNode;
 }>) {
   const [groups, setGroups] = useState<StudyGroup[]>([]);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [sessionName, setSessionName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mutationCount, setMutationCount] = useState(0);
@@ -116,6 +123,9 @@ export function PrototypeProvider({
   useEffect(() => {
     let cancelled = false;
     const timeouts = timeoutIds;
+    const savedSessionName = window.localStorage.getItem(sessionStorageKey);
+    setSessionName(savedSessionName);
+    setIsAuthReady(true);
 
     async function bootstrap() {
       try {
@@ -145,6 +155,22 @@ export function PrototypeProvider({
       timeouts.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
     };
   }, []);
+
+  function signIn(name: string) {
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      return;
+    }
+
+    window.localStorage.setItem(sessionStorageKey, trimmedName);
+    setSessionName(trimmedName);
+  }
+
+  function signOut() {
+    window.localStorage.removeItem(sessionStorageKey);
+    setSessionName(null);
+  }
 
   async function createGroup(input: CreateGroupInput) {
     return runMutation(async () => {
@@ -251,9 +277,13 @@ export function PrototypeProvider({
   const value: PrototypeContextValue = {
     groups,
     currentUserId,
+    isAuthReady,
+    sessionName,
     error,
     isLoading,
     isMutating: mutationCount > 0,
+    signIn,
+    signOut,
     createGroup,
     updateGroupDetails,
     togglePlanItem,

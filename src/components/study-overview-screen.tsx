@@ -44,7 +44,7 @@ export function StudyOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
   return (
     <AppShell
       groupId={groupId}
-      title={group.name}
+      title="스터디"
       subtitle={`${group.subject} · 시험 ${formatExamDate(group.examDate)} · 그룹 정보와 진행 현황`}
     >
       <StudyHub group={group} groups={groups} />

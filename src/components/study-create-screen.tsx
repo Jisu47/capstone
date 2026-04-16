@@ -45,6 +45,7 @@ export function StudyCreateScreen() {
 
   return (
     <AppShell
+      showNavigation={false}
       title="새 스터디 그룹"
       subtitle="시험 일정과 공동 목표를 먼저 정의하면 스터디 탭에서 그룹을 선택하고, 각 그룹의 상세 화면으로 이어갈 수 있어요."
     >

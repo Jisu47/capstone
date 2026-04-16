@@ -43,7 +43,7 @@ export function MissingGroupState() {
     <SectionCard
       title="그룹 정보를 아직 불러오지 못했어요"
       action={
-        <Link href="/study" className="text-sm font-semibold text-[var(--brand)]">
+        <Link href="/" className="text-sm font-semibold text-[var(--brand)]">
           그룹 선택
         </Link>
       }
@@ -62,6 +62,8 @@ export function AppShell({
   groupId,
   navGroupId,
   navReady,
+  requireAuth = true,
+  showNavigation = true,
   children,
 }: Readonly<{
   title: string;
@@ -69,12 +71,88 @@ export function AppShell({
   groupId?: string;
   navGroupId?: string | null;
   navReady?: boolean;
+  requireAuth?: boolean;
+  showNavigation?: boolean;
   children: React.ReactNode;
 }>) {
-  const { groups, error, isLoading, isMutating } = usePrototype();
+  const { groups, error, isAuthReady, isLoading, isMutating, sessionName } = usePrototype();
   const resolvedNavGroupId =
     navGroupId === undefined ? (groupId ?? groups[0]?.id ?? null) : navGroupId;
   const resolvedNavReady = navReady ?? (groupId ? true : !isLoading);
+  const shouldShowNavigation =
+    showNavigation && (!requireAuth || (isAuthReady && Boolean(sessionName)));
+
+  if (requireAuth && !isAuthReady) {
+    return (
+      <div className="min-h-screen bg-transparent px-3 py-4 text-slate-900">
+        <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[430px] flex-col overflow-hidden rounded-[34px] border border-white/70 bg-[rgba(245,249,255,0.86)] shadow-[0_30px_100px_rgba(17,50,99,0.14)] backdrop-blur-xl">
+          <header className="sticky top-0 z-20 border-b border-white/80 bg-[rgba(245,249,255,0.92)] px-5 py-4 backdrop-blur-xl">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <Link
+                href="/"
+                className="inline-flex rounded-full border border-[var(--line)] bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-700"
+              >
+                STUDY FLOW
+              </Link>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
+                {title}
+              </p>
+              <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+            </div>
+          </header>
+
+          <main className="flex-1 space-y-4 overflow-y-auto px-4 pb-10 pt-4">
+            <LoadingState message="로그인 상태를 확인하는 중입니다." />
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  if (requireAuth && !sessionName) {
+    return (
+      <div className="min-h-screen bg-transparent px-3 py-4 text-slate-900">
+        <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[430px] flex-col overflow-hidden rounded-[34px] border border-white/70 bg-[rgba(245,249,255,0.86)] shadow-[0_30px_100px_rgba(17,50,99,0.14)] backdrop-blur-xl">
+          <header className="sticky top-0 z-20 border-b border-white/80 bg-[rgba(245,249,255,0.92)] px-5 py-4 backdrop-blur-xl">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <Link
+                href="/"
+                className="inline-flex rounded-full border border-[var(--line)] bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-700"
+              >
+                STUDY FLOW
+              </Link>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
+                {title}
+              </p>
+              <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+            </div>
+          </header>
+
+          <main className="flex-1 space-y-4 overflow-y-auto px-4 pb-10 pt-4">
+            <SectionCard
+              title="로그인이 필요해요"
+              action={
+                <Link href="/" className="text-sm font-semibold text-[var(--brand)]">
+                  로그인으로
+                </Link>
+              }
+            >
+              <p className="text-sm leading-6 text-[var(--ink-soft)]">
+                먼저 로그인하고 스터디그룹을 선택한 뒤에 그룹별 홈과 스터디, 계획,
+                자료 화면으로 이동할 수 있어요.
+              </p>
+            </SectionCard>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-transparent px-3 py-4 text-slate-900">
@@ -113,10 +191,12 @@ export function AppShell({
           {children}
         </main>
 
-        <BottomNavigation
-          navReady={resolvedNavReady}
-          navGroupId={resolvedNavGroupId}
-        />
+        {shouldShowNavigation ? (
+          <BottomNavigation
+            navReady={resolvedNavReady}
+            navGroupId={resolvedNavGroupId}
+          />
+        ) : null}
       </div>
     </div>
   );
