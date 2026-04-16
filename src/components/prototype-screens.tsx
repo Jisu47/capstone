@@ -108,8 +108,8 @@ function AppShell({
 
   if (requireAuth && !isAuthReady) {
     return (
-      <div className="min-h-screen bg-transparent px-3 py-4 text-slate-900">
-        <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[430px] flex-col overflow-hidden rounded-[34px] border border-white/70 bg-[rgba(245,249,255,0.86)] shadow-[0_30px_100px_rgba(17,50,99,0.14)] backdrop-blur-xl">
+      <div className="min-h-dvh bg-transparent px-3 py-4 text-slate-900">
+        <div className="relative mx-auto flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] max-w-[430px] flex-col overflow-hidden rounded-[34px] border border-white/70 bg-[rgba(245,249,255,0.86)] shadow-[0_30px_100px_rgba(17,50,99,0.14)] backdrop-blur-xl">
           <header className="sticky top-0 z-20 border-b border-white/80 bg-[rgba(245,249,255,0.92)] px-5 py-4 backdrop-blur-xl">
             <div className="mb-3 flex items-center justify-between gap-3">
               <Link
@@ -127,7 +127,7 @@ function AppShell({
             </div>
           </header>
 
-          <main className="flex-1 space-y-4 overflow-y-auto px-4 pb-10 pt-4">
+          <main className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-10 pt-4">
             <LoadingState message="로그인 상태를 확인하는 중입니다." />
           </main>
         </div>
@@ -137,8 +137,8 @@ function AppShell({
 
   if (requireAuth && !sessionName) {
     return (
-      <div className="min-h-screen bg-transparent px-3 py-4 text-slate-900">
-        <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[430px] flex-col overflow-hidden rounded-[34px] border border-white/70 bg-[rgba(245,249,255,0.86)] shadow-[0_30px_100px_rgba(17,50,99,0.14)] backdrop-blur-xl">
+      <div className="min-h-dvh bg-transparent px-3 py-4 text-slate-900">
+        <div className="relative mx-auto flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] max-w-[430px] flex-col overflow-hidden rounded-[34px] border border-white/70 bg-[rgba(245,249,255,0.86)] shadow-[0_30px_100px_rgba(17,50,99,0.14)] backdrop-blur-xl">
           <header className="sticky top-0 z-20 border-b border-white/80 bg-[rgba(245,249,255,0.92)] px-5 py-4 backdrop-blur-xl">
             <div className="mb-3 flex items-center justify-between gap-3">
               <Link
@@ -156,7 +156,7 @@ function AppShell({
             </div>
           </header>
 
-          <main className="flex-1 space-y-4 overflow-y-auto px-4 pb-10 pt-4">
+          <main className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-10 pt-4">
             <SectionCard
               title="로그인이 필요해요"
               action={
@@ -177,8 +177,8 @@ function AppShell({
   }
 
   return (
-    <div className="min-h-screen bg-transparent px-3 py-4 text-slate-900">
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[430px] flex-col overflow-hidden rounded-[34px] border border-white/70 bg-[rgba(245,249,255,0.86)] shadow-[0_30px_100px_rgba(17,50,99,0.14)] backdrop-blur-xl">
+    <div className="min-h-dvh bg-transparent px-3 py-4 text-slate-900">
+      <div className="relative mx-auto flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] max-w-[430px] flex-col overflow-hidden rounded-[34px] border border-white/70 bg-[rgba(245,249,255,0.86)] shadow-[0_30px_100px_rgba(17,50,99,0.14)] backdrop-blur-xl">
         <header className="sticky top-0 z-20 border-b border-white/80 bg-[rgba(245,249,255,0.92)] px-5 py-4 backdrop-blur-xl">
           <div className="mb-3 flex items-center justify-between gap-3">
             <Link
@@ -206,7 +206,7 @@ function AppShell({
           ) : null}
         </header>
 
-        <main className="flex-1 space-y-4 overflow-y-auto px-4 pb-28 pt-4">{children}</main>
+        <main className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-32 pt-4">{children}</main>
 
         {shouldShowNavigation ? (
           <BottomNavigation navReady={resolvedNavReady} navGroupId={resolvedNavGroupId} />
