@@ -64,6 +64,7 @@ export function AppShell({
   navReady,
   requireAuth = true,
   showNavigation = true,
+  headerContent,
   children,
 }: Readonly<{
   title: string;
@@ -73,6 +74,7 @@ export function AppShell({
   navReady?: boolean;
   requireAuth?: boolean;
   showNavigation?: boolean;
+  headerContent?: React.ReactNode;
   children: React.ReactNode;
 }>) {
   const { groups, error, isAuthReady, isLoading, isMutating, sessionName } = usePrototype();
@@ -158,21 +160,27 @@ export function AppShell({
     <div className="min-h-screen bg-transparent px-3 py-4 text-slate-900">
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[430px] flex-col overflow-hidden rounded-[34px] border border-white/70 bg-[rgba(245,249,255,0.86)] shadow-[0_30px_100px_rgba(17,50,99,0.14)] backdrop-blur-xl">
         <header className="sticky top-0 z-20 border-b border-white/80 bg-[rgba(245,249,255,0.92)] px-5 py-4 backdrop-blur-xl">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <Link
-              href="/"
-              className="inline-flex rounded-full border border-[var(--line)] bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-700"
-            >
-              STUDY FLOW
-            </Link>
-          </div>
+          {headerContent ? (
+            headerContent
+          ) : (
+            <>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <Link
+                  href="/"
+                  className="inline-flex rounded-full border border-[var(--line)] bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-700"
+                >
+                  STUDY FLOW
+                </Link>
+              </div>
 
-          <div className="space-y-1">
-            <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
-              {title}
-            </p>
-            <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
-          </div>
+              <div className="space-y-1">
+                <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
+                  {title}
+                </p>
+                <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+              </div>
+            </>
+          )}
 
           {isLoading || isMutating ? (
             <div className="mt-3 rounded-2xl bg-white/80 px-3 py-2 text-[11px] font-medium text-slate-600">

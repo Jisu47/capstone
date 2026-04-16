@@ -5,6 +5,7 @@ import {
   LoadingState,
   MissingGroupState,
 } from "@/components/mobile-shell";
+import { GroupPageHeader } from "@/components/group-page-header";
 import { usePrototype } from "@/components/prototype-provider";
 import { StudyHub } from "@/components/study-hub";
 import { formatExamDate, type StudyGroup } from "@/lib/mock-data";
@@ -46,8 +47,9 @@ export function StudyOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
       groupId={groupId}
       title="스터디"
       subtitle={`${group.subject} · 시험 ${formatExamDate(group.examDate)} · 그룹 정보와 진행 현황`}
+      headerContent={<GroupPageHeader groupName={group.name} />}
     >
-      <StudyHub group={group} groups={groups} />
+      <StudyHub group={group} />
     </AppShell>
   );
 }

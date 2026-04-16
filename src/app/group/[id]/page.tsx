@@ -1,4 +1,4 @@
-import { GroupOverviewScreen } from "@/components/prototype-screens";
+import { GroupHomeScreen } from "@/components/group-home-screen";
 
 export default async function GroupPage({
   params,
@@ -7,5 +7,5 @@ export default async function GroupPage({
 }>) {
   const { id } = await params;
 
-  return <GroupOverviewScreen groupId={id} />;
+  return <GroupHomeScreen groupId={id} />;
 }
