@@ -80,7 +80,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
       groupId={groupId}
       title="홈"
       subtitle={`${group.name} 홈`}
-      headerContent={<GroupPageHeader groupName={group.name} />}
+      headerContent={<GroupPageHeader groupId={group.id} groupName={group.name} />}
     >
       <div className="space-y-4">
         <section className="rounded-[28px] border border-slate-300 bg-white/80 px-5 py-6 text-center shadow-[0_18px_60px_rgba(28,64,120,0.08)]">
