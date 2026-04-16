@@ -39,6 +39,8 @@ export type ChatMessage = {
 
 export type Weekday = "월" | "화" | "수" | "목" | "금";
 
+export type ReviewIntervalDays = 3 | 7 | 14 | 28;
+
 export type WeeklyPlanItem = {
   id: string;
   day: Weekday;
@@ -46,6 +48,42 @@ export type WeeklyPlanItem = {
   detail: string;
   duration: string;
   memberStatus: Record<string, boolean>;
+  referenceUnitSequence?: number | null;
+};
+
+export type PlanReferenceUpload = {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  imageDataUrl: string;
+  uploadedAt: string;
+  uploadedBy: string;
+  summary: string;
+};
+
+export type PlanReferenceUnit = {
+  id: string;
+  uploadId: string;
+  sequence: number;
+  label: string;
+  detail: string;
+};
+
+export type RoadmapItem = {
+  id: string;
+  weekNumber: number;
+  title: string;
+  summary: string;
+  unitStartSequence: number;
+  unitEndSequence: number;
+};
+
+export type PersonalPlanItem = {
+  id: string;
+  memberId: string;
+  title: string;
+  detail: string;
+  completed: boolean;
 };
 
 export type StudyGroup = {
@@ -63,7 +101,14 @@ export type StudyGroup = {
   materials: Material[];
   plan: WeeklyPlanItem[];
   chat: ChatMessage[];
+  planAgentChat: ChatMessage[];
   uploadDraftCount: number;
+  reviewDays: Weekday[];
+  reviewIntervals: Record<string, ReviewIntervalDays | null>;
+  planReferenceUploads: PlanReferenceUpload[];
+  planReferenceUnits: PlanReferenceUnit[];
+  roadmap: RoadmapItem[];
+  personalPlanItems: PersonalPlanItem[];
 };
 
 export type GroupDetailsInput = {
@@ -127,6 +172,7 @@ function createPlan(
     detail: entry.detail,
     duration: entry.duration,
     memberStatus: createStatusMap(memberIds, entry.completedMemberIds),
+    referenceUnitSequence: index + 1,
   }));
 }
 
@@ -209,6 +255,20 @@ function createInitialMembers(): Member[] {
     { id: "member-seoyeon", name: "서연", role: "팀원", focus: "질답 정리" },
     { id: "member-doyoon", name: "도윤", role: "팀원", focus: "자료 요약" },
   ];
+}
+
+function createPlanFlowDefaults(memberIds: string[]) {
+  return {
+    planAgentChat: [] as ChatMessage[],
+    reviewDays: [] as Weekday[],
+    reviewIntervals: Object.fromEntries(
+      memberIds.map((memberId) => [memberId, null]),
+    ) as Record<string, ReviewIntervalDays | null>,
+    planReferenceUploads: [] as PlanReferenceUpload[],
+    planReferenceUnits: [] as PlanReferenceUnit[],
+    roadmap: [] as RoadmapItem[],
+    personalPlanItems: [] as PersonalPlanItem[],
+  };
 }
 
 function createInitialGroups(): StudyGroup[] {
@@ -337,6 +397,7 @@ function createInitialGroups(): StudyGroup[] {
       ),
       chat: createWelcomeChat("운영체제", operatingMaterials),
       uploadDraftCount: 0,
+      ...createPlanFlowDefaults(memberIds),
     },
     {
       id: "group-network",
@@ -358,6 +419,7 @@ function createInitialGroups(): StudyGroup[] {
       ),
       chat: createWelcomeChat("데이터통신", networkMaterials),
       uploadDraftCount: 0,
+      ...createPlanFlowDefaults(memberIds),
     },
   ];
 }
@@ -430,6 +492,7 @@ export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
     plan: createAutoPlan(trimmedSubject, trimmedWeeklyGoal, memberIds),
     chat: createWelcomeChat(trimmedSubject, materials),
     uploadDraftCount: 0,
+    ...createPlanFlowDefaults(memberIds),
   };
 }
 

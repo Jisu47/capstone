@@ -4,10 +4,14 @@ import {
   currentUserId,
   type CreateGroupInput,
   type GroupDetailsInput,
+  type ReviewIntervalDays,
   type StudyGroup,
   type Weekday,
 } from "@/lib/mock-data";
 import {
+  applyPrototypePlanAgentDraft,
+  addPrototypePlanReferenceUpload,
+  addPrototypePersonalPlanItem,
   addPrototypeAssistantAnswer,
   addPrototypePlanItem,
   addPrototypeUpload,
@@ -15,11 +19,20 @@ import {
   bootstrapPrototypeGroups,
   createPrototypeGroup,
   listPrototypeGroups,
+  togglePrototypePersonalPlanItem,
   togglePrototypePlanItem,
   type PlanItemDraft,
+  updatePrototypePersonalPlanItem,
+  updatePrototypeReviewDays,
+  updatePrototypeReviewInterval,
   updatePrototypeGroupDetails,
   updatePrototypePlanItem,
 } from "@/lib/prototype-repository";
+import type {
+  PersonalPlanItemDraft,
+  PlanAgentDraft,
+  PlanReferenceUploadDraft,
+} from "@/lib/plan-flow";
 import {
   createContext,
   useContext,
@@ -41,18 +54,26 @@ type PrototypeContextValue = {
   createGroup: (input: CreateGroupInput) => Promise<string>;
   updateGroupDetails: (groupId: string, updates: GroupDetailsInput) => Promise<void>;
   togglePlanItem: (groupId: string, itemId: string) => Promise<void>;
-  updatePlanItem: (
-    groupId: string,
-    itemId: string,
-    updates: { day: Weekday; title: string; detail: string; duration: string },
-  ) => Promise<void>;
-  addPlanItem: (
-    groupId: string,
-    item: { day: Weekday; title: string; detail: string; duration: string },
-  ) => Promise<void>;
+  updatePlanItem: (groupId: string, itemId: string, updates: PlanItemDraft) => Promise<void>;
+  addPlanItem: (groupId: string, item: PlanItemDraft) => Promise<void>;
   queueMockUpload: (groupId: string) => Promise<void>;
+  uploadPlanReference: (
+    groupId: string,
+    upload: PlanReferenceUploadDraft,
+  ) => Promise<void>;
+  updateReviewDays: (groupId: string, reviewDays: Weekday[]) => Promise<void>;
+  updateReviewInterval: (
+    groupId: string,
+    reviewIntervalDays: ReviewIntervalDays | null,
+  ) => Promise<void>;
+  addPersonalPlanItem: (groupId: string, item: PersonalPlanItemDraft) => Promise<void>;
+  updatePersonalPlanItem: (itemId: string, item: PersonalPlanItemDraft) => Promise<void>;
+  togglePersonalPlanItem: (itemId: string, completed: boolean) => Promise<void>;
   sendQuestion: (groupId: string, question: string) => Promise<void>;
+  sendPlanAgentMessage: (groupId: string, question: string) => Promise<void>;
+  applyPlanAgentDraft: (groupId: string, draft: PlanAgentDraft) => Promise<void>;
   isAnswering: (groupId: string) => boolean;
+  isPlanAgentAnswering: (groupId: string) => boolean;
 };
 
 const PrototypeContext = createContext<PrototypeContextValue | null>(null);
@@ -60,6 +81,10 @@ const sessionStorageKey = "study-flow-session-name";
 
 function getGroupById(groups: StudyGroup[], groupId: string) {
   return groups.find((group) => group.id === groupId);
+}
+
+function getPendingAnswerKey(groupId: string, scope: "materials" | "plan-agent") {
+  return `${scope}:${groupId}`;
 }
 
 function toErrorMessage(error: unknown) {
@@ -71,7 +96,15 @@ function toErrorMessage(error: unknown) {
       error.message.includes("inspect study groups") ||
       error.message.includes("presentation_date") ||
       error.message.includes("deadline_date") ||
-      error.message.includes("overall_goal")
+      error.message.includes("overall_goal") ||
+      error.message.includes("review_days") ||
+      error.message.includes("reference_unit_sequence") ||
+      error.message.includes("plan_reference_uploads") ||
+      error.message.includes("plan_reference_units") ||
+      error.message.includes("group_roadmap_items") ||
+      error.message.includes("personal_plan_items") ||
+      error.message.includes("review_interval_days") ||
+      error.message.includes("scope")
     ) {
       return "Supabase schema is missing. Run supabase/bootstrap.sql in the Supabase SQL editor.";
     }
@@ -231,9 +264,78 @@ export function PrototypeProvider({
     });
   }
 
-  async function sendQuestion(groupId: string, question: string) {
+  async function uploadPlanReference(
+    groupId: string,
+    upload: PlanReferenceUploadDraft,
+  ) {
+    const group = getGroupById(groups, groupId);
+
+    if (!group) {
+      return;
+    }
+
+    await runMutation(async () => {
+      await addPrototypePlanReferenceUpload(group, upload);
+      await refreshGroups();
+    });
+  }
+
+  async function updateReviewDays(groupId: string, reviewDays: Weekday[]) {
+    await runMutation(async () => {
+      await updatePrototypeReviewDays(groupId, reviewDays);
+      await refreshGroups();
+    });
+  }
+
+  async function updateReviewInterval(
+    groupId: string,
+    reviewIntervalDays: ReviewIntervalDays | null,
+  ) {
+    await runMutation(async () => {
+      await updatePrototypeReviewInterval(groupId, currentUserId, reviewIntervalDays);
+      await refreshGroups();
+    });
+  }
+
+  async function addPersonalPlanItem(groupId: string, item: PersonalPlanItemDraft) {
+    const group = getGroupById(groups, groupId);
+
+    if (!group) {
+      return;
+    }
+
+    const currentItemCount = group.personalPlanItems.filter(
+      (entry) => entry.memberId === currentUserId,
+    ).length;
+
+    await runMutation(async () => {
+      await addPrototypePersonalPlanItem(groupId, currentUserId, item, currentItemCount);
+      await refreshGroups();
+    });
+  }
+
+  async function updatePersonalPlanItem(itemId: string, item: PersonalPlanItemDraft) {
+    await runMutation(async () => {
+      await updatePrototypePersonalPlanItem(itemId, item);
+      await refreshGroups();
+    });
+  }
+
+  async function togglePersonalPlanItem(itemId: string, completed: boolean) {
+    await runMutation(async () => {
+      await togglePrototypePersonalPlanItem(itemId, completed);
+      await refreshGroups();
+    });
+  }
+
+  async function sendScopedQuestion(
+    groupId: string,
+    question: string,
+    scope: "materials" | "plan-agent",
+  ) {
     const trimmedQuestion = question.trim();
     const group = getGroupById(groups, groupId);
+    const pendingKey = getPendingAnswerKey(groupId, scope);
 
     if (!trimmedQuestion || !group) {
       return;
@@ -241,37 +343,52 @@ export function PrototypeProvider({
 
     try {
       await runMutation(async () => {
-        await addPrototypeUserQuestion(groupId, trimmedQuestion);
+        await addPrototypeUserQuestion(groupId, trimmedQuestion, scope);
         await refreshGroups();
       });
     } catch {
       setPendingAnswers((previous) => ({
         ...previous,
-        [groupId]: false,
+        [pendingKey]: false,
       }));
       return;
     }
 
     setPendingAnswers((previous) => ({
       ...previous,
-      [groupId]: true,
+      [pendingKey]: true,
     }));
 
     const timeoutId = window.setTimeout(() => {
       void runMutation(async () => {
         try {
-          await addPrototypeAssistantAnswer(group, trimmedQuestion);
+          await addPrototypeAssistantAnswer(group, trimmedQuestion, scope);
           await refreshGroups();
         } finally {
           setPendingAnswers((previous) => ({
             ...previous,
-            [groupId]: false,
+            [pendingKey]: false,
           }));
         }
       }).catch(() => undefined);
     }, 700);
 
     timeoutIds.current.push(timeoutId);
+  }
+
+  async function sendQuestion(groupId: string, question: string) {
+    await sendScopedQuestion(groupId, question, "materials");
+  }
+
+  async function sendPlanAgentMessage(groupId: string, question: string) {
+    await sendScopedQuestion(groupId, question, "plan-agent");
+  }
+
+  async function applyPlanAgentDraft(groupId: string, draft: PlanAgentDraft) {
+    await runMutation(async () => {
+      await applyPrototypePlanAgentDraft(groupId, draft);
+      await refreshGroups();
+    });
   }
 
   const value: PrototypeContextValue = {
@@ -290,8 +407,19 @@ export function PrototypeProvider({
     updatePlanItem,
     addPlanItem,
     queueMockUpload,
+    uploadPlanReference,
+    updateReviewDays,
+    updateReviewInterval,
+    addPersonalPlanItem,
+    updatePersonalPlanItem,
+    togglePersonalPlanItem,
     sendQuestion,
-    isAnswering: (groupId: string) => Boolean(pendingAnswers[groupId]),
+    sendPlanAgentMessage,
+    applyPlanAgentDraft,
+    isAnswering: (groupId: string) =>
+      Boolean(pendingAnswers[getPendingAnswerKey(groupId, "materials")]),
+    isPlanAgentAnswering: (groupId: string) =>
+      Boolean(pendingAnswers[getPendingAnswerKey(groupId, "plan-agent")]),
   };
 
   return <PrototypeContext.Provider value={value}>{children}</PrototypeContext.Provider>;

@@ -35,6 +35,12 @@ create table if not exists public.group_members (
   primary key (group_id, member_id)
 );
 
+alter table public.study_groups
+  add column if not exists review_days text[] not null default '{}';
+
+alter table public.group_members
+  add column if not exists review_interval_days integer;
+
 create table if not exists public.materials (
   id text primary key,
   group_id text not null references public.study_groups(id) on delete cascade,
@@ -53,9 +59,13 @@ create table if not exists public.plan_items (
   title text not null,
   detail text not null,
   duration text not null,
+  reference_unit_sequence integer,
   sort_order integer not null default 0,
   created_at timestamptz not null default timezone('utc', now())
 );
+
+alter table public.plan_items
+  add column if not exists reference_unit_sequence integer;
 
 create table if not exists public.plan_item_completions (
   plan_item_id text not null references public.plan_items(id) on delete cascade,
@@ -67,9 +77,13 @@ create table if not exists public.chat_messages (
   id text primary key,
   group_id text not null references public.study_groups(id) on delete cascade,
   role text not null check (role in ('user', 'assistant')),
+  scope text not null default 'materials',
   text text not null,
   created_at timestamptz not null default timezone('utc', now())
 );
+
+alter table public.chat_messages
+  add column if not exists scope text not null default 'materials';
 
 create table if not exists public.chat_message_sources (
   id text primary key,
@@ -81,6 +95,49 @@ create table if not exists public.chat_message_sources (
   sort_order integer not null default 0
 );
 
+create table if not exists public.plan_reference_uploads (
+  id text primary key,
+  group_id text not null references public.study_groups(id) on delete cascade,
+  uploaded_by_member_id text not null references public.profiles(id) on delete cascade,
+  file_name text not null,
+  mime_type text not null,
+  image_data_url text not null,
+  summary text not null default '',
+  created_at timestamptz not null default timezone('utc', now())
+);
+
+create table if not exists public.plan_reference_units (
+  id text primary key,
+  group_id text not null references public.study_groups(id) on delete cascade,
+  upload_id text not null references public.plan_reference_uploads(id) on delete cascade,
+  sequence_number integer not null,
+  label text not null,
+  detail text not null,
+  sort_order integer not null default 0
+);
+
+create table if not exists public.group_roadmap_items (
+  id text primary key,
+  group_id text not null references public.study_groups(id) on delete cascade,
+  week_number integer not null,
+  title text not null,
+  summary text not null,
+  unit_start_sequence integer not null,
+  unit_end_sequence integer not null,
+  sort_order integer not null default 0
+);
+
+create table if not exists public.personal_plan_items (
+  id text primary key,
+  group_id text not null references public.study_groups(id) on delete cascade,
+  member_id text not null references public.profiles(id) on delete cascade,
+  title text not null,
+  detail text not null default '',
+  completed boolean not null default false,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default timezone('utc', now())
+);
+
 create index if not exists idx_group_members_group_id
   on public.group_members (group_id);
 
@@ -89,6 +146,18 @@ create index if not exists idx_materials_group_id
 
 create index if not exists idx_plan_items_group_id
   on public.plan_items (group_id);
+
+create index if not exists idx_plan_reference_uploads_group_id
+  on public.plan_reference_uploads (group_id);
+
+create index if not exists idx_plan_reference_units_group_id
+  on public.plan_reference_units (group_id);
+
+create index if not exists idx_group_roadmap_items_group_id
+  on public.group_roadmap_items (group_id);
+
+create index if not exists idx_personal_plan_items_group_id
+  on public.personal_plan_items (group_id);
 
 create index if not exists idx_plan_item_completions_member_id
   on public.plan_item_completions (member_id);
@@ -110,6 +179,10 @@ alter table public.plan_items enable row level security;
 alter table public.plan_item_completions enable row level security;
 alter table public.chat_messages enable row level security;
 alter table public.chat_message_sources enable row level security;
+alter table public.plan_reference_uploads enable row level security;
+alter table public.plan_reference_units enable row level security;
+alter table public.group_roadmap_items enable row level security;
+alter table public.personal_plan_items enable row level security;
 
 drop policy if exists "profiles_select_all" on public.profiles;
 create policy "profiles_select_all"
@@ -339,6 +412,122 @@ create policy "chat_message_sources_update_all"
 drop policy if exists "chat_message_sources_delete_all" on public.chat_message_sources;
 create policy "chat_message_sources_delete_all"
   on public.chat_message_sources
+  for delete
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "plan_reference_uploads_select_all" on public.plan_reference_uploads;
+create policy "plan_reference_uploads_select_all"
+  on public.plan_reference_uploads
+  for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "plan_reference_uploads_insert_all" on public.plan_reference_uploads;
+create policy "plan_reference_uploads_insert_all"
+  on public.plan_reference_uploads
+  for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "plan_reference_uploads_update_all" on public.plan_reference_uploads;
+create policy "plan_reference_uploads_update_all"
+  on public.plan_reference_uploads
+  for update
+  to anon, authenticated
+  using (true)
+  with check (true);
+
+drop policy if exists "plan_reference_uploads_delete_all" on public.plan_reference_uploads;
+create policy "plan_reference_uploads_delete_all"
+  on public.plan_reference_uploads
+  for delete
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "plan_reference_units_select_all" on public.plan_reference_units;
+create policy "plan_reference_units_select_all"
+  on public.plan_reference_units
+  for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "plan_reference_units_insert_all" on public.plan_reference_units;
+create policy "plan_reference_units_insert_all"
+  on public.plan_reference_units
+  for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "plan_reference_units_update_all" on public.plan_reference_units;
+create policy "plan_reference_units_update_all"
+  on public.plan_reference_units
+  for update
+  to anon, authenticated
+  using (true)
+  with check (true);
+
+drop policy if exists "plan_reference_units_delete_all" on public.plan_reference_units;
+create policy "plan_reference_units_delete_all"
+  on public.plan_reference_units
+  for delete
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "group_roadmap_items_select_all" on public.group_roadmap_items;
+create policy "group_roadmap_items_select_all"
+  on public.group_roadmap_items
+  for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "group_roadmap_items_insert_all" on public.group_roadmap_items;
+create policy "group_roadmap_items_insert_all"
+  on public.group_roadmap_items
+  for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "group_roadmap_items_update_all" on public.group_roadmap_items;
+create policy "group_roadmap_items_update_all"
+  on public.group_roadmap_items
+  for update
+  to anon, authenticated
+  using (true)
+  with check (true);
+
+drop policy if exists "group_roadmap_items_delete_all" on public.group_roadmap_items;
+create policy "group_roadmap_items_delete_all"
+  on public.group_roadmap_items
+  for delete
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "personal_plan_items_select_all" on public.personal_plan_items;
+create policy "personal_plan_items_select_all"
+  on public.personal_plan_items
+  for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "personal_plan_items_insert_all" on public.personal_plan_items;
+create policy "personal_plan_items_insert_all"
+  on public.personal_plan_items
+  for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "personal_plan_items_update_all" on public.personal_plan_items;
+create policy "personal_plan_items_update_all"
+  on public.personal_plan_items
+  for update
+  to anon, authenticated
+  using (true)
+  with check (true);
+
+drop policy if exists "personal_plan_items_delete_all" on public.personal_plan_items;
+create policy "personal_plan_items_delete_all"
+  on public.personal_plan_items
   for delete
   to anon, authenticated
   using (true);

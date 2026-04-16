@@ -34,6 +34,22 @@ function CircleButton({
 }
 
 function resolveGroupHref(pathname: string, nextGroupId: string) {
+  if (/^\/group\/[^/]+\/plan\/agent(?:\/.*)?$/.test(pathname)) {
+    return `/group/${nextGroupId}/plan/agent`;
+  }
+
+  if (/^\/group\/[^/]+\/plan(?:\/.*)?$/.test(pathname)) {
+    return `/group/${nextGroupId}/plan`;
+  }
+
+  if (/^\/group\/[^/]+\/materials(?:\/.*)?$/.test(pathname)) {
+    return `/group/${nextGroupId}/materials`;
+  }
+
+  if (/^\/group\/[^/]+\/progress(?:\/.*)?$/.test(pathname)) {
+    return `/group/${nextGroupId}/progress`;
+  }
+
   if (/^\/group\/[^/]+\/study(?:\/.*)?$/.test(pathname)) {
     return `/group/${nextGroupId}/study`;
   }

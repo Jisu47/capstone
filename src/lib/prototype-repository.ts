@@ -1,5 +1,13 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
+  buildMockPlanReferenceUnits,
+  buildPlanAgentDraft,
+  buildPlanAgentAnswer,
+  type PersonalPlanItemDraft,
+  type PlanAgentDraft,
+  type PlanReferenceUploadDraft,
+} from "@/lib/plan-flow";
+import {
   buildGroupDescription,
   buildRecentUpdateFromGoal,
   buildMockAnswer,
@@ -10,6 +18,11 @@ import {
   type GroupDetailsInput,
   type Material,
   type Member,
+  type PersonalPlanItem,
+  type PlanReferenceUnit,
+  type PlanReferenceUpload,
+  type ReviewIntervalDays,
+  type RoadmapItem,
   type SourceCard,
   type StudyGroup,
   type Weekday,
@@ -20,6 +33,7 @@ export type PlanItemDraft = {
   title: string;
   detail: string;
   duration: string;
+  referenceUnitSequence?: number | null;
 };
 
 type ProfileRow = {
@@ -40,6 +54,7 @@ type StudyGroupRow = {
   overall_goal: string | null;
   description: string;
   recent_update: string;
+  review_days: Weekday[] | null;
   created_at: string;
 };
 
@@ -47,6 +62,7 @@ type GroupMemberRow = {
   group_id: string;
   member_id: string;
   sort_order: number;
+  review_interval_days: ReviewIntervalDays | null;
 };
 
 type MaterialRow = {
@@ -67,6 +83,7 @@ type PlanItemRow = {
   title: string;
   detail: string;
   duration: string;
+  reference_unit_sequence: number | null;
   sort_order: number;
   created_at: string;
 };
@@ -80,6 +97,7 @@ type ChatMessageRow = {
   id: string;
   group_id: string;
   role: "user" | "assistant";
+  scope: "materials" | "plan-agent";
   text: string;
   created_at: string;
 };
@@ -94,6 +112,49 @@ type ChatMessageSourceRow = {
   sort_order: number;
 };
 
+type PlanReferenceUploadRow = {
+  id: string;
+  group_id: string;
+  uploaded_by_member_id: string;
+  file_name: string;
+  mime_type: string;
+  image_data_url: string;
+  summary: string;
+  created_at: string;
+};
+
+type PlanReferenceUnitRow = {
+  id: string;
+  group_id: string;
+  upload_id: string;
+  sequence_number: number;
+  label: string;
+  detail: string;
+  sort_order: number;
+};
+
+type GroupRoadmapItemRow = {
+  id: string;
+  group_id: string;
+  week_number: number;
+  title: string;
+  summary: string;
+  unit_start_sequence: number;
+  unit_end_sequence: number;
+  sort_order: number;
+};
+
+type PersonalPlanItemRow = {
+  id: string;
+  group_id: string;
+  member_id: string;
+  title: string;
+  detail: string;
+  completed: boolean;
+  sort_order: number;
+  created_at: string;
+};
+
 type GroupBundle = {
   profiles: ProfileRow[];
   group: StudyGroupRow;
@@ -103,6 +164,10 @@ type GroupBundle = {
   completions: PlanItemCompletionRow[];
   chatMessages: ChatMessageRow[];
   chatSources: ChatMessageSourceRow[];
+  planReferenceUploads: PlanReferenceUploadRow[];
+  planReferenceUnits: PlanReferenceUnitRow[];
+  roadmapItems: GroupRoadmapItemRow[];
+  personalPlanItems: PersonalPlanItemRow[];
 };
 
 type FetchRows = {
@@ -114,6 +179,10 @@ type FetchRows = {
   completions: PlanItemCompletionRow[];
   chatMessages: ChatMessageRow[];
   chatSources: ChatMessageSourceRow[];
+  planReferenceUploads: PlanReferenceUploadRow[];
+  planReferenceUnits: PlanReferenceUnitRow[];
+  roadmapItems: GroupRoadmapItemRow[];
+  personalPlanItems: PersonalPlanItemRow[];
 };
 
 function unwrapData<T>(
@@ -241,6 +310,7 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
     overall_goal: group.overallGoal,
     description: group.description,
     recent_update: group.recentUpdate,
+    review_days: group.reviewDays,
     created_at: groupCreatedAt,
   };
 
@@ -248,6 +318,7 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
     group_id: group.id,
     member_id: member.id,
     sort_order: index,
+    review_interval_days: group.reviewIntervals[member.id] ?? null,
   }));
 
   const materials = group.materials.map<MaterialRow>((material) => {
@@ -275,6 +346,7 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
     title: item.title,
     detail: item.detail,
     duration: item.duration,
+    reference_unit_sequence: item.referenceUnitSequence ?? null,
     sort_order: index,
     created_at: addMinutes(groupCreatedAt, index),
   }));
@@ -292,10 +364,22 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
     id: message.id,
     group_id: group.id,
     role: message.role,
+    scope: "materials",
     text: message.text,
     created_at: isValidTimestamp(message.createdAt)
       ? message.createdAt
       : addMinutes(groupCreatedAt, index),
+  }));
+
+  const planAgentMessages = group.planAgentChat.map<ChatMessageRow>((message, index) => ({
+    id: message.id,
+    group_id: group.id,
+    role: message.role,
+    scope: "plan-agent",
+    text: message.text,
+    created_at: isValidTimestamp(message.createdAt)
+      ? message.createdAt
+      : addMinutes(groupCreatedAt, index + group.chat.length),
   }));
 
   const chatSources = group.chat.flatMap<ChatMessageSourceRow>((message) =>
@@ -310,6 +394,58 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
     })),
   );
 
+  const planReferenceUploads = group.planReferenceUploads.map<PlanReferenceUploadRow>(
+    (upload, index) => {
+      const uploader =
+        group.members.find((member) => member.name === upload.uploadedBy)?.id ?? currentUserId;
+
+      return {
+        id: upload.id,
+        group_id: group.id,
+        uploaded_by_member_id: uploader,
+        file_name: upload.fileName,
+        mime_type: upload.mimeType,
+        image_data_url: upload.imageDataUrl,
+        summary: upload.summary,
+        created_at: isValidTimestamp(upload.uploadedAt)
+          ? upload.uploadedAt
+          : addMinutes(groupCreatedAt, index + 1),
+      };
+    },
+  );
+
+  const planReferenceUnits = group.planReferenceUnits.map<PlanReferenceUnitRow>((unit, index) => ({
+    id: unit.id,
+    group_id: group.id,
+    upload_id: unit.uploadId,
+    sequence_number: unit.sequence,
+    label: unit.label,
+    detail: unit.detail,
+    sort_order: index,
+  }));
+
+  const roadmapItems = group.roadmap.map<GroupRoadmapItemRow>((item, index) => ({
+    id: item.id,
+    group_id: group.id,
+    week_number: item.weekNumber,
+    title: item.title,
+    summary: item.summary,
+    unit_start_sequence: item.unitStartSequence,
+    unit_end_sequence: item.unitEndSequence,
+    sort_order: index,
+  }));
+
+  const personalPlanItems = group.personalPlanItems.map<PersonalPlanItemRow>((item, index) => ({
+    id: item.id,
+    group_id: group.id,
+    member_id: item.memberId,
+    title: item.title,
+    detail: item.detail,
+    completed: item.completed,
+    sort_order: index,
+    created_at: addMinutes(groupCreatedAt, index + 1),
+  }));
+
   return {
     profiles,
     group: groupRow,
@@ -317,8 +453,12 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
     materials,
     planItems,
     completions,
-    chatMessages,
+    chatMessages: [...chatMessages, ...planAgentMessages],
     chatSources,
+    planReferenceUploads,
+    planReferenceUnits,
+    roadmapItems,
+    personalPlanItems,
   };
 }
 
@@ -340,6 +480,10 @@ function mergeBundles(bundles: GroupBundle[]) {
     completions: bundles.flatMap((bundle) => bundle.completions),
     chatMessages: bundles.flatMap((bundle) => bundle.chatMessages),
     chatSources: bundles.flatMap((bundle) => bundle.chatSources),
+    planReferenceUploads: bundles.flatMap((bundle) => bundle.planReferenceUploads),
+    planReferenceUnits: bundles.flatMap((bundle) => bundle.planReferenceUnits),
+    roadmapItems: bundles.flatMap((bundle) => bundle.roadmapItems),
+    personalPlanItems: bundles.flatMap((bundle) => bundle.personalPlanItems),
   };
 }
 
@@ -355,6 +499,10 @@ async function fetchRows(): Promise<FetchRows> {
     completionsResponse,
     chatMessagesResponse,
     chatSourcesResponse,
+    planReferenceUploadsResponse,
+    planReferenceUnitsResponse,
+    roadmapItemsResponse,
+    personalPlanItemsResponse,
   ] = await Promise.all([
     client.from("study_groups").select("*").order("created_at", { ascending: false }),
     client.from("profiles").select("*"),
@@ -364,6 +512,22 @@ async function fetchRows(): Promise<FetchRows> {
     client.from("plan_item_completions").select("*"),
     client.from("chat_messages").select("*").order("created_at", { ascending: true }),
     client.from("chat_message_sources").select("*").order("sort_order", { ascending: true }),
+    client
+      .from("plan_reference_uploads")
+      .select("*")
+      .order("created_at", { ascending: true }),
+    client
+      .from("plan_reference_units")
+      .select("*")
+      .order("sort_order", { ascending: true }),
+    client
+      .from("group_roadmap_items")
+      .select("*")
+      .order("sort_order", { ascending: true }),
+    client
+      .from("personal_plan_items")
+      .select("*")
+      .order("sort_order", { ascending: true }),
   ]);
 
   return {
@@ -384,6 +548,22 @@ async function fetchRows(): Promise<FetchRows> {
       "Failed to load chat sources",
       chatSourcesResponse,
     ) as ChatMessageSourceRow[],
+    planReferenceUploads: unwrapData(
+      "Failed to load plan reference uploads",
+      planReferenceUploadsResponse,
+    ) as PlanReferenceUploadRow[],
+    planReferenceUnits: unwrapData(
+      "Failed to load plan reference units",
+      planReferenceUnitsResponse,
+    ) as PlanReferenceUnitRow[],
+    roadmapItems: unwrapData(
+      "Failed to load roadmap items",
+      roadmapItemsResponse,
+    ) as GroupRoadmapItemRow[],
+    personalPlanItems: unwrapData(
+      "Failed to load personal plan items",
+      personalPlanItemsResponse,
+    ) as PersonalPlanItemRow[],
   };
 }
 
@@ -396,14 +576,22 @@ function rowsToGroups({
   completions,
   chatMessages,
   chatSources,
+  planReferenceUploads,
+  planReferenceUnits,
+  roadmapItems,
+  personalPlanItems,
 }: FetchRows): StudyGroup[] {
   const profilesById = new Map(profiles.map((profile) => [profile.id, profile]));
   const groupMembersByGroup = new Map<string, GroupMemberRow[]>();
   const materialsByGroup = new Map<string, MaterialRow[]>();
   const planItemsByGroup = new Map<string, PlanItemRow[]>();
   const completionsByPlanItem = new Map<string, Set<string>>();
-  const chatMessagesByGroup = new Map<string, ChatMessageRow[]>();
+  const chatMessagesByGroupAndScope = new Map<string, ChatMessageRow[]>();
   const chatSourcesByMessage = new Map<string, ChatMessageSourceRow[]>();
+  const planReferenceUploadsByGroup = new Map<string, PlanReferenceUploadRow[]>();
+  const planReferenceUnitsByGroup = new Map<string, PlanReferenceUnitRow[]>();
+  const roadmapItemsByGroup = new Map<string, GroupRoadmapItemRow[]>();
+  const personalPlanItemsByGroup = new Map<string, PersonalPlanItemRow[]>();
 
   for (const membership of groupMembers) {
     const entries = groupMembersByGroup.get(membership.group_id) ?? [];
@@ -430,15 +618,40 @@ function rowsToGroups({
   }
 
   for (const message of chatMessages) {
-    const entries = chatMessagesByGroup.get(message.group_id) ?? [];
+    const scopedKey = `${message.group_id}:${message.scope}`;
+    const entries = chatMessagesByGroupAndScope.get(scopedKey) ?? [];
     entries.push(message);
-    chatMessagesByGroup.set(message.group_id, entries);
+    chatMessagesByGroupAndScope.set(scopedKey, entries);
   }
 
   for (const source of chatSources) {
     const entries = chatSourcesByMessage.get(source.message_id) ?? [];
     entries.push(source);
     chatSourcesByMessage.set(source.message_id, entries);
+  }
+
+  for (const upload of planReferenceUploads) {
+    const entries = planReferenceUploadsByGroup.get(upload.group_id) ?? [];
+    entries.push(upload);
+    planReferenceUploadsByGroup.set(upload.group_id, entries);
+  }
+
+  for (const unit of planReferenceUnits) {
+    const entries = planReferenceUnitsByGroup.get(unit.group_id) ?? [];
+    entries.push(unit);
+    planReferenceUnitsByGroup.set(unit.group_id, entries);
+  }
+
+  for (const item of roadmapItems) {
+    const entries = roadmapItemsByGroup.get(item.group_id) ?? [];
+    entries.push(item);
+    roadmapItemsByGroup.set(item.group_id, entries);
+  }
+
+  for (const item of personalPlanItems) {
+    const entries = personalPlanItemsByGroup.get(item.group_id) ?? [];
+    entries.push(item);
+    personalPlanItemsByGroup.set(item.group_id, entries);
   }
 
   return groups.map((group) => {
@@ -456,6 +669,12 @@ function rowsToGroups({
       });
 
     const memberIds = members.map((member) => member.id);
+    const reviewIntervals = Object.fromEntries(
+      (groupMembersByGroup.get(group.id) ?? []).map((membership) => [
+        membership.member_id,
+        membership.review_interval_days ?? null,
+      ]),
+    ) as Record<string, ReviewIntervalDays | null>;
     const groupMaterials = (materialsByGroup.get(group.id) ?? []).map((material) => ({
       id: material.id,
       title: material.title,
@@ -481,10 +700,11 @@ function rowsToGroups({
           memberStatus: Object.fromEntries(
             memberIds.map((memberId) => [memberId, completedMembers.has(memberId)]),
           ),
+          referenceUnitSequence: item.reference_unit_sequence,
         };
       });
 
-    const chat = (chatMessagesByGroup.get(group.id) ?? []).map((message) => ({
+    const chat = (chatMessagesByGroupAndScope.get(`${group.id}:materials`) ?? []).map((message) => ({
       id: message.id,
       role: message.role,
       text: message.text,
@@ -495,6 +715,59 @@ function rowsToGroups({
         locationHint: source.location_hint,
         summary: source.summary,
       })),
+    }));
+
+    const planAgentChat = (
+      chatMessagesByGroupAndScope.get(`${group.id}:plan-agent`) ?? []
+    ).map((message) => ({
+      id: message.id,
+      role: message.role,
+      text: message.text,
+      createdAt: formatChatTimestamp(message.created_at),
+    }));
+
+    const mappedPlanReferenceUploads = (
+      planReferenceUploadsByGroup.get(group.id) ?? []
+    ).map<PlanReferenceUpload>((upload) => ({
+      id: upload.id,
+      fileName: upload.file_name,
+      mimeType: upload.mime_type,
+      imageDataUrl: upload.image_data_url,
+      uploadedAt: upload.created_at,
+      uploadedBy:
+        profilesById.get(upload.uploaded_by_member_id)?.name ?? upload.uploaded_by_member_id,
+      summary: upload.summary,
+    }));
+
+    const mappedPlanReferenceUnits = (
+      planReferenceUnitsByGroup.get(group.id) ?? []
+    ).map<PlanReferenceUnit>((unit) => ({
+      id: unit.id,
+      uploadId: unit.upload_id,
+      sequence: unit.sequence_number,
+      label: unit.label,
+      detail: unit.detail,
+    }));
+
+    const mappedRoadmap = (roadmapItemsByGroup.get(group.id) ?? []).map<RoadmapItem>(
+      (item) => ({
+        id: item.id,
+        weekNumber: item.week_number,
+        title: item.title,
+        summary: item.summary,
+        unitStartSequence: item.unit_start_sequence,
+        unitEndSequence: item.unit_end_sequence,
+      }),
+    );
+
+    const mappedPersonalPlanItems = (
+      personalPlanItemsByGroup.get(group.id) ?? []
+    ).map<PersonalPlanItem>((item) => ({
+      id: item.id,
+      memberId: item.member_id,
+      title: item.title,
+      detail: item.detail,
+      completed: item.completed,
     }));
 
     return {
@@ -512,7 +785,14 @@ function rowsToGroups({
       materials: groupMaterials,
       plan,
       chat,
+      planAgentChat,
       uploadDraftCount: getUploadDraftCount(group.id, materialsByGroup.get(group.id) ?? []),
+      reviewDays: group.review_days ?? [],
+      reviewIntervals,
+      planReferenceUploads: mappedPlanReferenceUploads,
+      planReferenceUnits: mappedPlanReferenceUnits,
+      roadmap: mappedRoadmap,
+      personalPlanItems: mappedPersonalPlanItems,
     };
   });
 }
@@ -562,6 +842,22 @@ async function seedInitialData() {
     "Failed to seed chat sources",
     await client.from("chat_message_sources").upsert(merged.chatSources),
   );
+  ensureSuccess(
+    "Failed to seed plan reference uploads",
+    await client.from("plan_reference_uploads").upsert(merged.planReferenceUploads),
+  );
+  ensureSuccess(
+    "Failed to seed plan reference units",
+    await client.from("plan_reference_units").upsert(merged.planReferenceUnits),
+  );
+  ensureSuccess(
+    "Failed to seed roadmap items",
+    await client.from("group_roadmap_items").upsert(merged.roadmapItems),
+  );
+  ensureSuccess(
+    "Failed to seed personal plan items",
+    await client.from("personal_plan_items").upsert(merged.personalPlanItems),
+  );
 }
 
 async function persistGroup(group: StudyGroup) {
@@ -606,6 +902,34 @@ async function persistGroup(group: StudyGroup) {
       ensureSuccess(
         "Failed to save chat sources",
         await client.from("chat_message_sources").insert(bundle.chatSources),
+      );
+    }
+
+    if (bundle.planReferenceUploads.length > 0) {
+      ensureSuccess(
+        "Failed to save plan reference uploads",
+        await client.from("plan_reference_uploads").insert(bundle.planReferenceUploads),
+      );
+    }
+
+    if (bundle.planReferenceUnits.length > 0) {
+      ensureSuccess(
+        "Failed to save plan reference units",
+        await client.from("plan_reference_units").insert(bundle.planReferenceUnits),
+      );
+    }
+
+    if (bundle.roadmapItems.length > 0) {
+      ensureSuccess(
+        "Failed to save roadmap items",
+        await client.from("group_roadmap_items").insert(bundle.roadmapItems),
+      );
+    }
+
+    if (bundle.personalPlanItems.length > 0) {
+      ensureSuccess(
+        "Failed to save personal plan items",
+        await client.from("personal_plan_items").insert(bundle.personalPlanItems),
       );
     }
   } catch (error) {
@@ -702,7 +1026,16 @@ export async function updatePrototypePlanItem(itemId: string, updates: PlanItemD
 
   ensureSuccess(
     "Failed to update plan item",
-    await client.from("plan_items").update(updates).eq("id", itemId),
+    await client
+      .from("plan_items")
+      .update({
+        day: updates.day,
+        title: updates.title,
+        detail: updates.detail,
+        duration: updates.duration,
+        reference_unit_sequence: updates.referenceUnitSequence ?? null,
+      })
+      .eq("id", itemId),
   );
 }
 
@@ -718,6 +1051,7 @@ export async function addPrototypePlanItem(group: StudyGroup, item: PlanItemDraf
       title: item.title,
       detail: item.detail,
       duration: item.duration,
+      reference_unit_sequence: item.referenceUnitSequence ?? null,
       sort_order: group.plan.length,
       created_at: new Date().toISOString(),
     }),
@@ -753,7 +1087,222 @@ export async function addPrototypeUpload(group: StudyGroup) {
   );
 }
 
-export async function addPrototypeUserQuestion(groupId: string, question: string) {
+export async function addPrototypePlanReferenceUpload(
+  group: StudyGroup,
+  upload: PlanReferenceUploadDraft,
+  memberId = currentUserId,
+) {
+  const client = getSupabaseBrowserClient();
+  const uploadId = createId(`${group.id}-plan-reference`);
+  const fileName = upload.fileName.trim() || `${group.subject}-plan-reference.png`;
+  const createdAt = new Date().toISOString();
+  const units = buildMockPlanReferenceUnits({
+    group,
+    upload: { id: uploadId, fileName },
+  });
+  const summary =
+    units.length > 0
+      ? `${units[0]?.label}부터 ${units[units.length - 1]?.label}까지 ${units.length}개 진도 단위를 만들었습니다.`
+      : "진도 단위를 아직 만들지 못했습니다.";
+
+  ensureSuccess(
+    "Failed to save plan reference upload",
+    await client.from("plan_reference_uploads").insert({
+      id: uploadId,
+      group_id: group.id,
+      uploaded_by_member_id: memberId,
+      file_name: fileName,
+      mime_type: upload.mimeType,
+      image_data_url: upload.imageDataUrl,
+      summary,
+      created_at: createdAt,
+    }),
+  );
+
+  if (units.length > 0) {
+    ensureSuccess(
+      "Failed to save plan reference units",
+      await client.from("plan_reference_units").insert(
+        units.map((unit, index) => ({
+          id: unit.id,
+          group_id: group.id,
+          upload_id: uploadId,
+          sequence_number: unit.sequence,
+          label: unit.label,
+          detail: unit.detail,
+          sort_order: index,
+        })),
+      ),
+    );
+  }
+
+  ensureSuccess(
+    "Failed to update group activity",
+    await client
+      .from("study_groups")
+      .update({
+        recent_update: `${fileName} 진도표를 기준으로 새 계획 입력이 준비되었습니다.`,
+      })
+      .eq("id", group.id),
+  );
+}
+
+export async function updatePrototypeReviewDays(groupId: string, reviewDays: Weekday[]) {
+  const client = getSupabaseBrowserClient();
+
+  ensureSuccess(
+    "Failed to update review days",
+    await client.from("study_groups").update({ review_days: reviewDays }).eq("id", groupId),
+  );
+}
+
+export async function updatePrototypeReviewInterval(
+  groupId: string,
+  memberId: string,
+  reviewIntervalDays: ReviewIntervalDays | null,
+) {
+  const client = getSupabaseBrowserClient();
+
+  ensureSuccess(
+    "Failed to update review interval",
+    await client
+      .from("group_members")
+      .update({ review_interval_days: reviewIntervalDays })
+      .eq("group_id", groupId)
+      .eq("member_id", memberId),
+  );
+}
+
+export async function addPrototypePersonalPlanItem(
+  groupId: string,
+  memberId: string,
+  item: PersonalPlanItemDraft,
+  sortOrder: number,
+) {
+  const client = getSupabaseBrowserClient();
+
+  ensureSuccess(
+    "Failed to create personal plan item",
+    await client.from("personal_plan_items").insert({
+      id: createId("personal-plan"),
+      group_id: groupId,
+      member_id: memberId,
+      title: item.title,
+      detail: item.detail,
+      completed: false,
+      sort_order: sortOrder,
+      created_at: new Date().toISOString(),
+    }),
+  );
+}
+
+export async function updatePrototypePersonalPlanItem(
+  itemId: string,
+  item: PersonalPlanItemDraft,
+) {
+  const client = getSupabaseBrowserClient();
+
+  ensureSuccess(
+    "Failed to update personal plan item",
+    await client
+      .from("personal_plan_items")
+      .update({ title: item.title, detail: item.detail })
+      .eq("id", itemId),
+  );
+}
+
+export async function togglePrototypePersonalPlanItem(itemId: string, completed: boolean) {
+  const client = getSupabaseBrowserClient();
+
+  ensureSuccess(
+    "Failed to toggle personal plan item",
+    await client.from("personal_plan_items").update({ completed }).eq("id", itemId),
+  );
+}
+
+export async function applyPrototypePlanAgentDraft(groupId: string, draft: PlanAgentDraft) {
+  const client = getSupabaseBrowserClient();
+
+  const existingPlanItems = await client
+    .from("plan_items")
+    .select("id")
+    .eq("group_id", groupId);
+
+  const planItemIds = unwrapData(
+    "Failed to inspect existing group plan items",
+    existingPlanItems,
+  ).map((row) => row.id);
+
+  if (planItemIds.length > 0) {
+    ensureSuccess(
+      "Failed to delete existing plan completions",
+      await client.from("plan_item_completions").delete().in("plan_item_id", planItemIds),
+    );
+  }
+
+  ensureSuccess(
+    "Failed to delete existing plan items",
+    await client.from("plan_items").delete().eq("group_id", groupId),
+  );
+  ensureSuccess(
+    "Failed to delete existing roadmap items",
+    await client.from("group_roadmap_items").delete().eq("group_id", groupId),
+  );
+
+  if (draft.roadmap.length > 0) {
+    ensureSuccess(
+      "Failed to save roadmap items",
+      await client.from("group_roadmap_items").insert(
+        draft.roadmap.map((item, index) => ({
+          id: item.id,
+          group_id: groupId,
+          week_number: item.weekNumber,
+          title: item.title,
+          summary: item.summary,
+          unit_start_sequence: item.unitStartSequence,
+          unit_end_sequence: item.unitEndSequence,
+          sort_order: index,
+        })),
+      ),
+    );
+  }
+
+  if (draft.weeklyPlan.length > 0) {
+    ensureSuccess(
+      "Failed to save generated weekly plan",
+      await client.from("plan_items").insert(
+        draft.weeklyPlan.map((item, index) => ({
+          id: createId("plan-agent"),
+          group_id: groupId,
+          day: item.day,
+          title: item.title,
+          detail: item.detail,
+          duration: item.duration,
+          reference_unit_sequence: item.referenceUnitSequence ?? null,
+          sort_order: index,
+          created_at: new Date().toISOString(),
+        })),
+      ),
+    );
+  }
+
+  ensureSuccess(
+    "Failed to update group summary after applying plan agent draft",
+    await client
+      .from("study_groups")
+      .update({
+        weekly_goal: draft.weeklyGoal,
+        recent_update: draft.recentUpdate,
+      })
+      .eq("id", groupId),
+  );
+}
+
+export async function addPrototypeUserQuestion(
+  groupId: string,
+  question: string,
+  scope: "materials" | "plan-agent" = "materials",
+) {
   const client = getSupabaseBrowserClient();
 
   ensureSuccess(
@@ -762,15 +1311,23 @@ export async function addPrototypeUserQuestion(groupId: string, question: string
       id: createId("chat-user"),
       group_id: groupId,
       role: "user",
+      scope,
       text: question,
       created_at: new Date().toISOString(),
     }),
   );
 }
 
-export async function addPrototypeAssistantAnswer(group: StudyGroup, question: string) {
+export async function addPrototypeAssistantAnswer(
+  group: StudyGroup,
+  question: string,
+  scope: "materials" | "plan-agent" = "materials",
+) {
   const client = getSupabaseBrowserClient();
-  const answer = buildMockAnswer(group, question);
+  const answer =
+    scope === "materials"
+      ? buildMockAnswer(group, question)
+      : buildPlanAgentAnswer(group, buildPlanAgentDraft(group, question), question);
   const messageId = createId("chat-assistant");
 
   ensureSuccess(
@@ -779,13 +1336,18 @@ export async function addPrototypeAssistantAnswer(group: StudyGroup, question: s
       id: messageId,
       group_id: group.id,
       role: "assistant",
+      scope,
       text: answer.text,
       created_at: new Date().toISOString(),
     }),
   );
 
+  if (scope !== "materials") {
+    return;
+  }
+
   const sourceRows =
-    answer.sources?.map((source, index) => ({
+    buildMockAnswer(group, question).sources?.map((source, index) => ({
       id: `${messageId}-source-${index + 1}`,
       message_id: messageId,
       material_id: getSourceMaterialId(group, source),
