@@ -1322,13 +1322,16 @@ export async function addPrototypeAssistantAnswer(
   group: StudyGroup,
   question: string,
   scope: "materials" | "plan-agent" = "materials",
+  answerTextOverride?: string,
 ) {
   const client = getSupabaseBrowserClient();
-  const answer =
+  const mockMaterialsAnswer = scope === "materials" ? buildMockAnswer(group, question) : null;
+  const fallbackText =
     scope === "materials"
-      ? buildMockAnswer(group, question)
-      : buildPlanAgentAnswer(group, buildPlanAgentDraft(group, question), question);
+      ? mockMaterialsAnswer?.text ?? ""
+      : buildPlanAgentAnswer(group, buildPlanAgentDraft(group, question), question).text;
   const messageId = createId("chat-assistant");
+  const answerText = answerTextOverride?.trim() || fallbackText;
 
   ensureSuccess(
     "Failed to save assistant answer",
@@ -1337,7 +1340,7 @@ export async function addPrototypeAssistantAnswer(
       group_id: group.id,
       role: "assistant",
       scope,
-      text: answer.text,
+      text: answerText,
       created_at: new Date().toISOString(),
     }),
   );
@@ -1347,7 +1350,7 @@ export async function addPrototypeAssistantAnswer(
   }
 
   const sourceRows =
-    buildMockAnswer(group, question).sources?.map((source, index) => ({
+    mockMaterialsAnswer?.sources?.map((source, index) => ({
       id: `${messageId}-source-${index + 1}`,
       message_id: messageId,
       material_id: getSourceMaterialId(group, source),

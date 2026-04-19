@@ -28,6 +28,8 @@ import {
   updatePrototypeGroupDetails,
   updatePrototypePlanItem,
 } from "@/lib/prototype-repository";
+import { getReviewIntervalLabel } from "@/lib/plan-flow";
+import type { AiChatRequest, AiChatScope } from "@/lib/ai-chat";
 import type {
   PersonalPlanItemDraft,
   PlanAgentDraft,
@@ -111,6 +113,14 @@ function toErrorMessage(error: unknown) {
 
     if (error.message.includes("NEXT_PUBLIC_SUPABASE")) {
       return "Supabase environment variables are missing.";
+    }
+
+    if (error.message.includes("GEMINI_API_KEY")) {
+      return "Gemini API key is missing. Add GEMINI_API_KEY to .env.local.";
+    }
+
+    if (error.message.includes("Gemini API")) {
+      return error.message;
     }
 
     return error.message;
@@ -362,7 +372,13 @@ export function PrototypeProvider({
     const timeoutId = window.setTimeout(() => {
       void runMutation(async () => {
         try {
-          await addPrototypeAssistantAnswer(group, trimmedQuestion, scope);
+          const answerText = await requestAiAnswer(group, trimmedQuestion, scope);
+          await addPrototypeAssistantAnswer(
+            group,
+            trimmedQuestion,
+            scope,
+            answerText,
+          );
           await refreshGroups();
         } finally {
           setPendingAnswers((previous) => ({
@@ -374,6 +390,70 @@ export function PrototypeProvider({
     }, 700);
 
     timeoutIds.current.push(timeoutId);
+  }
+
+  async function requestAiAnswer(
+    group: StudyGroup,
+    question: string,
+    scope: AiChatScope,
+  ) {
+    const history =
+      scope === "materials" ? group.chat : group.planAgentChat;
+
+    const payload: AiChatRequest = {
+      scope,
+      question,
+      history: history.map((message) => ({
+        role: message.role,
+        text: message.text,
+      })),
+      group: {
+        id: group.id,
+        name: group.name,
+        subject: group.subject,
+        weeklyGoal: group.weeklyGoal,
+        overallGoal: group.overallGoal,
+        description: group.description,
+        recentUpdate: group.recentUpdate,
+        reviewDays: group.reviewDays,
+        reviewIntervalLabel: getReviewIntervalLabel(
+          group.reviewIntervals[currentUserId] ?? null,
+        ),
+        materials: group.materials.map((material) => ({
+          title: material.title,
+          summary: material.summary,
+          locationHint: material.locationHint,
+        })),
+        plan: group.plan.map((item) => ({
+          day: item.day,
+          title: item.title,
+          detail: item.detail,
+          duration: item.duration,
+          referenceUnitSequence: item.referenceUnitSequence ?? null,
+        })),
+        roadmap: group.roadmap.map((item) => ({
+          weekNumber: item.weekNumber,
+          title: item.title,
+          summary: item.summary,
+        })),
+      },
+    };
+
+    const response = await fetch("/api/ai/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = (await response.json()) as { error?: string; text?: string };
+
+    if (!response.ok || !data.text?.trim()) {
+      throw new Error(data.error ?? "Gemini API returned an empty response.");
+    }
+
+    return data.text.trim();
   }
 
   async function sendQuestion(groupId: string, question: string) {
