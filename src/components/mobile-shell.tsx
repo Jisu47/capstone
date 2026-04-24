@@ -4,10 +4,10 @@ import Link from "next/link";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { usePrototype } from "@/components/prototype-provider";
 
-const shellRootClass = "min-h-dvh bg-transparent text-slate-900";
-const shellFrameClass = "mx-auto flex h-dvh w-full max-w-[430px] flex-col";
+const shellRootClass = "flex min-h-dvh flex-col bg-transparent text-slate-900";
+const shellFrameClass = "mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col";
 const shellHeaderClass =
-  "sticky left-[calc(50%-50vw)] top-0 z-30 w-screen border-b border-white/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.82),rgba(245,249,255,0.98))] shadow-[0_18px_40px_rgba(17,50,99,0.08)] backdrop-blur-xl";
+  "sticky top-0 z-30 border-b border-white/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.82),rgba(245,249,255,0.98))] shadow-[0_18px_40px_rgba(17,50,99,0.08)] backdrop-blur-xl";
 const shellHeaderInnerClass =
   "mx-auto flex w-full max-w-[430px] flex-col gap-3 px-4 pb-4 pt-4 md:px-6 lg:px-8";
 const shellMainClass =
@@ -98,8 +98,7 @@ export function AppShell({
   if (requireAuth && !isAuthReady) {
     return (
       <div className={shellRootClass}>
-        <div className={shellFrameClass}>
-          <header className={shellHeaderClass}>
+        <header className={shellHeaderClass}>
             <div className={shellHeaderInnerClass}>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <Link
@@ -119,6 +118,7 @@ export function AppShell({
             </div>
           </header>
 
+        <div className={shellFrameClass}>
           <main className={shellMainWithoutNavClass}>
             <LoadingState message="로그인 상태를 확인하는 중입니다." />
           </main>
@@ -130,8 +130,7 @@ export function AppShell({
   if (requireAuth && !sessionName) {
     return (
       <div className={shellRootClass}>
-        <div className={shellFrameClass}>
-          <header className={shellHeaderClass}>
+        <header className={shellHeaderClass}>
             <div className={shellHeaderInnerClass}>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <Link
@@ -151,6 +150,7 @@ export function AppShell({
             </div>
           </header>
 
+        <div className={shellFrameClass}>
           <main className={shellMainWithoutNavClass}>
             <SectionCard
               title="로그인이 필요해요"
@@ -173,8 +173,7 @@ export function AppShell({
 
   return (
     <div className={shellRootClass}>
-      <div className={shellFrameClass}>
-        <header className={shellHeaderClass}>
+      <header className={shellHeaderClass}>
           <div className={shellHeaderInnerClass}>
             {headerContent ? (
               headerContent
@@ -212,6 +211,7 @@ export function AppShell({
           </div>
         </header>
 
+      <div className={shellFrameClass}>
         <main className={shouldShowNavigation ? shellMainClass : shellMainWithoutNavClass}>
           {children}
         </main>
