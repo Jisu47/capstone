@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  AppShell,
-  LoadingState,
-  MissingGroupState,
-} from "@/components/mobile-shell";
+import { AppShell, LoadingState, MissingGroupState } from "@/components/mobile-shell";
 import { GroupPageHeader } from "@/components/group-page-header";
 import { usePrototype } from "@/components/prototype-provider";
 import {
@@ -46,28 +42,8 @@ function ProgressTrack({
   className: string;
 }>) {
   return (
-    <div className="h-3 overflow-hidden rounded-[6px] border border-slate-200 bg-white">
-      <div
-        className={`h-full rounded-[4px] transition-all ${className}`}
-        style={{ width: `${value}%` }}
-      />
-    </div>
-  );
-}
-
-function SummaryItem({
-  label,
-  value,
-}: Readonly<{
-  label: string;
-  value: string;
-}>) {
-  return (
-    <div className="rounded-[18px] border border-slate-200 bg-slate-50/90 px-4 py-3">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-        {label}
-      </p>
-      <p className="mt-1 text-sm font-semibold text-slate-900">{value}</p>
+    <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+      <div className={`h-full rounded-full transition-all ${className}`} style={{ width: `${value}%` }} />
     </div>
   );
 }
@@ -84,8 +60,8 @@ function SegmentedProgressTrack({
   const filledWidth = segments.reduce((sum, segment) => sum + segment.width, 0);
 
   return (
-    <div className="overflow-hidden rounded-[6px] border border-slate-200 bg-white">
-      <div className="flex h-4 w-full">
+    <div className="overflow-hidden rounded-full border border-slate-200 bg-white">
+      <div className="flex h-3.5 w-full">
         {segments.map((segment) => (
           <div
             key={segment.id}
@@ -93,11 +69,23 @@ function SegmentedProgressTrack({
             style={{ width: `${segment.width}%` }}
           />
         ))}
-        <div
-          className="bg-slate-100"
-          style={{ width: `${Math.max(0, 100 - filledWidth)}%` }}
-        />
+        <div className="bg-slate-100" style={{ width: `${Math.max(0, 100 - filledWidth)}%` }} />
       </div>
+    </div>
+  );
+}
+
+function SummaryItem({
+  label,
+  value,
+}: Readonly<{
+  label: string;
+  value: string;
+}>) {
+  return (
+    <div className="rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-3">
+      <p className="text-[11px] font-medium text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-slate-900">{value}</p>
     </div>
   );
 }
@@ -117,23 +105,15 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   if (isLoading && !group) {
     return (
-      <AppShell
-        groupId={groupId}
-        title="홈"
-        subtitle="그룹 정보를 불러오는 중입니다."
-      >
-        <LoadingState message="그룹 홈 화면을 준비하고 있습니다." />
+      <AppShell groupId={groupId} title="홈">
+        <LoadingState message="그룹 정보를 불러오는 중입니다." />
       </AppShell>
     );
   }
 
   if (!group) {
     return (
-      <AppShell
-        groupId={groupId}
-        title="홈"
-        subtitle="선택한 그룹을 찾을 수 없습니다."
-      >
+      <AppShell groupId={groupId} title="홈">
         <MissingGroupState />
       </AppShell>
     );
@@ -165,61 +145,56 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     <AppShell
       groupId={groupId}
       title="홈"
-      subtitle={`${group.subject} · ${formatExamDate(group.examDate)}`}
       headerContent={<GroupPageHeader groupId={group.id} groupName={group.name} />}
     >
-      <div className="space-y-5">
-        <section className="rounded-[28px] border border-[var(--line)] bg-white/84 p-5 shadow-[0_20px_48px_rgba(28,64,120,0.08)] backdrop-blur">
-          <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(239,245,255,0.92))] p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-              {group.subject}
-            </p>
-            <h2 className="mt-3 text-[26px] font-semibold tracking-[-0.05em] text-slate-950">
-              그룹 상세 정보
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-slate-700">{summaryText}</p>
+      <div className="space-y-4">
+        <section className="rounded-[18px] border border-slate-200 bg-white/92 px-4 py-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+            {group.subject}
+          </p>
+          <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.04em] text-slate-950">
+            {group.name}
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-slate-600">{summaryText}</p>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <SummaryItem label="팀장" value={leader?.name ?? "미정"} />
-              <SummaryItem label="팀원" value={`${group.members.length}명`} />
-              <SummaryItem label="시험일" value={formatExamDate(group.examDate)} />
-              <SummaryItem
-                label="D-day"
-                value={daysLeft === 0 ? "D-day" : `D-${daysLeft}`}
-              />
-            </div>
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            <SummaryItem label="팀장" value={leader?.name ?? "미정"} />
+            <SummaryItem label="팀원" value={`${group.members.length}명`} />
+            <SummaryItem label="시험일" value={formatExamDate(group.examDate)} />
+            <SummaryItem
+              label="시험까지"
+              value={daysLeft === 0 ? "D-day" : `D-${daysLeft}`}
+            />
           </div>
         </section>
 
-        <section className="space-y-3">
+        <section className="space-y-2 px-1">
           <div className="flex items-end justify-between gap-3">
-            <p className="text-[20px] font-semibold tracking-[-0.04em] text-slate-900">
-              TODAY
+            <p className="text-[18px] font-semibold tracking-[-0.03em] text-slate-900">
+              오늘의 진행도
             </p>
-            <div className="text-right">
-              <p className="text-[24px] font-semibold tracking-[-0.05em] text-slate-950">
-                {groupProgress}%
-              </p>
-            </div>
+            <p className="text-[24px] font-semibold tracking-[-0.05em] text-slate-950">
+              {groupProgress}%
+            </p>
           </div>
 
           <SegmentedProgressTrack segments={segmentedProgress} />
 
-          <p className="text-xs font-medium text-slate-500">
+          <p className="text-xs text-slate-500">
             총 {completedSlots}/{totalSlots}개 체크 완료
           </p>
         </section>
 
-        <section className="rounded-[28px] border border-[var(--line)] bg-white/84 p-5 shadow-[0_20px_48px_rgba(28,64,120,0.08)] backdrop-blur">
+        <section className="rounded-[18px] border border-slate-200 bg-white/92 px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-[15px] font-semibold text-slate-900">팀원별 진행 현황</h2>
+            <span className="text-xs text-slate-500">{group.members.length}명</span>
+          </div>
+
           <div className="space-y-4">
             {memberProgresses.map(({ member, progress, accent }) => (
-              <div
-                key={member.id}
-                className="grid grid-cols-[64px_1fr_auto] items-center gap-3"
-              >
-                <p className="truncate text-[15px] font-semibold text-slate-900">
-                  {member.name}
-                </p>
+              <div key={member.id} className="grid grid-cols-[64px_1fr_auto] items-center gap-3">
+                <p className="truncate text-sm font-medium text-slate-900">{member.name}</p>
                 <ProgressTrack value={progress} className={accent.bar} />
                 <span className="text-xs font-semibold text-slate-500">{progress}%</span>
               </div>

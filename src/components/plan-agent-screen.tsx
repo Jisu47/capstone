@@ -36,23 +36,15 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   if (isLoading && !group) {
     return (
-      <AppShell
-        groupId={groupId}
-        title="계획 에이전트"
-        subtitle="계획 에이전트 화면을 불러오는 중입니다."
-      >
-        <LoadingState message="계획 에이전트 데이터를 준비하고 있습니다." />
+      <AppShell groupId={groupId} title="계획 에이전트">
+        <LoadingState message="계획 에이전트를 준비하는 중입니다." />
       </AppShell>
     );
   }
 
   if (!group) {
     return (
-      <AppShell
-        groupId={groupId}
-        title="계획 에이전트"
-        subtitle="선택한 그룹을 찾을 수 없습니다."
-      >
+      <AppShell groupId={groupId} title="계획 에이전트">
         <MissingGroupState />
       </AppShell>
     );
@@ -79,27 +71,24 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
     <AppShell
       groupId={groupId}
       title="계획 에이전트"
-      subtitle={`${activeGroup.subject} 진도표를 기반으로 총 계획과 이번주 계획을 조정합니다.`}
       headerContent={<GroupPageHeader groupId={activeGroup.id} groupName={activeGroup.name} />}
     >
       <div className="space-y-4">
-        <SectionCard title="진도표 요약">
+        <SectionCard title="진도표">
           {activeGroup.planReferenceUploads.length === 0 ? (
-            <div className="rounded-[24px] border border-dashed border-slate-300 bg-white/75 px-4 py-5 text-sm leading-6 text-[var(--ink-soft)]">
-              아직 업로드된 진도표가 없습니다. 먼저 계획 탭에서 진도표 이미지를 올려 주세요.
+            <div className="rounded-[14px] border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+              계획 화면에서 진도표를 먼저 올려 주세요.
             </div>
           ) : (
             <div className="space-y-3">
               {activeGroup.planReferenceUploads.map((upload) => (
                 <div
                   key={upload.id}
-                  className="rounded-[24px] border border-[var(--line)] bg-white/82 p-4"
+                  className="rounded-[16px] border border-slate-200 bg-white px-4 py-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">
-                        {upload.fileName}
-                      </p>
+                      <p className="text-sm font-semibold text-slate-900">{upload.fileName}</p>
                       <p className="mt-1 text-xs text-slate-500">{upload.summary}</p>
                     </div>
                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
@@ -112,40 +101,34 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
           )}
         </SectionCard>
 
-        <SectionCard title="현재 입력 상태">
+        <SectionCard title="현재 설정">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-[24px] bg-white/82 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                복습 요일
-              </p>
+            <div className="rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-4">
+              <p className="text-xs font-medium text-slate-500">복습 요일</p>
               <p className="mt-2 text-sm font-semibold text-slate-900">
-                {activeGroup.reviewDays.length > 0 ? activeGroup.reviewDays.join(", ") : "설정 안 됨"}
+                {activeGroup.reviewDays.length > 0 ? activeGroup.reviewDays.join(", ") : "설정 안 함"}
               </p>
             </div>
-            <div className="rounded-[24px] bg-white/82 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                내 복습 간격
-              </p>
+            <div className="rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-4">
+              <p className="text-xs font-medium text-slate-500">내 복습 간격</p>
               <p className="mt-2 text-sm font-semibold text-slate-900">
                 {getReviewIntervalLabel(reviewInterval)}
               </p>
             </div>
           </div>
 
-          <div className="rounded-[24px] bg-[linear-gradient(140deg,#1e467f_0%,#2f6ee5_100%)] p-4 text-white">
-            <p className="text-xs uppercase tracking-[0.18em] text-blue-100">Current Goal</p>
-            <p className="mt-2 text-lg font-semibold tracking-[-0.03em]">
-                {activeGroup.weeklyGoal}
-            </p>
+          <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4">
+            <p className="text-xs font-medium text-slate-500">이번 주 목표</p>
+            <p className="mt-2 text-base font-semibold text-slate-900">{activeGroup.weeklyGoal}</p>
           </div>
         </SectionCard>
 
-        <SectionCard title="추천 질문">
+        <SectionCard title="빠른 질문">
           <div className="flex flex-wrap gap-2">
             {[
-              "복습 요일을 반영해서 이번주 계획을 다시 짜줘",
-              "진도표 기준으로 총 계획을 주차별로 정리해줘",
-              "팀원별 복습 간격을 고려해서 주간 계획을 다듬어줘",
+              "복습 요일을 반영해서 이번 주 계획 다시 짜 줘",
+              "진도표 기준으로 전체 계획을 주차별로 정리해 줘",
+              "복습 간격을 고려해서 주간 계획을 조정해 줘",
             ].map((question) => (
               <button
                 key={question}
@@ -153,7 +136,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                 onClick={() => {
                   void sendPlanAgentMessage(activeGroup.id, question);
                 }}
-                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm"
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
               >
                 {question}
               </button>
@@ -164,16 +147,16 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
         <SectionCard title="대화">
           <div className="space-y-3">
             {activeGroup.planAgentChat.length === 0 ? (
-              <div className="rounded-[24px] bg-white/82 p-4 text-sm leading-6 text-[var(--ink-soft)]">
-                아직 계획 에이전트와 나눈 대화가 없습니다. 추천 질문을 누르거나 직접 요청을 입력해 주세요.
+              <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+                원하는 방향을 한 줄로 보내면 계획 초안을 만들어 드립니다.
               </div>
             ) : (
               activeGroup.planAgentChat.map((message) => (
                 <div
                   key={message.id}
-                  className={`rounded-[24px] p-4 ${
+                  className={`rounded-[16px] px-4 py-4 ${
                     message.role === "assistant"
-                      ? "bg-white/90"
+                      ? "border border-slate-200 bg-white"
                       : "ml-auto max-w-[82%] bg-[var(--brand)] text-white"
                   }`}
                 >
@@ -190,10 +173,10 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
             )}
 
             {planAgentBusy ? (
-              <div className="rounded-[24px] bg-white/90 p-4">
-                <p className="text-sm font-semibold text-slate-900">계획 초안을 만드는 중입니다.</p>
+              <div className="rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-4">
+                <p className="text-sm font-semibold text-slate-900">초안 정리 중</p>
                 <p className="mt-1 text-xs text-[var(--ink-soft)]">
-                  현재 진도표, 복습 요일, 복습 간격을 합쳐 새 로드맵을 만들고 있습니다.
+                  진도표와 복습 설정을 반영하고 있습니다.
                 </p>
               </div>
             ) : null}
@@ -206,37 +189,35 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
               rows={3}
               value={draftQuestion}
               onChange={(event) => setDraftQuestion(event.target.value)}
-              placeholder="예: 월/수/금 복습 흐름을 반영해서 이번주 계획을 다시 짜줘"
-              className="w-full rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+              placeholder="예: 이번 주 복습 계획까지 반영해서 다시 짜 줘"
+              className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
             />
             <button
               type="submit"
-              className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(47,110,229,0.24)]"
+              className="w-full rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
             >
-              계획 에이전트에게 질문하기
+              질문 보내기
             </button>
           </form>
         </SectionCard>
 
         <SectionCard title="미리보기">
           {!draft ? (
-            <div className="rounded-[24px] bg-white/80 px-4 py-5 text-sm leading-6 text-[var(--ink-soft)]">
-              진도표 업로드가 있어야 총 계획과 이번주 계획 초안을 만들 수 있습니다.
+            <div className="rounded-[14px] border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+              진도표가 준비되면 전체 계획과 이번 주 초안이 여기에 보입니다.
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="rounded-[24px] bg-[linear-gradient(140deg,#1e467f_0%,#2f6ee5_100%)] p-4 text-white">
-                <p className="text-xs uppercase tracking-[0.18em] text-blue-100">Draft Weekly Goal</p>
-                <p className="mt-2 text-lg font-semibold tracking-[-0.03em]">
-                  {draft.weeklyGoal}
-                </p>
+              <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4">
+                <p className="text-xs font-medium text-slate-500">이번 주 목표</p>
+                <p className="mt-2 text-base font-semibold text-slate-900">{draft.weeklyGoal}</p>
               </div>
 
               <div className="space-y-3">
                 {draft.roadmap.map((item) => (
                   <article
                     key={item.id}
-                    className="rounded-[24px] border border-[var(--line)] bg-white/82 p-4"
+                    className="rounded-[16px] border border-slate-200 bg-white px-4 py-4"
                   >
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
                       {item.weekNumber}주차
@@ -253,7 +234,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                 {draft.weeklyPlan.map((item) => (
                   <article
                     key={item.id}
-                    className="rounded-[24px] border border-[var(--line)] bg-white/82 p-4"
+                    className="rounded-[16px] border border-slate-200 bg-white px-4 py-4"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -281,9 +262,9 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
         <div className="grid grid-cols-2 gap-3">
           <Link
             href={`/group/${activeGroup.id}/plan`}
-            className="flex items-center justify-center rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-700"
+            className="flex items-center justify-center rounded-[16px] border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-700"
           >
-            계획 탭으로 돌아가기
+            계획으로 돌아가기
           </Link>
           <button
             type="button"
@@ -295,16 +276,14 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
 
               void applyPlanAgentDraft(activeGroup.id, draft);
             }}
-            className="rounded-[24px] bg-slate-950 px-4 py-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-[16px] bg-slate-950 px-4 py-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {leaderMode ? "초안 적용하기" : "팀장만 적용 가능"}
           </button>
         </div>
 
-        <div className="rounded-[24px] bg-white/80 px-4 py-4 text-xs leading-6 text-slate-500">
-          복습 간격 옵션:
-          {" "}
-          {reviewIntervalOptions.map((option) => option.label).join(" / ")}
+        <div className="rounded-[16px] bg-slate-100 px-4 py-4 text-xs leading-6 text-slate-500">
+          복습 간격 옵션: {reviewIntervalOptions.map((option) => option.label).join(" / ")}
         </div>
       </div>
     </AppShell>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,7 +23,7 @@ const shellRootClass = "flex min-h-dvh flex-col bg-transparent text-slate-900";
 const shellFrameClass = "mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col";
 const shellHeaderClass = "sticky top-0 z-30 px-4 md:px-6 lg:px-8";
 const shellHeaderInnerClass =
-  "mx-auto flex w-full max-w-[430px] flex-col gap-3 rounded-b-[16px] rounded-t-none border border-white/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.82),rgba(245,249,255,0.98))] px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] shadow-[0_18px_40px_rgba(17,50,99,0.08)] backdrop-blur-xl";
+  "mx-auto flex w-full max-w-[430px] flex-col gap-3 rounded-b-[14px] rounded-t-none border border-slate-200/80 bg-white/94 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.875rem)] shadow-[0_8px_24px_rgba(15,23,42,0.06)] backdrop-blur-md";
 const shellMainClass =
   "flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-32 pt-4 md:px-6 md:pt-5 lg:px-8";
 const shellMainWithoutNavClass =
@@ -69,7 +69,7 @@ function SectionCard({
   children: React.ReactNode;
 }>) {
   return (
-    <section className="rounded-[28px] border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[0_18px_60px_rgba(28,64,120,0.08)] backdrop-blur">
+    <section className="rounded-[18px] border border-slate-200/80 bg-white/90 p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-slate-900">{title}</h2>
         {action}
@@ -101,7 +101,7 @@ function AppShell({
   children,
 }: Readonly<{
   title: string;
-  subtitle: string;
+  subtitle?: string;
   groupId?: string;
   navGroupId?: string | null;
   navReady?: boolean;
@@ -133,7 +133,9 @@ function AppShell({
                 <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
                   {title}
                 </p>
-                <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+                {subtitle ? (
+                  <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+                ) : null}
               </div>
             </div>
           </header>
@@ -164,7 +166,9 @@ function AppShell({
                 <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
                   {title}
                 </p>
-                <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+                {subtitle ? (
+                  <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+                ) : null}
               </div>
             </div>
           </header>
@@ -206,11 +210,13 @@ function AppShell({
               <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
                 {title}
               </p>
-              <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+              {subtitle ? (
+                <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+              ) : null}
             </div>
             {isLoading || isMutating ? (
-              <div className="rounded-2xl bg-white/80 px-3 py-2 text-[11px] font-medium text-slate-600">
-                {isLoading ? "Syncing Supabase data..." : "Saving changes..."}
+              <div className="rounded-[12px] bg-slate-100 px-3 py-2 text-[11px] font-medium text-slate-600">
+                {isLoading ? "동기화 중" : "저장 중"}
               </div>
             ) : null}
             {error ? (
@@ -629,23 +635,15 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   if (isLoading && !group) {
     return (
-      <AppShell
-        groupId={groupId}
-        title="Loading materials..."
-        subtitle="Waiting for group materials from Supabase."
-      >
-        <LoadingState message="Loading materials..." />
+      <AppShell groupId={groupId} title="자료">
+        <LoadingState message="자료를 불러오는 중입니다." />
       </AppShell>
     );
   }
 
   if (!group) {
     return (
-      <AppShell
-        groupId={groupId}
-        title="자료를 불러오지 못했습니다"
-        subtitle="홈에서 다시 진입해 주세요."
-      >
+      <AppShell groupId={groupId} title="자료">
         <MissingGroupState />
       </AppShell>
     );
@@ -654,46 +652,46 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
   const activeGroup = group;
   const materials = sortMaterials(activeGroup);
   const recommendedQuestions = [
-    `${activeGroup.subject} 핵심 개념만 정리해줘`,
-    "시험 범위에서 중요한 자료를 알려줘",
-    "자료 기반으로 예상 질문 3개 만들어줘",
+    `${activeGroup.subject} 핵심 개념만 정리해 줘`,
+    "시험 범위에서 중요한 자료를 먼저 골라 줘",
+    "자료를 바탕으로 예상 질문 3개 만들어 줘",
   ];
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!draft.trim()) {
+      return;
+    }
+
     void sendQuestion(activeGroup.id, draft);
     setDraft("");
   }
 
   return (
-    <AppShell
-      groupId={groupId}
-      title="자료"
-      subtitle={`${activeGroup.subject} 자료 ${materials.length}개와 자료 기반 AI 질문을 한 메뉴에서 확인합니다.`}
-    >
-      <SectionCard title="자료 업로드 박스">
-        <div className="rounded-[28px] border border-dashed border-[var(--brand)] bg-[linear-gradient(180deg,rgba(217,231,255,0.5),rgba(255,255,255,0.94))] p-5">
-          <p className="text-sm font-semibold text-slate-900">파일 업로드 UI만 제공됩니다</p>
+    <AppShell groupId={groupId} title="자료">
+      <SectionCard title="자료 추가">
+        <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-semibold text-slate-900">공용 자료를 더 모아볼 수 있어요.</p>
           <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">
-            실제 파일 선택이나 서버 전송은 연결하지 않고, 버튼을 누르면 mock 자료가 목록 상단에 추가됩니다.
+            현재는 파일 선택 없이 예시 자료가 바로 추가됩니다.
           </p>
           <button
             type="button"
             onClick={() => {
               void queueMockUpload(activeGroup.id);
             }}
-            className="mt-4 w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(47,110,229,0.24)]"
+            className="mt-4 w-full rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
           >
             {activeGroup.uploadDraftCount > 0
-              ? `Mock 자료 ${activeGroup.uploadDraftCount}개 추가됨`
-              : "Mock 자료 추가해 보기"}
+              ? `자료 ${activeGroup.uploadDraftCount}개 더 보기`
+              : "자료 추가하기"}
           </button>
         </div>
       </SectionCard>
 
       <SectionCard title="자료 목록">
         {materials.map((material) => (
-          <div key={material.id} className="rounded-[24px] bg-white/80 p-4">
+          <div key={material.id} className="rounded-[16px] border border-slate-200 bg-white p-4">
             <div className="mb-2 flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-900">{material.title}</p>
@@ -710,7 +708,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
         ))}
       </SectionCard>
 
-      <SectionCard title="자료 기반 AI 질문">
+      <SectionCard title="자료 질문">
         <div className="flex flex-wrap gap-2">
           {recommendedQuestions.map((question) => (
             <button
@@ -719,7 +717,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
               onClick={() => {
                 void sendQuestion(activeGroup.id, question);
               }}
-              className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm"
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
             >
               {question}
             </button>
@@ -730,9 +728,9 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
           {activeGroup.chat.map((message) => (
             <div
               key={message.id}
-              className={`rounded-[24px] p-4 ${
+              className={`rounded-[16px] p-4 ${
                 message.role === "assistant"
-                  ? "bg-white/90"
+                  ? "border border-slate-200 bg-white"
                   : "ml-auto max-w-[82%] bg-[var(--brand)] text-white"
               }`}
             >
@@ -748,7 +746,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
               {message.role === "assistant" && message.sources && message.sources.length > 0 ? (
                 <div className="mt-3 space-y-2">
                   {message.sources.map((source) => (
-                    <div key={source.id} className="rounded-2xl bg-slate-50 p-3">
+                    <div key={source.id} className="rounded-[14px] bg-slate-50 p-3">
                       <p className="text-sm font-semibold text-slate-900">{source.title}</p>
                       <p className="mt-1 text-xs font-medium text-[var(--brand)]">
                         {source.locationHint}
@@ -764,10 +762,10 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
           ))}
 
           {isAnswering(activeGroup.id) ? (
-            <div className="rounded-[24px] bg-white/90 p-4">
-              <p className="text-sm font-semibold text-slate-900">답변 생성 중...</p>
+            <div className="rounded-[16px] border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm font-semibold text-slate-900">답변 정리 중</p>
               <p className="mt-1 text-xs text-[var(--ink-soft)]">
-                업로드된 자료를 근거 카드와 함께 보여주는 mock 응답입니다.
+                자료 내용을 바탕으로 정리하고 있어요.
               </p>
             </div>
           ) : null}
@@ -778,21 +776,20 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
             rows={3}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder={`${activeGroup.subject} 자료에서 궁금한 점을 입력하세요`}
-            className="w-full rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+            placeholder={`${activeGroup.subject} 자료에서 궁금한 점을 적어 주세요`}
+            className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
           />
           <button
             type="submit"
-            className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(47,110,229,0.24)]"
+            className="w-full rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
           >
-            AI에게 질문하기
+            질문 보내기
           </button>
         </form>
       </SectionCard>
     </AppShell>
   );
 }
-
 export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
   const { groups, togglePlanItem, updatePlanItem, addPlanItem, isLoading } = usePrototype();
   const group = getGroupById(groups, groupId);
@@ -1316,3 +1313,4 @@ export function ProgressScreen({ groupId }: Readonly<{ groupId: string }>) {
     </AppShell>
   );
 }
+

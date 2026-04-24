@@ -3,11 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  AppShell,
-  LoadingState,
-  SectionCard,
-} from "@/components/mobile-shell";
+import { AppShell, LoadingState, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
 import { formatExamDate, getDaysLeft } from "@/lib/mock-data";
 
@@ -37,12 +33,7 @@ export function StudyEntryScreen() {
 
   if (!isAuthReady) {
     return (
-      <AppShell
-        requireAuth={false}
-        showNavigation={false}
-        title="로그인"
-        subtitle="로그인 상태를 확인하는 중입니다."
-      >
+      <AppShell requireAuth={false} showNavigation={false} title="메인화면">
         <LoadingState message="세션을 준비하는 중입니다." />
       </AppShell>
     );
@@ -50,12 +41,7 @@ export function StudyEntryScreen() {
 
   if (!sessionName) {
     return (
-      <AppShell
-        requireAuth={false}
-        showNavigation={false}
-        title="로그인"
-        subtitle="먼저 로그인한 뒤 스터디그룹을 선택하면 그룹별 홈과 스터디, 계획, 자료 메뉴가 열립니다."
-      >
+      <AppShell requireAuth={false} showNavigation={false} title="메인화면">
         <SectionCard title="로그인">
           <form className="space-y-3" onSubmit={handleLogin}>
             <label className="block space-y-2">
@@ -64,15 +50,15 @@ export function StudyEntryScreen() {
                 value={nameInput}
                 onChange={(event) => setNameInput(event.target.value)}
                 placeholder="이름을 입력해 주세요"
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+                className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
               />
             </label>
 
             <button
               type="submit"
-              className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(47,110,229,0.26)]"
+              className="w-full rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
             >
-              로그인하고 그룹 선택하기
+              로그인하고 그룹 보기
             </button>
           </form>
         </SectionCard>
@@ -81,14 +67,9 @@ export function StudyEntryScreen() {
   }
 
   return (
-    <AppShell
-      requireAuth={false}
-      showNavigation={false}
-      title="그룹 선택"
-      subtitle="로그인 후에는 먼저 스터디그룹을 고르고, 선택한 그룹 기준으로 홈과 스터디, 계획, 자료 메뉴를 사용합니다."
-    >
+    <AppShell requireAuth={false} showNavigation={false} title="메인화면">
       <SectionCard
-        title={`${sessionName}님으로 로그인됨`}
+        title={`${sessionName}님`}
         action={
           <button
             type="button"
@@ -99,13 +80,11 @@ export function StudyEntryScreen() {
           </button>
         }
       >
-        <p className="text-sm leading-6 text-[var(--ink-soft)]">
-          아래에서 스터디그룹을 선택하면 해당 그룹 전용 메뉴로 이동합니다.
-        </p>
+        <p className="text-sm text-[var(--ink-soft)]">들어갈 스터디 그룹을 선택해 주세요.</p>
       </SectionCard>
 
       <SectionCard
-        title="스터디그룹 선택"
+        title="내 스터디 그룹"
         action={
           <Link href="/create" className="text-sm font-semibold text-[var(--brand)]">
             새 그룹
@@ -114,19 +93,18 @@ export function StudyEntryScreen() {
       >
         {isLoading && groups.length === 0 ? (
           <p className="text-sm leading-6 text-[var(--ink-soft)]">
-            선택 가능한 스터디그룹을 불러오는 중입니다.
+            그룹 목록을 불러오는 중입니다.
           </p>
         ) : null}
 
         {!isLoading && groups.length === 0 ? (
           <div className="space-y-3">
             <p className="text-sm leading-6 text-[var(--ink-soft)]">
-              아직 선택할 수 있는 그룹이 없어요. 그룹을 먼저 만든 뒤 선택 흐름으로
-              이어가면 됩니다.
+              아직 참여 중인 그룹이 없습니다.
             </p>
             <Link
               href="/create"
-              className="inline-flex rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(47,110,229,0.24)]"
+              className="inline-flex rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
             >
               첫 그룹 만들기
             </Link>
@@ -140,7 +118,7 @@ export function StudyEntryScreen() {
             onClick={() => {
               router.push(`/group/${group.id}`);
             }}
-            className="w-full rounded-[24px] border border-white/70 bg-white/80 p-4 text-left transition hover:bg-white"
+            className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-4 text-left transition hover:border-slate-300"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -160,7 +138,7 @@ export function StudyEntryScreen() {
 
             <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
               <span>시험 {formatExamDate(group.examDate)}</span>
-              <span>{group.members.length}명 참여</span>
+              <span>{group.members.length}명</span>
             </div>
           </button>
         ))}

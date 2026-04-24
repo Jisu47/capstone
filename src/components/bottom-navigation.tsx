@@ -75,15 +75,15 @@ export function BottomNavigation({
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 px-4 md:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-[430px]">
-        <div className="rounded-t-[16px] rounded-b-none border border-white/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.82),rgba(245,249,255,0.98))] px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-18px_40px_rgba(17,50,99,0.08)] backdrop-blur-xl">
-          <div className="grid grid-cols-4 gap-2 rounded-[14px] border border-white/70 bg-white/72 p-2 shadow-[0_18px_36px_rgba(28,64,120,0.08)]">
+        <div className="rounded-t-[14px] rounded-b-none border border-slate-200/80 bg-white/94 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur-md">
+          <div className="grid grid-cols-4 gap-2 rounded-[12px] border border-slate-200/80 bg-slate-50/80 p-2">
             {tabs.map((tab) => {
               const active = isActiveTab(pathname, tab);
               const className = `rounded-[12px] px-2 py-2 text-center text-[11px] font-semibold transition ${
                 active
-                  ? "bg-[linear-gradient(135deg,#2f6ee5,#5a8fff)] text-white shadow-[0_12px_28px_rgba(47,110,229,0.28)]"
+                  ? "bg-[var(--brand)] text-white"
                   : tab.enabled
-                    ? "bg-transparent text-slate-600 hover:bg-white/85"
+                    ? "bg-transparent text-slate-600 hover:bg-white"
                     : "pointer-events-none cursor-not-allowed select-none bg-slate-100/80 text-slate-400"
               }`;
 

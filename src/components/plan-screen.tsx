@@ -26,11 +26,7 @@ function getGroupById(groups: StudyGroup[], groupId: string) {
   return groups.find((group) => group.id === groupId);
 }
 
-function Chevron({
-  open,
-}: Readonly<{
-  open: boolean;
-}>) {
+function Chevron({ open }: Readonly<{ open: boolean }>) {
   return (
     <svg
       aria-hidden="true"
@@ -81,10 +77,7 @@ function ExpandableSection({
         </div>
       }
     >
-      {subtitle ? (
-        <p className="text-sm leading-6 text-[var(--ink-soft)]">{subtitle}</p>
-      ) : null}
-
+      {subtitle ? <p className="text-sm text-[var(--ink-soft)]">{subtitle}</p> : null}
       {open ? children : null}
     </SectionCard>
   );
@@ -131,31 +124,22 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
     detail: "",
   });
   const [editingPersonalItemId, setEditingPersonalItemId] = useState<string | null>(null);
-  const [editingPersonalDraft, setEditingPersonalDraft] =
-    useState<PersonalPlanItemDraft>({
-      title: "",
-      detail: "",
-    });
+  const [editingPersonalDraft, setEditingPersonalDraft] = useState<PersonalPlanItemDraft>({
+    title: "",
+    detail: "",
+  });
 
   if (isLoading && !group) {
     return (
-      <AppShell
-        groupId={groupId}
-        title="계획"
-        subtitle="계획 데이터를 불러오는 중입니다."
-      >
-        <LoadingState message="계획 탭을 준비하고 있습니다." />
+      <AppShell groupId={groupId} title="계획">
+        <LoadingState message="계획 화면을 준비하는 중입니다." />
       </AppShell>
     );
   }
 
   if (!group) {
     return (
-      <AppShell
-        groupId={groupId}
-        title="계획"
-        subtitle="선택한 그룹을 찾을 수 없습니다."
-      >
+      <AppShell groupId={groupId} title="계획">
         <MissingGroupState />
       </AppShell>
     );
@@ -220,21 +204,19 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
     <AppShell
       groupId={groupId}
       title="계획"
-      subtitle={`${activeGroup.subject} 계획 흐름과 복습 설정`}
       headerContent={<GroupPageHeader groupId={activeGroup.id} groupName={activeGroup.name} />}
     >
       <div className="space-y-4">
         <ExpandableSection
-          title="진도표 업로드"
-          subtitle="인강 진도표나 문제집 목차 사진을 올리면 총 계획과 복습 기준이 됩니다."
+          title="진도표"
           action={
             leaderMode ? (
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-full border border-[var(--brand)] bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[var(--brand)]"
+                className="rounded-[12px] border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
               >
-                이미지 업로드
+                이미지 추가
               </button>
             ) : null
           }
@@ -250,9 +232,9 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
           />
 
           {activeGroup.planReferenceUploads.length === 0 ? (
-            <div className="rounded-[24px] border border-dashed border-slate-300 bg-white/70 px-4 py-5 text-sm leading-6 text-[var(--ink-soft)]">
+            <div className="rounded-[14px] border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
               {leaderMode
-                ? "아직 업로드된 진도표가 없습니다. 계획 에이전트를 쓰기 전에 이미지 진도표를 먼저 올려 주세요."
+                ? "인강 진도표나 목차 이미지를 올리면 전체 계획을 만들 수 있습니다."
                 : "팀장이 올린 진도표가 아직 없습니다."}
             </div>
           ) : (
@@ -260,9 +242,9 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
               {activeGroup.planReferenceUploads.map((upload) => (
                 <article
                   key={upload.id}
-                  className="overflow-hidden rounded-[26px] border border-[var(--line)] bg-white/82 shadow-[0_16px_36px_rgba(28,64,120,0.08)]"
+                  className="overflow-hidden rounded-[16px] border border-slate-200 bg-white"
                 >
-                  <div className="relative h-40 w-full">
+                  <div className="relative h-36 w-full">
                     <Image
                       fill
                       unoptimized
@@ -274,17 +256,13 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                   <div className="space-y-2 px-4 py-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-slate-900">
-                          {upload.fileName}
-                        </p>
+                        <p className="text-sm font-semibold text-slate-900">{upload.fileName}</p>
                         <p className="text-xs text-slate-500">
                           {upload.uploadedBy} · {upload.mimeType}
                         </p>
                       </div>
                     </div>
-                    <p className="text-sm leading-6 text-[var(--ink-soft)]">
-                      {upload.summary}
-                    </p>
+                    <p className="text-sm leading-6 text-[var(--ink-soft)]">{upload.summary}</p>
                   </div>
                 </article>
               ))}
@@ -293,13 +271,12 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
         </ExpandableSection>
 
         <ExpandableSection
-          title="총 계획"
-          subtitle="업로드한 진도표를 바탕으로 계획 에이전트가 만든 주차별 로드맵입니다."
+          title="전체 계획"
           action={
             leaderMode ? (
               <Link
                 href={`/group/${activeGroup.id}/plan/agent`}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700"
+                className="rounded-[12px] border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
               >
                 계획 새로 짜기
               </Link>
@@ -307,17 +284,17 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
           }
         >
           {activeGroup.roadmap.length === 0 ? (
-            <div className="rounded-[24px] bg-white/75 px-4 py-5 text-sm leading-6 text-[var(--ink-soft)]">
+            <div className="rounded-[14px] border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
               {activeGroup.planReferenceUploads.length === 0
-                ? "먼저 진도표 이미지를 올린 뒤 계획 에이전트로 총 계획을 생성해 주세요."
-                : "진도표는 준비됐습니다. 팀장이 계획 에이전트에서 총 계획 초안을 만들고 적용하면 여기에 보입니다."}
+                ? "진도표를 올리면 주차별 로드맵이 여기에 정리됩니다."
+                : "팀장이 계획 에이전트에서 초안을 만들면 여기에 반영됩니다."}
             </div>
           ) : (
             <div className="space-y-3">
               {activeGroup.roadmap.map((item) => (
                 <article
                   key={item.id}
-                  className="rounded-[26px] border border-[var(--line)] bg-white/84 p-4 shadow-[0_16px_36px_rgba(28,64,120,0.08)]"
+                  className="rounded-[16px] border border-slate-200 bg-white px-4 py-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -332,36 +309,29 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                       {item.unitStartSequence} ~ {item.unitEndSequence}
                     </span>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">
-                    {item.summary}
-                  </p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{item.summary}</p>
                 </article>
               ))}
             </div>
           )}
         </ExpandableSection>
 
-        <ExpandableSection
-          title="이번주 계획"
-          subtitle="팀의 현재 주 핵심 계획입니다. 복습 카드는 계산형이라 완료율에는 포함되지 않습니다."
-        >
+        <ExpandableSection title="이번 주">
           <div className="space-y-4">
             {orderedWeekdays.map((day) => {
               const dayPlanItems = activeGroup.plan.filter((item) => item.day === day);
               const dayReviewCards = reviewCards.filter((item) => item.day === day);
 
               return (
-                <section key={day} className="rounded-[26px] bg-white/78 p-4">
+                <section key={day} className="rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
-                      {day}
-                    </p>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <p className="text-sm font-semibold text-slate-900">{day}</p>
+                    <span className="text-xs text-slate-500">
                       {dayPlanItems.length + dayReviewCards.length}개
                     </span>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {dayPlanItems.map((item) => {
                       const checked = item.memberStatus[currentUserId];
 
@@ -372,10 +342,10 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                           onClick={() => {
                             void togglePlanItem(activeGroup.id, item.id);
                           }}
-                          className={`w-full rounded-[22px] border px-4 py-4 text-left transition ${
+                          className={`w-full rounded-[14px] border px-4 py-4 text-left transition ${
                             checked
                               ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                              : "border-[var(--line)] bg-white"
+                              : "border-slate-200 bg-white hover:border-slate-300"
                           }`}
                         >
                           <div className="flex items-start justify-between gap-3">
@@ -387,7 +357,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                                 {item.detail}
                               </p>
                             </div>
-                            <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-slate-600">
+                            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
                               {item.duration}
                             </span>
                           </div>
@@ -398,17 +368,15 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                     {dayReviewCards.map((item) => (
                       <div
                         key={item.id}
-                        className="rounded-[22px] border border-amber-200 bg-amber-50 px-4 py-4"
+                        className="rounded-[14px] border border-amber-200 bg-amber-50 px-4 py-4"
                       >
                         <p className="text-sm font-semibold text-amber-900">{item.title}</p>
-                        <p className="mt-1 text-xs leading-5 text-amber-800">
-                          {item.detail}
-                        </p>
+                        <p className="mt-1 text-xs leading-5 text-amber-800">{item.detail}</p>
                       </div>
                     ))}
 
                     {dayPlanItems.length === 0 && dayReviewCards.length === 0 ? (
-                      <div className="rounded-[22px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm text-slate-400">
+                      <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm text-slate-400">
                         등록된 계획이 없습니다.
                       </div>
                     ) : null}
@@ -419,19 +387,13 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
           </div>
         </ExpandableSection>
 
-        <ExpandableSection
-          title="이번주 추가 할 일"
-          subtitle="내가 따로 챙길 개인 할 일만 보이고 수정할 수 있습니다."
-        >
+        <ExpandableSection title="내 추가 할 일">
           <div className="space-y-3">
             {personalPlanItems.map((item) => {
               const editing = editingPersonalItemId === item.id;
 
               return (
-                <div
-                  key={item.id}
-                  className="rounded-[24px] border border-[var(--line)] bg-white/82 p-4"
-                >
+                <div key={item.id} className="rounded-[16px] border border-slate-200 bg-white px-4 py-4">
                   {editing ? (
                     <div className="space-y-3">
                       <input
@@ -442,7 +404,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                             title: event.target.value,
                           }))
                         }
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                        className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
                       />
                       <textarea
                         rows={3}
@@ -453,7 +415,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                             detail: event.target.value,
                           }))
                         }
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                        className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
                       />
                       <div className="flex gap-2">
                         <button
@@ -461,7 +423,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                           onClick={() => {
                             void handleSavePersonalItem();
                           }}
-                          className="rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
+                          className="rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
                         >
                           저장
                         </button>
@@ -471,7 +433,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                             setEditingPersonalItemId(null);
                             setEditingPersonalDraft({ title: "", detail: "" });
                           }}
-                          className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-600"
+                          className="rounded-[14px] bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-600"
                         >
                           취소
                         </button>
@@ -523,7 +485,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
               );
             })}
 
-            <div className="rounded-[24px] border border-dashed border-[var(--line)] bg-white/72 p-4">
+            <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50 px-4 py-4">
               <div className="space-y-3">
                 <input
                   value={newPersonalItem.title}
@@ -533,8 +495,8 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                       title: event.target.value,
                     }))
                   }
-                  placeholder="개인 추가 할 일 제목"
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                  placeholder="추가 할 일 제목"
+                  className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
                 />
                 <textarea
                   rows={3}
@@ -545,30 +507,27 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                       detail: event.target.value,
                     }))
                   }
-                  placeholder="보완 이유나 메모를 적어 주세요."
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                  placeholder="메모"
+                  className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
                 />
                 <button
                   type="button"
                   onClick={() => {
                     void handleAddPersonalItem();
                   }}
-                  className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+                  className="w-full rounded-[14px] bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
                 >
-                  추가 할 일 저장
+                  저장
                 </button>
               </div>
             </div>
           </div>
         </ExpandableSection>
 
-        <ExpandableSection
-          title="복습 계획"
-          subtitle="팀장은 공통 복습 요일을 정하고, 각 팀원은 자기 복습 간격을 선택합니다."
-        >
+        <ExpandableSection title="복습">
           <div className="space-y-4">
             <div>
-              <p className="text-sm font-semibold text-slate-900">그룹 공통 복습 요일</p>
+              <p className="text-sm font-semibold text-slate-900">그룹 복습 요일</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {orderedWeekdays.map((day) => {
                   const active = activeGroup.reviewDays.includes(day);
@@ -590,11 +549,6 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                   );
                 })}
               </div>
-              {!leaderMode ? (
-                <p className="mt-2 text-xs text-slate-500">
-                  복습 요일은 팀장만 바꿀 수 있습니다.
-                </p>
-              ) : null}
             </div>
 
             <div>
@@ -634,15 +588,15 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
         {leaderMode ? (
           <Link
             href={`/group/${activeGroup.id}/plan/agent`}
-            className="flex w-full items-center justify-center rounded-[28px] bg-[linear-gradient(135deg,#1e467f,#2f6ee5)] px-5 py-4 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(47,110,229,0.24)]"
+            className="flex w-full items-center justify-center rounded-[16px] bg-[var(--brand)] px-5 py-4 text-sm font-semibold text-white"
           >
             계획 새로 짜기
           </Link>
         ) : null}
 
         {isMutating ? (
-          <div className="rounded-[24px] bg-white/80 px-4 py-3 text-xs font-medium text-slate-500">
-            계획 변경 사항을 저장하는 중입니다.
+          <div className="rounded-[16px] bg-slate-100 px-4 py-3 text-xs font-medium text-slate-500">
+            계획을 저장하는 중입니다.
           </div>
         ) : null}
       </div>
