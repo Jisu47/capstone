@@ -6,9 +6,9 @@ import { usePrototype } from "@/components/prototype-provider";
 
 const shellRootClass = "flex min-h-dvh flex-col bg-transparent text-slate-900";
 const shellFrameClass = "mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col";
-const shellHeaderClass = "sticky top-0 z-30 px-4 pt-4 md:px-6 lg:px-8";
+const shellHeaderClass = "sticky top-0 z-30 px-4 md:px-6 lg:px-8";
 const shellHeaderInnerClass =
-  "mx-auto flex w-full max-w-[430px] flex-col gap-3 rounded-[16px] border border-white/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.82),rgba(245,249,255,0.98))] px-4 pb-4 pt-4 shadow-[0_18px_40px_rgba(17,50,99,0.08)] backdrop-blur-xl";
+  "mx-auto flex w-full max-w-[430px] flex-col gap-3 rounded-b-[16px] rounded-t-none border border-white/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.82),rgba(245,249,255,0.98))] px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] shadow-[0_18px_40px_rgba(17,50,99,0.08)] backdrop-blur-xl";
 const shellMainClass =
   "flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-32 pt-4 md:px-6 md:pt-5 lg:px-8";
 const shellMainWithoutNavClass =
