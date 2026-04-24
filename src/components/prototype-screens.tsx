@@ -20,7 +20,7 @@ import {
 const weekdayOptions: Weekday[] = ["월", "화", "수", "목", "금"];
 
 const shellRootClass = "min-h-dvh bg-transparent text-slate-900";
-const shellFrameClass = "mx-auto flex h-dvh w-full max-w-6xl flex-col";
+const shellFrameClass = "mx-auto flex h-dvh w-full max-w-4xl flex-col";
 const shellHeaderClass =
   "sticky top-0 z-20 border-b border-white/80 bg-[rgba(245,249,255,0.92)] px-4 py-4 backdrop-blur-xl md:px-6 lg:px-8";
 const shellMainClass =
