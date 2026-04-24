@@ -344,7 +344,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                           }}
                           className={`w-full rounded-[14px] border px-4 py-4 text-left transition ${
                             checked
-                              ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(47,110,229,0.08)]"
+                              ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
                               : "border-slate-200 bg-white hover:border-slate-300"
                           }`}
                         >
@@ -368,10 +368,10 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                     {dayReviewCards.map((item) => (
                       <div
                         key={item.id}
-                        className="rounded-[14px] border border-amber-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(245,158,11,0.05)]"
+                        className="rounded-[14px] border border-[var(--brand)] bg-white px-4 py-4 shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
                       >
-                        <p className="text-sm font-semibold text-amber-900">{item.title}</p>
-                        <p className="mt-1 text-xs leading-5 text-amber-800">{item.detail}</p>
+                        <p className="text-sm font-semibold text-[var(--brand)]">{item.title}</p>
+                        <p className="mt-1 text-xs leading-5 text-slate-600">{item.detail}</p>
                       </div>
                     ))}
 
@@ -471,7 +471,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                             }}
                             className={`rounded-full px-3 py-1 text-xs font-semibold ${
                               item.completed
-                                ? "border border-emerald-300 bg-white text-emerald-700"
+                                ? "border border-[var(--brand)] bg-white text-[var(--brand)]"
                                 : "bg-slate-950 text-white"
                             }`}
                           >
@@ -569,7 +569,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                       }}
                       className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                         active
-                          ? "border border-amber-300 bg-white text-amber-700"
+                          ? "border border-[var(--brand)] bg-white text-[var(--brand)]"
                           : "border border-slate-200 bg-white text-slate-600"
                       }`}
                     >

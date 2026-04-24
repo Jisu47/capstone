@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #edf4fb;
+  --background: #f8fcf9;
   --foreground: #12233d;
   --surface: rgba(255, 255, 255, 0.82);
   --surface-strong: rgba(255, 255, 255, 0.94);
   --line: rgba(138, 163, 190, 0.25);
-  --brand: #2f6ee5;
-  --brand-soft: #d9e7ff;
-  --ink-soft: #5b708e;
+  --brand: #79b895;
+  --brand-soft: #e6f3eb;
+  --ink-soft: #66786f;
 }
 
 @theme inline {
@@ -24,8 +24,8 @@
 
 html {
   background:
-    radial-gradient(circle at top left, rgba(115, 167, 255, 0.22), transparent 34%),
-    linear-gradient(180deg, #edf4fb 0%, #f7fbff 46%, #eef3f9 100%);
+    radial-gradient(circle at top left, rgba(121, 184, 149, 0.12), transparent 34%),
+    linear-gradient(180deg, #fbfdfb 0%, #f8fcf9 46%, #f4faf6 100%);
 }
 
 body {
@@ -35,7 +35,7 @@ body {
 }
 
 body::selection {
-  background: rgba(47, 110, 229, 0.2);
+  background: rgba(121, 184, 149, 0.22);
 }
 
 a {

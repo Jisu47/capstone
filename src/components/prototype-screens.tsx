@@ -83,7 +83,7 @@ function ProgressBar({ value }: Readonly<{ value: number }>) {
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
       <div
-        className="h-full rounded-full bg-[linear-gradient(90deg,#2f6ee5,#73a3ff)] transition-all"
+        className="h-full rounded-full bg-[linear-gradient(90deg,#79b895,#a8d5b9)] transition-all"
         style={{ width: `${value}%` }}
       />
     </div>
@@ -466,7 +466,7 @@ export function CreateGroupScreen() {
           <button
             type="submit"
             disabled={isPending || isMutating}
-            className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(47,110,229,0.26)] transition hover:brightness-105 disabled:opacity-70"
+            className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(121,184,149,0.24)] transition hover:brightness-105 disabled:opacity-70"
           >
             {isPending ? "모임 생성 중..." : "모임 생성하기"}
           </button>
@@ -890,7 +890,7 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
       subtitle={`자동 생성된 계획을 확인하고, 필요하면 직접 수정하거나 새 일정도 추가할 수 있습니다.`}
     >
       <SectionCard title="이번 주 요약">
-        <div className="rounded-[24px] bg-[linear-gradient(140deg,#1e467f_0%,#2f6ee5_100%)] p-4 text-white">
+        <div className="rounded-[24px] bg-[linear-gradient(140deg,#6da886_0%,#79b895_100%)] p-4 text-white">
           <p className="text-xs uppercase tracking-[0.2em] text-blue-100">Auto Plan</p>
           <p className="mt-2 text-lg font-semibold tracking-[-0.03em]">{activeGroup.weeklyGoal}</p>
           <div className="mt-4 flex items-center justify-between text-sm text-blue-50">
@@ -1213,7 +1213,7 @@ export function AiScreen({ groupId }: Readonly<{ groupId: string }>) {
           />
           <button
             type="submit"
-            className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(47,110,229,0.24)]"
+            className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(121,184,149,0.22)]"
           >
             질문하기
           </button>

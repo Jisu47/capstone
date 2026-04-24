@@ -13,20 +13,20 @@ import {
 
 const memberAccents = [
   {
-    segment: "bg-amber-400",
-    bar: "bg-[linear-gradient(90deg,#f59e0b,#fbbf24)]",
+    segment: "bg-emerald-300",
+    bar: "bg-[linear-gradient(90deg,#86efac,#4ade80)]",
   },
   {
-    segment: "bg-sky-400",
-    bar: "bg-[linear-gradient(90deg,#3b82f6,#60a5fa)]",
+    segment: "bg-green-300",
+    bar: "bg-[linear-gradient(90deg,#86efac,#65a30d)]",
   },
   {
-    segment: "bg-rose-500",
-    bar: "bg-[linear-gradient(90deg,#f43f5e,#fb7185)]",
+    segment: "bg-teal-300",
+    bar: "bg-[linear-gradient(90deg,#99f6e4,#2dd4bf)]",
   },
   {
-    segment: "bg-lime-500",
-    bar: "bg-[linear-gradient(90deg,#65a30d,#84cc16)]",
+    segment: "bg-lime-300",
+    bar: "bg-[linear-gradient(90deg,#d9f99d,#84cc16)]",
   },
 ];
 

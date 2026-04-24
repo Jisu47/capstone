@@ -187,7 +187,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                   }
                   className={`w-full rounded-[14px] border px-4 py-3 text-left transition ${
                     active
-                      ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(47,110,229,0.08)]"
+                      ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
                       : "border-slate-200 bg-white hover:border-slate-300"
                   }`}
                 >
@@ -235,7 +235,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                     onClick={() => setPendingChecklistId(item.id)}
                     className={`w-full rounded-[14px] border px-4 py-4 text-left transition ${
                       checked
-                        ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(47,110,229,0.08)]"
+                        ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
                         : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
                   >
@@ -286,7 +286,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                   onClick={() => togglePersonalTodo(todo.id)}
                   className={`flex w-full items-center gap-3 rounded-[14px] border px-4 py-3 text-left transition ${
                     todo.done
-                      ? "border-emerald-300 bg-white shadow-[0_6px_16px_rgba(16,185,129,0.06)]"
+                      ? "border-[var(--brand)] bg-white text-[var(--brand)] shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
                       : "border-slate-200 bg-white hover:border-slate-300"
                   }`}
                 >

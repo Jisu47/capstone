@@ -131,7 +131,7 @@ export function StudyCreateScreen() {
           <button
             type="submit"
             disabled={isPending || isMutating}
-            className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(47,110,229,0.26)] transition hover:brightness-105 disabled:opacity-70"
+            className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(121,184,149,0.24)] transition hover:brightness-105 disabled:opacity-70"
           >
             {isPending ? "모임 생성 중..." : "모임 생성하기"}
           </button>
