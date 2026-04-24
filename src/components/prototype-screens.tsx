@@ -19,6 +19,15 @@ import {
 
 const weekdayOptions: Weekday[] = ["월", "화", "수", "목", "금"];
 
+const shellRootClass = "min-h-dvh bg-transparent text-slate-900";
+const shellFrameClass = "mx-auto flex h-dvh w-full max-w-6xl flex-col";
+const shellHeaderClass =
+  "sticky top-0 z-20 border-b border-white/80 bg-[rgba(245,249,255,0.92)] px-4 py-4 backdrop-blur-xl md:px-6 lg:px-8";
+const shellMainClass =
+  "flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-32 pt-4 md:px-6 md:pt-5 lg:px-8";
+const shellMainWithoutNavClass =
+  "flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-10 pt-4 md:px-6 md:pt-5 lg:px-8";
+
 function getGroupById(groups: StudyGroup[], groupId: string) {
   return groups.find((group) => group.id === groupId);
 }
@@ -108,9 +117,9 @@ function AppShell({
 
   if (requireAuth && !isAuthReady) {
     return (
-      <div className="min-h-dvh bg-transparent px-3 py-4 text-slate-900">
-        <div className="relative mx-auto flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] max-w-[430px] flex-col overflow-hidden rounded-[34px] border border-white/70 bg-[rgba(245,249,255,0.86)] shadow-[0_30px_100px_rgba(17,50,99,0.14)] backdrop-blur-xl">
-          <header className="sticky top-0 z-20 border-b border-white/80 bg-[rgba(245,249,255,0.92)] px-5 py-4 backdrop-blur-xl">
+      <div className={shellRootClass}>
+        <div className={shellFrameClass}>
+          <header className={shellHeaderClass}>
             <div className="mb-3 flex items-center justify-between gap-3">
               <Link
                 href="/"
@@ -127,7 +136,7 @@ function AppShell({
             </div>
           </header>
 
-          <main className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-10 pt-4">
+          <main className={shellMainWithoutNavClass}>
             <LoadingState message="로그인 상태를 확인하는 중입니다." />
           </main>
         </div>
@@ -137,9 +146,9 @@ function AppShell({
 
   if (requireAuth && !sessionName) {
     return (
-      <div className="min-h-dvh bg-transparent px-3 py-4 text-slate-900">
-        <div className="relative mx-auto flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] max-w-[430px] flex-col overflow-hidden rounded-[34px] border border-white/70 bg-[rgba(245,249,255,0.86)] shadow-[0_30px_100px_rgba(17,50,99,0.14)] backdrop-blur-xl">
-          <header className="sticky top-0 z-20 border-b border-white/80 bg-[rgba(245,249,255,0.92)] px-5 py-4 backdrop-blur-xl">
+      <div className={shellRootClass}>
+        <div className={shellFrameClass}>
+          <header className={shellHeaderClass}>
             <div className="mb-3 flex items-center justify-between gap-3">
               <Link
                 href="/"
@@ -156,7 +165,7 @@ function AppShell({
             </div>
           </header>
 
-          <main className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-10 pt-4">
+          <main className={shellMainWithoutNavClass}>
             <SectionCard
               title="로그인이 필요해요"
               action={
@@ -177,9 +186,9 @@ function AppShell({
   }
 
   return (
-    <div className="min-h-dvh bg-transparent px-3 py-4 text-slate-900">
-      <div className="relative mx-auto flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] max-w-[430px] flex-col overflow-hidden rounded-[34px] border border-white/70 bg-[rgba(245,249,255,0.86)] shadow-[0_30px_100px_rgba(17,50,99,0.14)] backdrop-blur-xl">
-        <header className="sticky top-0 z-20 border-b border-white/80 bg-[rgba(245,249,255,0.92)] px-5 py-4 backdrop-blur-xl">
+    <div className={shellRootClass}>
+      <div className={shellFrameClass}>
+        <header className={shellHeaderClass}>
           <div className="mb-3 flex items-center justify-between gap-3">
             <Link
               href="/"
@@ -206,7 +215,7 @@ function AppShell({
           ) : null}
         </header>
 
-        <main className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-32 pt-4">{children}</main>
+        <main className={shouldShowNavigation ? shellMainClass : shellMainWithoutNavClass}>{children}</main>
 
         {shouldShowNavigation ? (
           <BottomNavigation navReady={resolvedNavReady} navGroupId={resolvedNavGroupId} />

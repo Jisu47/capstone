@@ -73,37 +73,39 @@ export function BottomNavigation({
   const tabs = getTabs(navReady, navGroupId);
 
   return (
-    <nav className="absolute inset-x-0 bottom-0 z-30 border-t border-white/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.84),rgba(245,249,255,0.98))] px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-18px_40px_rgba(17,50,99,0.08)] backdrop-blur-xl">
-      <div className="grid grid-cols-4 gap-2 rounded-[26px] border border-white/70 bg-white/72 p-2 shadow-[0_18px_36px_rgba(28,64,120,0.08)]">
-        {tabs.map((tab) => {
-          const active = isActiveTab(pathname, tab);
-          const className = `rounded-2xl px-2 py-2 text-center text-[11px] font-semibold transition ${
-            active
-              ? "bg-[linear-gradient(135deg,#2f6ee5,#5a8fff)] text-white shadow-[0_12px_28px_rgba(47,110,229,0.28)]"
-              : tab.enabled
-                ? "bg-transparent text-slate-600 hover:bg-white/85"
-                : "pointer-events-none cursor-not-allowed select-none bg-slate-100/80 text-slate-400"
-          }`;
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.82),rgba(245,249,255,0.98))] pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-18px_40px_rgba(17,50,99,0.08)] backdrop-blur-xl">
+      <div className="mx-auto w-full max-w-6xl px-4 md:px-6 lg:px-8">
+        <div className="grid grid-cols-4 gap-2 rounded-[26px] border border-white/70 bg-white/72 p-2 shadow-[0_18px_36px_rgba(28,64,120,0.08)]">
+          {tabs.map((tab) => {
+            const active = isActiveTab(pathname, tab);
+            const className = `rounded-2xl px-2 py-2 text-center text-[11px] font-semibold transition ${
+              active
+                ? "bg-[linear-gradient(135deg,#2f6ee5,#5a8fff)] text-white shadow-[0_12px_28px_rgba(47,110,229,0.28)]"
+                : tab.enabled
+                  ? "bg-transparent text-slate-600 hover:bg-white/85"
+                  : "pointer-events-none cursor-not-allowed select-none bg-slate-100/80 text-slate-400"
+            }`;
 
-          return (
-            <Link
-              key={tab.id}
-              aria-current={active ? "page" : undefined}
-              aria-disabled={tab.enabled ? undefined : true}
-              className={className}
-              href={tab.enabled ? tab.href : pathname}
-              onClick={(event) => {
-                if (!tab.enabled) {
-                  event.preventDefault();
-                }
-              }}
-              prefetch={tab.enabled ? null : false}
-              tabIndex={tab.enabled ? undefined : -1}
-            >
-              {tab.label}
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={tab.id}
+                aria-current={active ? "page" : undefined}
+                aria-disabled={tab.enabled ? undefined : true}
+                className={className}
+                href={tab.enabled ? tab.href : pathname}
+                onClick={(event) => {
+                  if (!tab.enabled) {
+                    event.preventDefault();
+                  }
+                }}
+                prefetch={tab.enabled ? null : false}
+                tabIndex={tab.enabled ? undefined : -1}
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );
