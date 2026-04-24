@@ -20,7 +20,7 @@ function CircleButton({
   children: React.ReactNode;
 }>) {
   const className =
-    "flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50";
+    "flex h-10 w-10 items-center justify-center rounded-full border border-white/80 bg-[rgba(255,255,255,0.94)] text-slate-700 shadow-[0_10px_22px_rgba(28,64,120,0.08)] transition hover:bg-white";
 
   if (asLink && href) {
     return (
@@ -67,7 +67,8 @@ export function GroupPageHeader({
 
   return (
     <div className="relative">
-      <div className="flex items-center justify-between gap-3">
+      <div className="rounded-[26px] border border-white/70 bg-white/72 p-2 shadow-[0_18px_36px_rgba(28,64,120,0.08)] backdrop-blur">
+        <div className="flex items-center gap-2">
         <CircleButton asLink href="/">
           <svg
             aria-hidden="true"
@@ -85,13 +86,13 @@ export function GroupPageHeader({
           </svg>
         </CircleButton>
 
-        <div className="flex min-w-0 flex-1 items-center justify-center">
+        <div className="min-w-0 flex-1">
           <button
             type="button"
             aria-expanded={isOpen}
             aria-haspopup="menu"
             onClick={() => setIsOpen((previous) => !previous)}
-            className="inline-flex max-w-full items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
+            className="flex h-10 w-full items-center justify-center gap-2 rounded-full border border-white/80 bg-[rgba(255,255,255,0.94)] px-4 text-sm font-semibold text-slate-800 shadow-[0_10px_22px_rgba(28,64,120,0.08)] transition hover:bg-white"
           >
             <span className="truncate">{groupName}</span>
             <svg
@@ -131,10 +132,11 @@ export function GroupPageHeader({
             />
           </svg>
         </CircleButton>
+        </div>
       </div>
 
       {isOpen ? (
-        <div className="absolute left-1/2 top-[calc(100%+12px)] z-30 w-[220px] -translate-x-1/2 rounded-[24px] border border-slate-200 bg-white p-2 shadow-[0_24px_60px_rgba(15,23,42,0.16)]">
+        <div className="absolute inset-x-0 top-[calc(100%+12px)] z-30 rounded-[24px] border border-slate-200 bg-white p-2 shadow-[0_24px_60px_rgba(15,23,42,0.16)]">
           <div className="space-y-1">
             {groups.map((group) => {
               const active = group.id === groupId;
