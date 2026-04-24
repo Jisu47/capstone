@@ -22,8 +22,9 @@ const weekdayOptions: Weekday[] = ["월", "화", "수", "목", "금"];
 const shellRootClass = "min-h-dvh bg-transparent text-slate-900";
 const shellFrameClass = "mx-auto flex h-dvh w-full max-w-[430px] flex-col";
 const shellHeaderClass =
-  "sticky top-0 z-20 bg-[rgba(245,249,255,0.92)] px-4 pt-4 backdrop-blur-xl md:px-6 lg:px-8";
-const shellHeaderInnerClass = "border-b border-white/80 pb-4";
+  "sticky left-1/2 top-0 z-30 w-screen -translate-x-1/2 border-b border-white/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.82),rgba(245,249,255,0.98))] shadow-[0_18px_40px_rgba(17,50,99,0.08)] backdrop-blur-xl";
+const shellHeaderInnerClass =
+  "mx-auto flex w-full max-w-[430px] flex-col gap-3 px-4 pb-4 pt-4 md:px-6 lg:px-8";
 const shellMainClass =
   "flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-32 pt-4 md:px-6 md:pt-5 lg:px-8";
 const shellMainWithoutNavClass =

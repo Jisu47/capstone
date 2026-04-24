@@ -134,7 +134,7 @@ export function GroupPageHeader({
       </div>
 
       {isOpen ? (
-        <div className="absolute left-1/2 top-[calc(100%+12px)] z-30 w-[220px] -translate-x-1/2 rounded-[24px] border border-slate-200 bg-white p-2 shadow-[0_24px_60px_rgba(15,23,42,0.16)]">
+        <div className="absolute left-1/2 top-[calc(100%+12px)] z-40 w-[220px] -translate-x-1/2 rounded-[24px] border border-slate-200 bg-white p-2 shadow-[0_24px_60px_rgba(15,23,42,0.16)]">
           <div className="space-y-1">
             {groups.map((group) => {
               const active = group.id === groupId;
