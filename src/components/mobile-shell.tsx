@@ -7,7 +7,8 @@ import { usePrototype } from "@/components/prototype-provider";
 const shellRootClass = "min-h-dvh bg-transparent text-slate-900";
 const shellFrameClass = "mx-auto flex h-dvh w-full max-w-[430px] flex-col";
 const shellHeaderClass =
-  "sticky top-0 z-20 border-b border-white/80 bg-[rgba(245,249,255,0.92)] px-4 py-4 backdrop-blur-xl md:px-6 lg:px-8";
+  "sticky top-0 z-20 bg-[rgba(245,249,255,0.92)] px-4 pt-4 backdrop-blur-xl md:px-6 lg:px-8";
+const shellHeaderInnerClass = "border-b border-white/80 pb-4";
 const shellMainClass =
   "flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-32 pt-4 md:px-6 md:pt-5 lg:px-8";
 const shellMainWithoutNavClass =
@@ -98,20 +99,22 @@ export function AppShell({
       <div className={shellRootClass}>
         <div className={shellFrameClass}>
           <header className={shellHeaderClass}>
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <Link
-                href="/"
-                className="inline-flex rounded-full border border-[var(--line)] bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-700"
-              >
-                STUDY FLOW
-              </Link>
-            </div>
+            <div className={shellHeaderInnerClass}>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <Link
+                  href="/"
+                  className="inline-flex rounded-full border border-[var(--line)] bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-700"
+                >
+                  STUDY FLOW
+                </Link>
+              </div>
 
-            <div className="space-y-1">
-              <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
-                {title}
-              </p>
-              <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+              <div className="space-y-1">
+                <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
+                  {title}
+                </p>
+                <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+              </div>
             </div>
           </header>
 
@@ -128,20 +131,22 @@ export function AppShell({
       <div className={shellRootClass}>
         <div className={shellFrameClass}>
           <header className={shellHeaderClass}>
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <Link
-                href="/"
-                className="inline-flex rounded-full border border-[var(--line)] bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-700"
-              >
-                STUDY FLOW
-              </Link>
-            </div>
+            <div className={shellHeaderInnerClass}>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <Link
+                  href="/"
+                  className="inline-flex rounded-full border border-[var(--line)] bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-700"
+                >
+                  STUDY FLOW
+                </Link>
+              </div>
 
-            <div className="space-y-1">
-              <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
-                {title}
-              </p>
-              <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+              <div className="space-y-1">
+                <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
+                  {title}
+                </p>
+                <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+              </div>
             </div>
           </header>
 
@@ -169,39 +174,41 @@ export function AppShell({
     <div className={shellRootClass}>
       <div className={shellFrameClass}>
         <header className={shellHeaderClass}>
-          {headerContent ? (
-            headerContent
-          ) : (
-            <>
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <Link
-                  href="/"
-                  className="inline-flex rounded-full border border-[var(--line)] bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-700"
-                >
-                  STUDY FLOW
-                </Link>
+          <div className={shellHeaderInnerClass}>
+            {headerContent ? (
+              headerContent
+            ) : (
+              <>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <Link
+                    href="/"
+                    className="inline-flex rounded-full border border-[var(--line)] bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-700"
+                  >
+                    STUDY FLOW
+                  </Link>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
+                    {title}
+                  </p>
+                  <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+                </div>
+              </>
+            )}
+
+            {isLoading || isMutating ? (
+              <div className="rounded-2xl bg-white/80 px-3 py-2 text-[11px] font-medium text-slate-600">
+                {isLoading ? "Syncing Supabase data..." : "Saving changes..."}
               </div>
+            ) : null}
 
-              <div className="space-y-1">
-                <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
-                  {title}
-                </p>
-                <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+            {error ? (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                {error}
               </div>
-            </>
-          )}
-
-          {isLoading || isMutating ? (
-            <div className="mt-3 rounded-2xl bg-white/80 px-3 py-2 text-[11px] font-medium text-slate-600">
-              {isLoading ? "Syncing Supabase data..." : "Saving changes..."}
-            </div>
-          ) : null}
-
-          {error ? (
-            <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-              {error}
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </header>
 
         <main className={shouldShowNavigation ? shellMainClass : shellMainWithoutNavClass}>
