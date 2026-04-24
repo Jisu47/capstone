@@ -76,7 +76,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
       <div className="space-y-4">
         <SectionCard title="진도표">
           {activeGroup.planReferenceUploads.length === 0 ? (
-            <div className="rounded-[14px] border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+            <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
               계획 화면에서 진도표를 먼저 올려 주세요.
             </div>
           ) : (
@@ -103,13 +103,13 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
 
         <SectionCard title="현재 설정">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-4">
+            <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
               <p className="text-xs font-medium text-slate-500">복습 요일</p>
               <p className="mt-2 text-sm font-semibold text-slate-900">
                 {activeGroup.reviewDays.length > 0 ? activeGroup.reviewDays.join(", ") : "설정 안 함"}
               </p>
             </div>
-            <div className="rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-4">
+            <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
               <p className="text-xs font-medium text-slate-500">내 복습 간격</p>
               <p className="mt-2 text-sm font-semibold text-slate-900">
                 {getReviewIntervalLabel(reviewInterval)}
@@ -136,7 +136,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                 onClick={() => {
                   void sendPlanAgentMessage(activeGroup.id, question);
                 }}
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)]"
               >
                 {question}
               </button>
@@ -147,7 +147,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
         <SectionCard title="대화">
           <div className="space-y-3">
             {activeGroup.planAgentChat.length === 0 ? (
-              <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+              <div className="rounded-[16px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
                 원하는 방향을 한 줄로 보내면 계획 초안을 만들어 드립니다.
               </div>
             ) : (
@@ -157,13 +157,13 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                   className={`rounded-[16px] px-4 py-4 ${
                     message.role === "assistant"
                       ? "border border-slate-200 bg-white"
-                      : "ml-auto max-w-[82%] bg-[var(--brand)] text-white"
+                      : "ml-auto max-w-[82%] border border-[var(--brand)] bg-white text-slate-900"
                   }`}
                 >
                   <p className="whitespace-pre-line text-sm leading-6">{message.text}</p>
                   <p
                     className={`mt-2 text-[11px] font-medium ${
-                      message.role === "assistant" ? "text-slate-400" : "text-blue-100"
+                      message.role === "assistant" ? "text-slate-400" : "text-[var(--brand)]"
                     }`}
                   >
                     {message.createdAt}
@@ -173,7 +173,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
             )}
 
             {planAgentBusy ? (
-              <div className="rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
                 <p className="text-sm font-semibold text-slate-900">초안 정리 중</p>
                 <p className="mt-1 text-xs text-[var(--ink-soft)]">
                   진도표와 복습 설정을 반영하고 있습니다.
@@ -203,7 +203,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
 
         <SectionCard title="미리보기">
           {!draft ? (
-            <div className="rounded-[14px] border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+            <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
               진도표가 준비되면 전체 계획과 이번 주 초안이 여기에 보입니다.
             </div>
           ) : (
@@ -282,7 +282,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
           </button>
         </div>
 
-        <div className="rounded-[16px] bg-slate-100 px-4 py-4 text-xs leading-6 text-slate-500">
+        <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 text-xs leading-6 text-slate-500 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
           복습 간격 옵션: {reviewIntervalOptions.map((option) => option.label).join(" / ")}
         </div>
       </div>

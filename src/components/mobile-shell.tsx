@@ -4,11 +4,11 @@ import Link from "next/link";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { usePrototype } from "@/components/prototype-provider";
 
-const shellRootClass = "flex min-h-dvh flex-col bg-transparent text-slate-900";
+const shellRootClass = "flex min-h-dvh flex-col bg-white text-slate-900";
 const shellFrameClass = "mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col";
 const shellHeaderClass = "sticky top-0 z-30 px-4 md:px-6 lg:px-8";
 const shellHeaderInnerClass =
-  "mx-auto flex w-full max-w-[430px] flex-col gap-3 rounded-b-[14px] rounded-t-none border border-slate-200/80 bg-white/94 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.875rem)] shadow-[0_8px_24px_rgba(15,23,42,0.06)] backdrop-blur-md";
+  "mx-auto flex w-full max-w-[430px] flex-col gap-3 rounded-b-[14px] rounded-t-none border border-slate-200 bg-white px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.875rem)] shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
 const shellMainClass =
   "flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-32 pt-4 md:px-6 md:pt-5 lg:px-8";
 const shellMainWithoutNavClass =
@@ -24,7 +24,7 @@ export function SectionCard({
   children: React.ReactNode;
 }>) {
   return (
-    <section className="rounded-[18px] border border-slate-200/80 bg-white/90 p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+    <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-slate-900">
           {title}

@@ -214,7 +214,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-[12px] border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                className="rounded-[12px] border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)]"
               >
                 이미지 추가
               </button>
@@ -232,7 +232,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
           />
 
           {activeGroup.planReferenceUploads.length === 0 ? (
-            <div className="rounded-[14px] border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+            <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
               {leaderMode
                 ? "인강 진도표나 목차 이미지를 올리면 전체 계획을 만들 수 있습니다."
                 : "팀장이 올린 진도표가 아직 없습니다."}
@@ -276,7 +276,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
             leaderMode ? (
               <Link
                 href={`/group/${activeGroup.id}/plan/agent`}
-                className="rounded-[12px] border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                className="rounded-[12px] border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)]"
               >
                 계획 새로 짜기
               </Link>
@@ -284,7 +284,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
           }
         >
           {activeGroup.roadmap.length === 0 ? (
-            <div className="rounded-[14px] border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+            <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
               {activeGroup.planReferenceUploads.length === 0
                 ? "진도표를 올리면 주차별 로드맵이 여기에 정리됩니다."
                 : "팀장이 계획 에이전트에서 초안을 만들면 여기에 반영됩니다."}
@@ -323,7 +323,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
               const dayReviewCards = reviewCards.filter((item) => item.day === day);
 
               return (
-                <section key={day} className="rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-4">
+                <section key={day} className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <p className="text-sm font-semibold text-slate-900">{day}</p>
                     <span className="text-xs text-slate-500">
@@ -344,7 +344,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                           }}
                           className={`w-full rounded-[14px] border px-4 py-4 text-left transition ${
                             checked
-                              ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                              ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(47,110,229,0.08)]"
                               : "border-slate-200 bg-white hover:border-slate-300"
                           }`}
                         >
@@ -368,7 +368,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                     {dayReviewCards.map((item) => (
                       <div
                         key={item.id}
-                        className="rounded-[14px] border border-amber-200 bg-amber-50 px-4 py-4"
+                        className="rounded-[14px] border border-amber-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(245,158,11,0.05)]"
                       >
                         <p className="text-sm font-semibold text-amber-900">{item.title}</p>
                         <p className="mt-1 text-xs leading-5 text-amber-800">{item.detail}</p>
@@ -433,7 +433,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                             setEditingPersonalItemId(null);
                             setEditingPersonalDraft({ title: "", detail: "" });
                           }}
-                          className="rounded-[14px] bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-600"
+                          className="rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600"
                         >
                           취소
                         </button>
@@ -460,7 +460,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                                 detail: item.detail,
                               });
                             }}
-                            className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"
+                            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600"
                           >
                             수정
                           </button>
@@ -471,7 +471,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                             }}
                             className={`rounded-full px-3 py-1 text-xs font-semibold ${
                               item.completed
-                                ? "bg-emerald-500 text-white"
+                                ? "border border-emerald-300 bg-white text-emerald-700"
                                 : "bg-slate-950 text-white"
                             }`}
                           >
@@ -485,7 +485,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
               );
             })}
 
-            <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50 px-4 py-4">
+            <div className="rounded-[16px] border border-dashed border-slate-200 bg-white px-4 py-4">
               <div className="space-y-3">
                 <input
                   value={newPersonalItem.title}
@@ -540,8 +540,8 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                       onClick={() => toggleReviewDay(day)}
                       className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                         active
-                          ? "bg-[var(--brand)] text-white"
-                          : "bg-slate-100 text-slate-600"
+                          ? "border border-[var(--brand)] bg-white text-[var(--brand)]"
+                          : "border border-slate-200 bg-white text-slate-600"
                       } ${leaderMode ? "" : "cursor-default opacity-70"}`}
                     >
                       {day}
@@ -569,8 +569,8 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                       }}
                       className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                         active
-                          ? "bg-amber-500 text-white"
-                          : "bg-slate-100 text-slate-600"
+                          ? "border border-amber-300 bg-white text-amber-700"
+                          : "border border-slate-200 bg-white text-slate-600"
                       }`}
                     >
                       {option.label}
@@ -595,7 +595,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
         ) : null}
 
         {isMutating ? (
-          <div className="rounded-[16px] bg-slate-100 px-4 py-3 text-xs font-medium text-slate-500">
+          <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-xs font-medium text-slate-500 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
             계획을 저장하는 중입니다.
           </div>
         ) : null}

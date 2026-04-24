@@ -83,7 +83,7 @@ function SummaryItem({
   value: string;
 }>) {
   return (
-    <div className="rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-3">
+    <div className="rounded-[14px] border border-slate-200 bg-white px-3 py-3 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
       <p className="text-[11px] font-medium text-slate-500">{label}</p>
       <p className="mt-1 text-sm font-semibold text-slate-900">{value}</p>
     </div>
@@ -148,7 +148,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
       headerContent={<GroupPageHeader groupId={group.id} groupName={group.name} />}
     >
       <div className="space-y-4">
-        <section className="rounded-[18px] border border-slate-200 bg-white/92 px-4 py-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+        <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-5 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
             {group.subject}
           </p>
@@ -185,7 +185,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
           </p>
         </section>
 
-        <section className="rounded-[18px] border border-slate-200 bg-white/92 px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+        <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-[15px] font-semibold text-slate-900">팀원별 진행 현황</h2>
             <span className="text-xs text-slate-500">{group.members.length}명</span>

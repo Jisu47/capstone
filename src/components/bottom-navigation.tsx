@@ -75,8 +75,8 @@ export function BottomNavigation({
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 px-4 md:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-[430px]">
-        <div className="rounded-t-[14px] rounded-b-none border border-slate-200/80 bg-white/94 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur-md">
-          <div className="grid grid-cols-4 gap-2 rounded-[12px] border border-slate-200/80 bg-slate-50/80 p-2">
+        <div className="rounded-t-[14px] rounded-b-none border border-slate-200 bg-white px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_20px_rgba(15,23,42,0.04)]">
+          <div className="grid grid-cols-4 gap-2 rounded-[12px] border border-slate-200 bg-white p-2">
             {tabs.map((tab) => {
               const active = isActiveTab(pathname, tab);
               const className = `rounded-[12px] px-2 py-2 text-center text-[11px] font-semibold transition ${
@@ -84,7 +84,7 @@ export function BottomNavigation({
                   ? "bg-[var(--brand)] text-white"
                   : tab.enabled
                     ? "bg-transparent text-slate-600 hover:bg-white"
-                    : "pointer-events-none cursor-not-allowed select-none bg-slate-100/80 text-slate-400"
+                    : "pointer-events-none cursor-not-allowed select-none bg-white text-slate-400"
               }`;
 
               return (

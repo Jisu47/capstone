@@ -19,11 +19,11 @@ import {
 
 const weekdayOptions: Weekday[] = ["월", "화", "수", "목", "금"];
 
-const shellRootClass = "flex min-h-dvh flex-col bg-transparent text-slate-900";
+const shellRootClass = "flex min-h-dvh flex-col bg-white text-slate-900";
 const shellFrameClass = "mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col";
 const shellHeaderClass = "sticky top-0 z-30 px-4 md:px-6 lg:px-8";
 const shellHeaderInnerClass =
-  "mx-auto flex w-full max-w-[430px] flex-col gap-3 rounded-b-[14px] rounded-t-none border border-slate-200/80 bg-white/94 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.875rem)] shadow-[0_8px_24px_rgba(15,23,42,0.06)] backdrop-blur-md";
+  "mx-auto flex w-full max-w-[430px] flex-col gap-3 rounded-b-[14px] rounded-t-none border border-slate-200 bg-white px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.875rem)] shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
 const shellMainClass =
   "flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-32 pt-4 md:px-6 md:pt-5 lg:px-8";
 const shellMainWithoutNavClass =
@@ -69,7 +69,7 @@ function SectionCard({
   children: React.ReactNode;
 }>) {
   return (
-    <section className="rounded-[18px] border border-slate-200/80 bg-white/90 p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+    <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-slate-900">{title}</h2>
         {action}
@@ -670,7 +670,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
   return (
     <AppShell groupId={groupId} title="자료">
       <SectionCard title="자료 추가">
-        <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50 p-4">
+        <div className="rounded-[16px] border border-dashed border-slate-200 bg-white p-4">
           <p className="text-sm font-semibold text-slate-900">공용 자료를 더 모아볼 수 있어요.</p>
           <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">
             현재는 파일 선택 없이 예시 자료가 바로 추가됩니다.
@@ -691,7 +691,10 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
 
       <SectionCard title="자료 목록">
         {materials.map((material) => (
-          <div key={material.id} className="rounded-[16px] border border-slate-200 bg-white p-4">
+          <div
+            key={material.id}
+            className="rounded-[16px] border border-slate-200 bg-white p-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]"
+          >
             <div className="mb-2 flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-900">{material.title}</p>
@@ -717,7 +720,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
               onClick={() => {
                 void sendQuestion(activeGroup.id, question);
               }}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)]"
             >
               {question}
             </button>
@@ -746,7 +749,10 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
               {message.role === "assistant" && message.sources && message.sources.length > 0 ? (
                 <div className="mt-3 space-y-2">
                   {message.sources.map((source) => (
-                    <div key={source.id} className="rounded-[14px] bg-slate-50 p-3">
+                    <div
+                      key={source.id}
+                      className="rounded-[14px] border border-slate-200 bg-white p-3"
+                    >
                       <p className="text-sm font-semibold text-slate-900">{source.title}</p>
                       <p className="mt-1 text-xs font-medium text-[var(--brand)]">
                         {source.locationHint}
@@ -762,7 +768,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
           ))}
 
           {isAnswering(activeGroup.id) ? (
-            <div className="rounded-[16px] border border-slate-200 bg-slate-50 p-4">
+            <div className="rounded-[16px] border border-slate-200 bg-white p-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
               <p className="text-sm font-semibold text-slate-900">답변 정리 중</p>
               <p className="mt-1 text-xs text-[var(--ink-soft)]">
                 자료 내용을 바탕으로 정리하고 있어요.

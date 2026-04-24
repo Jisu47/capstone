@@ -20,7 +20,7 @@ function CircleButton({
   children: React.ReactNode;
 }>) {
   const className =
-    "flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-[0_4px_14px_rgba(15,23,42,0.06)] transition hover:bg-slate-50";
+    "flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-[0_4px_12px_rgba(15,23,42,0.04)] transition hover:bg-white";
 
   if (asLink && href) {
     return (
@@ -91,7 +91,7 @@ export function GroupPageHeader({
             aria-expanded={isOpen}
             aria-haspopup="menu"
             onClick={() => setIsOpen((previous) => !previous)}
-            className="inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-800 shadow-[0_4px_14px_rgba(15,23,42,0.06)] transition hover:bg-slate-50"
+            className="inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-800 shadow-[0_4px_12px_rgba(15,23,42,0.04)] transition hover:bg-white"
           >
             <span className="truncate">{groupName}</span>
             <svg
@@ -134,7 +134,7 @@ export function GroupPageHeader({
       </div>
 
       {isOpen ? (
-        <div className="absolute left-1/2 top-[calc(100%+12px)] z-40 w-[220px] -translate-x-1/2 rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_14px_32px_rgba(15,23,42,0.12)]">
+        <div className="absolute left-1/2 top-[calc(100%+12px)] z-40 w-[220px] -translate-x-1/2 rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
           <div className="space-y-1">
             {groups.map((group) => {
               const active = group.id === groupId;

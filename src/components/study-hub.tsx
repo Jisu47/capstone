@@ -134,7 +134,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
   return (
     <>
       <div className="space-y-4">
-        <section className="rounded-[18px] border border-slate-200 bg-white/92 px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+        <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
@@ -144,7 +144,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                 {group.weeklyGoal}
               </h2>
             </div>
-            <div className="rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2 text-right">
+            <div className="rounded-[14px] border border-slate-200 bg-white px-3 py-2 text-right shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
               <p className="text-[11px] font-medium text-slate-500">타이머</p>
               <p className="mt-1 text-lg font-semibold tracking-[-0.03em] text-slate-950">
                 {formatTimer(elapsedSeconds)}
@@ -160,13 +160,13 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
             >
               {isTimerRunning ? "타이머 멈추기" : "타이머 시작"}
             </button>
-            <div className="rounded-[14px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
+            <div className="rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
               오늘 {group.plan.length}개
             </div>
           </div>
         </section>
 
-        <section className="rounded-[18px] border border-slate-200 bg-white/92 px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+        <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-[15px] font-semibold text-slate-900">함께 공부 중</h2>
             <span className="text-xs text-slate-500">{teammates.length}명</span>
@@ -187,7 +187,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                   }
                   className={`w-full rounded-[14px] border px-4 py-3 text-left transition ${
                     active
-                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                      ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(47,110,229,0.08)]"
                       : "border-slate-200 bg-white hover:border-slate-300"
                   }`}
                 >
@@ -206,7 +206,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
           </div>
 
           {selectedMember ? (
-            <div className="mt-3 rounded-[14px] border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="mt-3 rounded-[14px] border border-slate-200 bg-white px-4 py-3 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
               <p className="text-sm font-semibold text-slate-900">{selectedMember.name}</p>
               <p className="mt-1 text-sm text-slate-600">{selectedMember.focus} 중심으로 진행 중</p>
             </div>
@@ -223,7 +223,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
             </span>
           </div>
 
-          <div className="rounded-[18px] border border-slate-200 bg-white/92 px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+          <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
             <div className="space-y-2">
               {group.plan.map((item) => {
                 const checked = item.memberStatus[currentUserId];
@@ -235,7 +235,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                     onClick={() => setPendingChecklistId(item.id)}
                     className={`w-full rounded-[14px] border px-4 py-4 text-left transition ${
                       checked
-                        ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                        ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(47,110,229,0.08)]"
                         : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
                   >
@@ -266,13 +266,13 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
             </div>
           </div>
 
-          <div className="rounded-[18px] border border-slate-200 bg-white/92 px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+          <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h2 className="text-[15px] font-semibold text-slate-900">추가 할 일</h2>
               <button
                 type="button"
                 onClick={addPersonalTodo}
-                className="rounded-[12px] border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                className="rounded-[12px] border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)]"
               >
                 추가
               </button>
@@ -286,7 +286,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                   onClick={() => togglePersonalTodo(todo.id)}
                   className={`flex w-full items-center gap-3 rounded-[14px] border px-4 py-3 text-left transition ${
                     todo.done
-                      ? "border-emerald-200 bg-emerald-50"
+                      ? "border-emerald-300 bg-white shadow-[0_6px_16px_rgba(16,185,129,0.06)]"
                       : "border-slate-200 bg-white hover:border-slate-300"
                   }`}
                 >
@@ -301,7 +301,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
 
       {pendingChecklistItem ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/24 px-6">
-          <div className="w-full max-w-[296px] rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.16)]">
+          <div className="w-full max-w-[296px] rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.10)]">
             <p className="text-base font-semibold text-slate-900">체크 상태 변경</p>
             <p className="mt-2 text-sm leading-6 text-slate-600">
               {pendingChecklistItem.title}
