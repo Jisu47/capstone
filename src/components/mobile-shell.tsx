@@ -7,7 +7,7 @@ import { usePrototype } from "@/components/prototype-provider";
 const shellRootClass = "min-h-dvh bg-transparent text-slate-900";
 const shellFrameClass = "mx-auto flex h-dvh w-full max-w-[430px] flex-col";
 const shellHeaderClass =
-  "sticky left-1/2 top-0 z-30 w-screen -translate-x-1/2 border-b border-white/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.82),rgba(245,249,255,0.98))] shadow-[0_18px_40px_rgba(17,50,99,0.08)] backdrop-blur-xl";
+  "sticky left-[calc(50%-50vw)] top-0 z-30 w-screen border-b border-white/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.82),rgba(245,249,255,0.98))] shadow-[0_18px_40px_rgba(17,50,99,0.08)] backdrop-blur-xl";
 const shellHeaderInnerClass =
   "mx-auto flex w-full max-w-[430px] flex-col gap-3 px-4 pb-4 pt-4 md:px-6 lg:px-8";
 const shellMainClass =
