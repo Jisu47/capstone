@@ -1,5 +1,5 @@
-import { HomeScreen } from "@/components/prototype-screens";
+import { StudyEntryScreen } from "@/components/study-entry-screen";
 
 export default function Home() {
-  return <HomeScreen />;
+  return <StudyEntryScreen />;
 }

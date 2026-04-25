@@ -1,4 +1,4 @@
-import { PlanScreen } from "@/components/prototype-screens";
+import { PlanFlowScreen } from "@/components/plan-screen";
 
 export default async function PlanPage({
   params,
@@ -7,5 +7,5 @@ export default async function PlanPage({
 }>) {
   const { id } = await params;
 
-  return <PlanScreen groupId={id} />;
+  return <PlanFlowScreen groupId={id} />;
 }

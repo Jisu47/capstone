@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { BottomNavigation } from "@/components/bottom-navigation";
 import { usePrototype } from "@/components/prototype-provider";
 import {
   type CreateGroupInput,
@@ -17,6 +18,16 @@ import {
 } from "@/lib/mock-data";
 
 const weekdayOptions: Weekday[] = ["월", "화", "수", "목", "금"];
+
+const shellRootClass = "flex h-dvh flex-col overflow-hidden bg-white text-slate-900";
+const shellFrameClass = "mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col overflow-hidden";
+const shellHeaderClass = "sticky top-0 z-30 px-4 md:px-6 lg:px-8";
+const shellHeaderInnerClass =
+  "mx-auto flex w-full max-w-[430px] flex-col gap-3 rounded-b-[14px] rounded-t-none border border-slate-200 bg-white px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.875rem)] shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
+const shellMainClass =
+  "min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-y-contain touch-pan-y px-4 pb-32 pt-4 [scrollbar-gutter:stable] [-webkit-overflow-scrolling:touch] md:px-6 md:pt-5 lg:px-8";
+const shellMainWithoutNavClass =
+  "min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-y-contain touch-pan-y px-4 pb-10 pt-4 [scrollbar-gutter:stable] [-webkit-overflow-scrolling:touch] md:px-6 md:pt-5 lg:px-8";
 
 function getGroupById(groups: StudyGroup[], groupId: string) {
   return groups.find((group) => group.id === groupId);
@@ -58,7 +69,7 @@ function SectionCard({
   children: React.ReactNode;
 }>) {
   return (
-    <section className="rounded-[28px] border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[0_18px_60px_rgba(28,64,120,0.08)] backdrop-blur">
+    <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-slate-900">{title}</h2>
         {action}
@@ -72,7 +83,7 @@ function ProgressBar({ value }: Readonly<{ value: number }>) {
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
       <div
-        className="h-full rounded-full bg-[linear-gradient(90deg,#2f6ee5,#73a3ff)] transition-all"
+        className="h-full rounded-full bg-[linear-gradient(90deg,#79b895,#a8d5b9)] transition-all"
         style={{ width: `${value}%` }}
       />
     </div>
@@ -83,88 +94,145 @@ function AppShell({
   title,
   subtitle,
   groupId,
+  navGroupId,
+  navReady,
+  requireAuth = true,
+  showNavigation = true,
   children,
 }: Readonly<{
   title: string;
-  subtitle: string;
+  subtitle?: string;
   groupId?: string;
+  navGroupId?: string | null;
+  navReady?: boolean;
+  requireAuth?: boolean;
+  showNavigation?: boolean;
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
-  const { groups } = usePrototype();
-  const featuredGroupId = groupId ?? groups[0]?.id;
-  const studyHref = featuredGroupId ? `/group/${featuredGroupId}` : "/";
-  const planHref = featuredGroupId ? `/group/${featuredGroupId}/plan` : "/";
-  const materialsHref = featuredGroupId ? `/group/${featuredGroupId}/materials` : "/";
+  const { groups, error, isAuthReady, isLoading, isMutating, sessionName } = usePrototype();
+  const resolvedNavGroupId =
+    navGroupId === undefined ? (groupId ?? groups[0]?.id ?? null) : navGroupId;
+  const resolvedNavReady = navReady ?? (groupId ? true : !isLoading);
+  const shouldShowNavigation =
+    showNavigation && (!requireAuth || (isAuthReady && Boolean(sessionName)));
 
-  const globalTabs = [
-    { label: "홈", href: "/" },
-    { label: "스터디", href: studyHref },
-    { label: "계획", href: planHref },
-    { label: "자료", href: materialsHref },
-  ];
-  const groupTabs = groupId
-    ? [
-        { label: "홈", href: "/" },
-        { label: "스터디", href: `/group/${groupId}` },
-        { label: "계획", href: `/group/${groupId}/plan` },
-        { label: "자료", href: `/group/${groupId}/materials` },
-      ]
-    : globalTabs;
-  const tabs = groupId ? groupTabs : globalTabs;
+  if (requireAuth && !isAuthReady) {
+    return (
+      <div className={shellRootClass}>
+        <header className={shellHeaderClass}>
+            <div className={shellHeaderInnerClass}>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <Link
+                  href="/"
+                  className="inline-flex rounded-full border border-[var(--line)] bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-700"
+                >
+                  STUDY FLOW
+                </Link>
+              </div>
+              <div className="space-y-1">
+                <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
+                  {title}
+                </p>
+                {subtitle ? (
+                  <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+                ) : null}
+              </div>
+            </div>
+          </header>
+
+        <div className={shellFrameClass}>
+          <main className={shellMainWithoutNavClass}>
+            <LoadingState message="로그인 상태를 확인하는 중입니다." />
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  if (requireAuth && !sessionName) {
+    return (
+      <div className={shellRootClass}>
+        <header className={shellHeaderClass}>
+            <div className={shellHeaderInnerClass}>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <Link
+                  href="/"
+                  className="inline-flex rounded-full border border-[var(--line)] bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-700"
+                >
+                  STUDY FLOW
+                </Link>
+              </div>
+              <div className="space-y-1">
+                <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
+                  {title}
+                </p>
+                {subtitle ? (
+                  <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+                ) : null}
+              </div>
+            </div>
+          </header>
+
+        <div className={shellFrameClass}>
+          <main className={shellMainWithoutNavClass}>
+            <SectionCard
+              title="로그인이 필요해요"
+              action={
+                <Link href="/" className="text-sm font-semibold text-[var(--brand)]">
+                  로그인으로
+                </Link>
+              }
+            >
+              <p className="text-sm leading-6 text-[var(--ink-soft)]">
+                먼저 로그인하고 스터디그룹을 선택하면 그룹별 홈과 스터디, 계획,
+                자료 화면을 이용할 수 있어요.
+              </p>
+            </SectionCard>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-transparent px-3 py-4 text-slate-900">
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[430px] flex-col overflow-hidden rounded-[34px] border border-white/70 bg-[rgba(245,249,255,0.86)] shadow-[0_30px_100px_rgba(17,50,99,0.14)] backdrop-blur-xl">
-        <header className="sticky top-0 z-20 border-b border-white/80 bg-[rgba(245,249,255,0.92)] px-5 py-4 backdrop-blur-xl">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <Link
-              href="/"
-              className="inline-flex rounded-full border border-[var(--line)] bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-700"
-            >
-              STUDY FLOW
-            </Link>
-            <div className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--brand)]">
-              Mobile Prototype
+    <div className={shellRootClass}>
+      <header className={shellHeaderClass}>
+          <div className={shellHeaderInnerClass}>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <Link
+                href="/"
+                className="inline-flex rounded-full border border-[var(--line)] bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-700"
+              >
+                STUDY FLOW
+              </Link>
             </div>
-          </div>
-          <div className="space-y-1">
-            <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
-              {title}
-            </p>
-            <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+            <div className="space-y-1">
+              <p className="font-[family:var(--font-study-display)] text-[27px] leading-none tracking-[-0.05em] text-slate-950">
+                {title}
+              </p>
+              {subtitle ? (
+                <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+              ) : null}
+            </div>
+            {isLoading || isMutating ? (
+              <div className="rounded-[12px] bg-slate-100 px-3 py-2 text-[11px] font-medium text-slate-600">
+                {isLoading ? "동기화 중" : "저장 중"}
+              </div>
+            ) : null}
+            {error ? (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                {error}
+              </div>
+            ) : null}
           </div>
         </header>
 
-        <main className="flex-1 space-y-4 overflow-y-auto px-4 pb-28 pt-4">{children}</main>
+      <div className={shellFrameClass}>
+        <main className={shouldShowNavigation ? shellMainClass : shellMainWithoutNavClass}>{children}</main>
 
-        <nav className="sticky bottom-0 z-20 border-t border-white/80 bg-[rgba(248,251,255,0.94)] px-3 py-3 backdrop-blur-xl">
-          <div
-            className="grid gap-2"
-            style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
-          >
-            {tabs.map((tab) => {
-              const active =
-                tab.href === "/"
-                  ? pathname === tab.href
-                  : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
-
-              return (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={`rounded-2xl px-2 py-2 text-center text-[11px] font-semibold transition ${
-                    active
-                      ? "bg-[var(--brand)] text-white shadow-[0_10px_24px_rgba(47,110,229,0.26)]"
-                      : "bg-white/75 text-slate-600"
-                  }`}
-                >
-                  {tab.label}
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
+        {shouldShowNavigation ? (
+          <BottomNavigation navReady={resolvedNavReady} navGroupId={resolvedNavGroupId} />
+        ) : null}
       </div>
     </div>
   );
@@ -187,8 +255,20 @@ function MissingGroupState() {
   );
 }
 
+function LoadingState({
+  message = "Loading data from Supabase...",
+}: Readonly<{
+  message?: string;
+}>) {
+  return (
+    <SectionCard title="Loading">
+      <p className="text-sm leading-6 text-[var(--ink-soft)]">{message}</p>
+    </SectionCard>
+  );
+}
+
 export function HomeScreen() {
-  const { groups } = usePrototype();
+  const { groups, isLoading } = usePrototype();
   const todayTasks = getTodayTasks(groups);
   const dDayGroups = [...groups].sort((left, right) => {
     return getDaysLeft(left.examDate) - getDaysLeft(right.examDate);
@@ -196,6 +276,8 @@ export function HomeScreen() {
 
   return (
     <AppShell
+      navGroupId={groups[0]?.id ?? null}
+      navReady={!isLoading}
       title="한눈에 보는 스터디 홈"
       subtitle="오늘 할 일, 시험 디데이, 내가 속한 모임만 먼저 확인하는 단순한 홈 화면입니다."
     >
@@ -207,6 +289,16 @@ export function HomeScreen() {
           </Link>
         }
       >
+        {isLoading && groups.length === 0 ? (
+          <p className="text-sm leading-6 text-[var(--ink-soft)]">
+            Loading study groups from Supabase...
+          </p>
+        ) : null}
+        {!isLoading && groups.length === 0 ? (
+          <p className="text-sm leading-6 text-[var(--ink-soft)]">
+            No study groups yet. Create one to start.
+          </p>
+        ) : null}
         {groups.map((group) => (
           <Link
             key={group.id}
@@ -287,13 +379,16 @@ export function HomeScreen() {
 }
 
 export function CreateGroupScreen() {
-  const { createGroup } = usePrototype();
+  const { createGroup, isMutating } = usePrototype();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState<CreateGroupInput>({
     name: "알고리즘 기말 대비",
     subject: "알고리즘",
     examDate: "2026-04-30",
+    presentationDate: "2026-04-24",
+    deadlineDate: "2026-04-27",
+    overallGoal: "기말고사 전까지 팀 전체가 안정적으로 문제를 풀 수 있는 상태 만들기",
     weeklyGoal: "그래프/DP 정리, 기출 2회독, 발표 질문 준비",
   });
 
@@ -307,13 +402,16 @@ export function CreateGroupScreen() {
     }));
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const groupId = createGroup(form);
 
-    startTransition(() => {
-      router.push(`/group/${groupId}`);
-    });
+    try {
+      const groupId = await createGroup(form);
+
+      startTransition(() => {
+        router.push(`/group/${groupId}`);
+      });
+    } catch {}
   }
 
   return (
@@ -367,8 +465,8 @@ export function CreateGroupScreen() {
 
           <button
             type="submit"
-            disabled={isPending}
-            className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(47,110,229,0.26)] transition hover:brightness-105 disabled:opacity-70"
+            disabled={isPending || isMutating}
+            className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(121,184,149,0.24)] transition hover:brightness-105 disabled:opacity-70"
           >
             {isPending ? "모임 생성 중..." : "모임 생성하기"}
           </button>
@@ -393,12 +491,28 @@ export function CreateGroupScreen() {
 }
 
 export function GroupOverviewScreen({ groupId }: Readonly<{ groupId: string }>) {
-  const { groups } = usePrototype();
+  const { groups, isLoading } = usePrototype();
   const group = getGroupById(groups, groupId);
+
+  if (isLoading && !group) {
+    return (
+      <AppShell
+        groupId={groupId}
+        title="Loading group..."
+        subtitle="Waiting for the latest group snapshot from Supabase."
+      >
+        <LoadingState message="Loading group snapshot..." />
+      </AppShell>
+    );
+  }
 
   if (!group) {
     return (
-      <AppShell title="모임을 찾을 수 없어요" subtitle="데모 상태가 초기화된 경우 홈에서 다시 진입해 주세요.">
+      <AppShell
+        groupId={groupId}
+        title="모임을 찾을 수 없어요"
+        subtitle="데모 상태가 초기화된 경우 홈에서 다시 진입해 주세요."
+      >
         <MissingGroupState />
       </AppShell>
     );
@@ -515,13 +629,21 @@ export function GroupOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
 }
 
 export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
-  const { groups, queueMockUpload, sendQuestion, isAnswering } = usePrototype();
+  const { groups, queueMockUpload, sendQuestion, isAnswering, isLoading } = usePrototype();
   const group = getGroupById(groups, groupId);
   const [draft, setDraft] = useState("");
 
+  if (isLoading && !group) {
+    return (
+      <AppShell groupId={groupId} title="자료">
+        <LoadingState message="자료를 불러오는 중입니다." />
+      </AppShell>
+    );
+  }
+
   if (!group) {
     return (
-      <AppShell title="자료를 불러오지 못했습니다" subtitle="홈에서 다시 진입해 주세요.">
+      <AppShell groupId={groupId} title="자료">
         <MissingGroupState />
       </AppShell>
     );
@@ -530,44 +652,49 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
   const activeGroup = group;
   const materials = sortMaterials(activeGroup);
   const recommendedQuestions = [
-    `${activeGroup.subject} 핵심 개념만 정리해줘`,
-    "시험 범위에서 중요한 자료를 알려줘",
-    "자료 기반으로 예상 질문 3개 만들어줘",
+    `${activeGroup.subject} 핵심 개념만 정리해 줘`,
+    "시험 범위에서 중요한 자료를 먼저 골라 줘",
+    "자료를 바탕으로 예상 질문 3개 만들어 줘",
   ];
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    sendQuestion(activeGroup.id, draft);
+    if (!draft.trim()) {
+      return;
+    }
+
+    void sendQuestion(activeGroup.id, draft);
     setDraft("");
   }
 
   return (
-    <AppShell
-      groupId={groupId}
-      title="자료"
-      subtitle={`${activeGroup.subject} 자료 ${materials.length}개와 자료 기반 AI 질문을 한 메뉴에서 확인합니다.`}
-    >
-      <SectionCard title="자료 업로드 박스">
-        <div className="rounded-[28px] border border-dashed border-[var(--brand)] bg-[linear-gradient(180deg,rgba(217,231,255,0.5),rgba(255,255,255,0.94))] p-5">
-          <p className="text-sm font-semibold text-slate-900">파일 업로드 UI만 제공됩니다</p>
+    <AppShell groupId={groupId} title="자료">
+      <SectionCard title="자료 추가">
+        <div className="rounded-[16px] border border-dashed border-slate-200 bg-white p-4">
+          <p className="text-sm font-semibold text-slate-900">공용 자료를 더 모아볼 수 있어요.</p>
           <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">
-            실제 파일 선택이나 서버 전송은 연결하지 않고, 버튼을 누르면 mock 자료가 목록 상단에 추가됩니다.
+            현재는 파일 선택 없이 예시 자료가 바로 추가됩니다.
           </p>
           <button
             type="button"
-            onClick={() => queueMockUpload(activeGroup.id)}
-            className="mt-4 w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(47,110,229,0.24)]"
+            onClick={() => {
+              void queueMockUpload(activeGroup.id);
+            }}
+            className="mt-4 w-full rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
           >
             {activeGroup.uploadDraftCount > 0
-              ? `Mock 자료 ${activeGroup.uploadDraftCount}개 추가됨`
-              : "Mock 자료 추가해 보기"}
+              ? `자료 ${activeGroup.uploadDraftCount}개 더 보기`
+              : "자료 추가하기"}
           </button>
         </div>
       </SectionCard>
 
       <SectionCard title="자료 목록">
         {materials.map((material) => (
-          <div key={material.id} className="rounded-[24px] bg-white/80 p-4">
+          <div
+            key={material.id}
+            className="rounded-[16px] border border-slate-200 bg-white p-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]"
+          >
             <div className="mb-2 flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-900">{material.title}</p>
@@ -584,14 +711,16 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
         ))}
       </SectionCard>
 
-      <SectionCard title="자료 기반 AI 질문">
+      <SectionCard title="자료 질문">
         <div className="flex flex-wrap gap-2">
           {recommendedQuestions.map((question) => (
             <button
               key={question}
               type="button"
-              onClick={() => sendQuestion(activeGroup.id, question)}
-              className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm"
+              onClick={() => {
+                void sendQuestion(activeGroup.id, question);
+              }}
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)]"
             >
               {question}
             </button>
@@ -602,9 +731,9 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
           {activeGroup.chat.map((message) => (
             <div
               key={message.id}
-              className={`rounded-[24px] p-4 ${
+              className={`rounded-[16px] p-4 ${
                 message.role === "assistant"
-                  ? "bg-white/90"
+                  ? "border border-slate-200 bg-white"
                   : "ml-auto max-w-[82%] bg-[var(--brand)] text-white"
               }`}
             >
@@ -620,7 +749,10 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
               {message.role === "assistant" && message.sources && message.sources.length > 0 ? (
                 <div className="mt-3 space-y-2">
                   {message.sources.map((source) => (
-                    <div key={source.id} className="rounded-2xl bg-slate-50 p-3">
+                    <div
+                      key={source.id}
+                      className="rounded-[14px] border border-slate-200 bg-white p-3"
+                    >
                       <p className="text-sm font-semibold text-slate-900">{source.title}</p>
                       <p className="mt-1 text-xs font-medium text-[var(--brand)]">
                         {source.locationHint}
@@ -636,10 +768,10 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
           ))}
 
           {isAnswering(activeGroup.id) ? (
-            <div className="rounded-[24px] bg-white/90 p-4">
-              <p className="text-sm font-semibold text-slate-900">답변 생성 중...</p>
+            <div className="rounded-[16px] border border-slate-200 bg-white p-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
+              <p className="text-sm font-semibold text-slate-900">답변 정리 중</p>
               <p className="mt-1 text-xs text-[var(--ink-soft)]">
-                업로드된 자료를 근거 카드와 함께 보여주는 mock 응답입니다.
+                자료 내용을 바탕으로 정리하고 있어요.
               </p>
             </div>
           ) : null}
@@ -650,23 +782,22 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
             rows={3}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder={`${activeGroup.subject} 자료에서 궁금한 점을 입력하세요`}
-            className="w-full rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+            placeholder={`${activeGroup.subject} 자료에서 궁금한 점을 적어 주세요`}
+            className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
           />
           <button
             type="submit"
-            className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(47,110,229,0.24)]"
+            className="w-full rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
           >
-            AI에게 질문하기
+            질문 보내기
           </button>
         </form>
       </SectionCard>
     </AppShell>
   );
 }
-
 export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
-  const { groups, togglePlanItem, updatePlanItem, addPlanItem } = usePrototype();
+  const { groups, togglePlanItem, updatePlanItem, addPlanItem, isLoading } = usePrototype();
   const group = getGroupById(groups, groupId);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<{
@@ -687,9 +818,25 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
     duration: "30분",
   });
 
+  if (isLoading && !group) {
+    return (
+      <AppShell
+        groupId={groupId}
+        title="Loading plan..."
+        subtitle="Waiting for the latest plan data from Supabase."
+      >
+        <LoadingState message="Loading plan items..." />
+      </AppShell>
+    );
+  }
+
   if (!group) {
     return (
-      <AppShell title="학습 계획을 불러오지 못했습니다" subtitle="홈에서 다시 진입해 주세요.">
+      <AppShell
+        groupId={groupId}
+        title="학습 계획을 불러오지 못했습니다"
+        subtitle="홈에서 다시 진입해 주세요."
+      >
         <MissingGroupState />
       </AppShell>
     );
@@ -708,22 +855,22 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
     });
   }
 
-  function saveEditing() {
+  async function saveEditing() {
     if (!editingItemId || !editDraft) {
       return;
     }
 
-    updatePlanItem(activeGroup.id, editingItemId, editDraft);
+    await updatePlanItem(activeGroup.id, editingItemId, editDraft);
     setEditingItemId(null);
     setEditDraft(null);
   }
 
-  function addCustomPlan() {
+  async function addCustomPlan() {
     if (!newItem.title.trim() || !newItem.detail.trim()) {
       return;
     }
 
-    addPlanItem(activeGroup.id, {
+    await addPlanItem(activeGroup.id, {
       ...newItem,
       title: newItem.title.trim(),
       detail: newItem.detail.trim(),
@@ -743,7 +890,7 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
       subtitle={`자동 생성된 계획을 확인하고, 필요하면 직접 수정하거나 새 일정도 추가할 수 있습니다.`}
     >
       <SectionCard title="이번 주 요약">
-        <div className="rounded-[24px] bg-[linear-gradient(140deg,#1e467f_0%,#2f6ee5_100%)] p-4 text-white">
+        <div className="rounded-[24px] bg-[linear-gradient(140deg,#6da886_0%,#79b895_100%)] p-4 text-white">
           <p className="text-xs uppercase tracking-[0.2em] text-blue-100">Auto Plan</p>
           <p className="mt-2 text-lg font-semibold tracking-[-0.03em]">{activeGroup.weeklyGoal}</p>
           <div className="mt-4 flex items-center justify-between text-sm text-blue-50">
@@ -815,7 +962,9 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
                     />
                     <button
                       type="button"
-                      onClick={saveEditing}
+                      onClick={() => {
+                        void saveEditing();
+                      }}
                       className="rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
                     >
                       저장
@@ -851,7 +1000,9 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => togglePlanItem(activeGroup.id, item.id)}
+                        onClick={() => {
+                          void togglePlanItem(activeGroup.id, item.id);
+                        }}
                         className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
                           checked
                             ? "bg-[var(--brand)] text-white"
@@ -924,7 +1075,9 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
             />
             <button
               type="button"
-              onClick={addCustomPlan}
+              onClick={() => {
+                void addCustomPlan();
+              }}
               className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
             >
               일정 추가
@@ -937,13 +1090,29 @@ export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
 }
 
 export function AiScreen({ groupId }: Readonly<{ groupId: string }>) {
-  const { groups, sendQuestion, isAnswering } = usePrototype();
+  const { groups, sendQuestion, isAnswering, isLoading } = usePrototype();
   const group = getGroupById(groups, groupId);
   const [draft, setDraft] = useState("");
 
+  if (isLoading && !group) {
+    return (
+      <AppShell
+        groupId={groupId}
+        title="Loading chat..."
+        subtitle="Waiting for the latest AI chat history from Supabase."
+      >
+        <LoadingState message="Loading chat history..." />
+      </AppShell>
+    );
+  }
+
   if (!group) {
     return (
-      <AppShell title="AI 질문 화면을 불러오지 못했습니다" subtitle="홈에서 다시 진입해 주세요.">
+      <AppShell
+        groupId={groupId}
+        title="AI 질문 화면을 불러오지 못했습니다"
+        subtitle="홈에서 다시 진입해 주세요."
+      >
         <MissingGroupState />
       </AppShell>
     );
@@ -959,7 +1128,7 @@ export function AiScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    sendQuestion(activeGroup.id, draft);
+    void sendQuestion(activeGroup.id, draft);
     setDraft("");
   }
 
@@ -975,7 +1144,9 @@ export function AiScreen({ groupId }: Readonly<{ groupId: string }>) {
             <button
               key={question}
               type="button"
-              onClick={() => sendQuestion(activeGroup.id, question)}
+              onClick={() => {
+                void sendQuestion(activeGroup.id, question);
+              }}
               className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm"
             >
               {question}
@@ -1042,7 +1213,7 @@ export function AiScreen({ groupId }: Readonly<{ groupId: string }>) {
           />
           <button
             type="submit"
-            className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(47,110,229,0.24)]"
+            className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(121,184,149,0.22)]"
           >
             질문하기
           </button>
@@ -1053,12 +1224,28 @@ export function AiScreen({ groupId }: Readonly<{ groupId: string }>) {
 }
 
 export function ProgressScreen({ groupId }: Readonly<{ groupId: string }>) {
-  const { groups } = usePrototype();
+  const { groups, isLoading } = usePrototype();
   const group = getGroupById(groups, groupId);
+
+  if (isLoading && !group) {
+    return (
+      <AppShell
+        groupId={groupId}
+        title="Loading progress..."
+        subtitle="Waiting for the latest progress snapshot from Supabase."
+      >
+        <LoadingState message="Loading progress..." />
+      </AppShell>
+    );
+  }
 
   if (!group) {
     return (
-      <AppShell title="팀원 진도를 불러오지 못했습니다" subtitle="홈에서 다시 진입해 주세요.">
+      <AppShell
+        groupId={groupId}
+        title="팀원 진도를 불러오지 못했습니다"
+        subtitle="홈에서 다시 진입해 주세요."
+      >
         <MissingGroupState />
       </AppShell>
     );
@@ -1132,3 +1319,4 @@ export function ProgressScreen({ groupId }: Readonly<{ groupId: string }>) {
     </AppShell>
   );
 }
+
