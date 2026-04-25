@@ -19,15 +19,15 @@ import {
 
 const weekdayOptions: Weekday[] = ["월", "화", "수", "목", "금"];
 
-const shellRootClass = "flex min-h-dvh flex-col bg-white text-slate-900";
-const shellFrameClass = "mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col";
+const shellRootClass = "flex h-dvh flex-col overflow-hidden bg-white text-slate-900";
+const shellFrameClass = "mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col overflow-hidden";
 const shellHeaderClass = "sticky top-0 z-30 px-4 md:px-6 lg:px-8";
 const shellHeaderInnerClass =
   "mx-auto flex w-full max-w-[430px] flex-col gap-3 rounded-b-[14px] rounded-t-none border border-slate-200 bg-white px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.875rem)] shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
 const shellMainClass =
-  "flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-32 pt-4 md:px-6 md:pt-5 lg:px-8";
+  "min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-y-contain touch-pan-y px-4 pb-32 pt-4 [scrollbar-gutter:stable] [-webkit-overflow-scrolling:touch] md:px-6 md:pt-5 lg:px-8";
 const shellMainWithoutNavClass =
-  "flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-10 pt-4 md:px-6 md:pt-5 lg:px-8";
+  "min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-y-contain touch-pan-y px-4 pb-10 pt-4 [scrollbar-gutter:stable] [-webkit-overflow-scrolling:touch] md:px-6 md:pt-5 lg:px-8";
 
 function getGroupById(groups: StudyGroup[], groupId: string) {
   return groups.find((group) => group.id === groupId);
