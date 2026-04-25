@@ -1,40 +1,35 @@
 "use client";
 
 import {
-  type ChatMessage,
-  type CreateGroupInput,
-  type StudyGroup,
-  type Weekday,
-  buildMockAnswer,
-  createGroupFromInput,
-  currentUserId,
-  getInitialGroups,
-} from "@/lib/mock-data";
-import {
   createContext,
   useContext,
   useEffect,
-  useRef,
   useState,
 } from "react";
+import {
+  createGroup as createGroupRequest,
+  fetchGroups,
+  mutatePlan as mutatePlanRequest,
+} from "@/lib/client-api";
+import type { CreateGroupInput, StudyGroup, Weekday } from "@/lib/mock-data";
 
 type PrototypeContextValue = {
   groups: StudyGroup[];
   currentUserId: string;
-  createGroup: (input: CreateGroupInput) => string;
-  togglePlanItem: (groupId: string, itemId: string) => void;
+  isLoadingGroups: boolean;
+  groupsError: string | null;
+  refreshGroups: () => Promise<void>;
+  createGroup: (input: CreateGroupInput) => Promise<string>;
+  togglePlanItem: (groupId: string, itemId: string) => Promise<void>;
   updatePlanItem: (
     groupId: string,
     itemId: string,
     updates: { day: Weekday; title: string; detail: string; duration: string },
-  ) => void;
+  ) => Promise<void>;
   addPlanItem: (
     groupId: string,
     item: { day: Weekday; title: string; detail: string; duration: string },
-  ) => void;
-  queueMockUpload: (groupId: string) => void;
-  sendQuestion: (groupId: string, question: string) => void;
-  isAnswering: (groupId: string) => boolean;
+  ) => Promise<void>;
 };
 
 const PrototypeContext = createContext<PrototypeContextValue | null>(null);
@@ -44,197 +39,88 @@ export function PrototypeProvider({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [groups, setGroups] = useState<StudyGroup[]>(() => getInitialGroups());
-  const [pendingAnswers, setPendingAnswers] = useState<Record<string, boolean>>({});
-  const timeoutIds = useRef<number[]>([]);
+  const [groups, setGroups] = useState<StudyGroup[]>([]);
+  const [currentUserId, setCurrentUserId] = useState("");
+  const [isLoadingGroups, setIsLoadingGroups] = useState(true);
+  const [groupsError, setGroupsError] = useState<string | null>(null);
+
+  async function refreshGroups() {
+    setIsLoadingGroups(true);
+
+    try {
+      const response = await fetchGroups();
+      setGroups(response.groups);
+      setCurrentUserId(response.currentUserId);
+      setGroupsError(null);
+    } catch (error) {
+      setGroupsError(error instanceof Error ? error.message : "그룹 정보를 불러오지 못했습니다.");
+    } finally {
+      setIsLoadingGroups(false);
+    }
+  }
 
   useEffect(() => {
-    const timeouts = timeoutIds;
-
-    return () => {
-      timeouts.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
-    };
+    void refreshGroups();
   }, []);
 
-  function createGroup(input: CreateGroupInput) {
-    const group = createGroupFromInput(input);
-    setGroups((previous) => [group, ...previous]);
+  async function createGroup(input: CreateGroupInput) {
+    const group = await createGroupRequest({ input });
+    setGroups((previous) => [group, ...previous.filter((entry) => entry.id !== group.id)]);
+    setGroupsError(null);
     return group.id;
   }
 
-  function togglePlanItem(groupId: string, itemId: string) {
+  async function togglePlanItem(groupId: string, itemId: string) {
+    const response = await mutatePlanRequest(groupId, {
+      type: "toggle",
+      itemId,
+    });
     setGroups((previous) =>
-      previous.map((group) => {
-        if (group.id !== groupId) {
-          return group;
-        }
-
-        return {
-          ...group,
-          plan: group.plan.map((item) => {
-            if (item.id !== itemId) {
-              return item;
-            }
-
-            return {
-              ...item,
-              memberStatus: {
-                ...item.memberStatus,
-                [currentUserId]: !item.memberStatus[currentUserId],
-              },
-            };
-          }),
-        };
-      }),
+      previous.map((group) => (group.id === groupId ? response.group : group)),
     );
+    setGroupsError(null);
   }
 
-  function updatePlanItem(
+  async function updatePlanItem(
     groupId: string,
     itemId: string,
     updates: { day: Weekday; title: string; detail: string; duration: string },
   ) {
+    const response = await mutatePlanRequest(groupId, {
+      type: "update",
+      itemId,
+      updates,
+    });
     setGroups((previous) =>
-      previous.map((group) => {
-        if (group.id !== groupId) {
-          return group;
-        }
-
-        return {
-          ...group,
-          plan: group.plan.map((item) => {
-            if (item.id !== itemId) {
-              return item;
-            }
-
-            return {
-              ...item,
-              ...updates,
-            };
-          }),
-        };
-      }),
+      previous.map((group) => (group.id === groupId ? response.group : group)),
     );
+    setGroupsError(null);
   }
 
-  function addPlanItem(
+  async function addPlanItem(
     groupId: string,
     item: { day: Weekday; title: string; detail: string; duration: string },
   ) {
+    const response = await mutatePlanRequest(groupId, {
+      type: "add",
+      item,
+    });
     setGroups((previous) =>
-      previous.map((group) => {
-        if (group.id !== groupId) {
-          return group;
-        }
-
-        return {
-          ...group,
-          plan: [
-            ...group.plan,
-            {
-              id: `plan-custom-${Date.now().toString(36)}`,
-              ...item,
-              memberStatus: Object.fromEntries(
-                group.members.map((member) => [member.id, false]),
-              ),
-            },
-          ],
-        };
-      }),
+      previous.map((group) => (group.id === groupId ? response.group : group)),
     );
-  }
-
-  function queueMockUpload(groupId: string) {
-    setGroups((previous) =>
-      previous.map((group) => {
-        if (group.id !== groupId) {
-          return group;
-        }
-
-        const nextCount = group.uploadDraftCount + 1;
-        const newMaterial = {
-          id: `${group.id}-upload-${nextCount}`,
-          title: `${group.subject} 추가 정리 ${nextCount}.pdf`,
-          summary: "업로드 박스에서 추가된 mock 자료입니다. 실제 파일 업로드는 연결되지 않습니다.",
-          uploadedBy: "영희",
-          uploadedAt: new Date().toISOString(),
-          format: "PDF" as const,
-          locationHint: `업로드 박스 #${nextCount}`,
-        };
-
-        return {
-          ...group,
-          uploadDraftCount: nextCount,
-          recentUpdate: `업로드 박스에서 mock 자료 ${nextCount}건이 추가됨`,
-          materials: [newMaterial, ...group.materials],
-        };
-      }),
-    );
-  }
-
-  function sendQuestion(groupId: string, question: string) {
-    const trimmedQuestion = question.trim();
-
-    if (!trimmedQuestion) {
-      return;
-    }
-
-    const userMessage: ChatMessage = {
-      id: `chat-user-${Date.now().toString(36)}`,
-      role: "user",
-      text: trimmedQuestion,
-      createdAt: "방금 전",
-    };
-
-    setGroups((previous) =>
-      previous.map((group) =>
-        group.id === groupId ? { ...group, chat: [...group.chat, userMessage] } : group,
-      ),
-    );
-    setPendingAnswers((previous) => ({ ...previous, [groupId]: true }));
-
-    const timeoutId = window.setTimeout(() => {
-      setGroups((previous) =>
-        previous.map((group) => {
-          if (group.id !== groupId) {
-            return group;
-          }
-
-          const answer = buildMockAnswer(group, trimmedQuestion);
-          const assistantMessage: ChatMessage = {
-            id: `chat-assistant-${Date.now().toString(36)}`,
-            role: "assistant",
-            text: answer.text,
-            createdAt: "방금 전",
-            sources: answer.sources,
-          };
-
-          return {
-            ...group,
-            chat: [...group.chat, assistantMessage],
-          };
-        }),
-      );
-
-      setPendingAnswers((previous) => ({
-        ...previous,
-        [groupId]: false,
-      }));
-    }, 700);
-
-    timeoutIds.current.push(timeoutId);
+    setGroupsError(null);
   }
 
   const value: PrototypeContextValue = {
     groups,
     currentUserId,
+    isLoadingGroups,
+    groupsError,
+    refreshGroups,
     createGroup,
     togglePlanItem,
     updatePlanItem,
     addPlanItem,
-    queueMockUpload,
-    sendQuestion,
-    isAnswering: (groupId: string) => Boolean(pendingAnswers[groupId]),
   };
 
   return <PrototypeContext.Provider value={value}>{children}</PrototypeContext.Provider>;
