@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { AppShell, LoadingState, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
 import { formatExamDate, getDaysLeft } from "@/lib/mock-data";
@@ -14,60 +13,52 @@ function sortGroupsByExamDate(groups: ReturnType<typeof usePrototype>["groups"])
 }
 
 export function StudyEntryScreen() {
-  const { groups, isAuthReady, isLoading, sessionName, signIn, signOut } = usePrototype();
+  const { groups, isAuthReady, isLoading, sessionName, signOut } = usePrototype();
   const router = useRouter();
-  const [nameInput, setNameInput] = useState("");
   const sortedGroups = sortGroupsByExamDate(groups);
-
-  function handleLogin(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmedName = nameInput.trim();
-
-    if (!trimmedName) {
-      return;
-    }
-
-    signIn(trimmedName);
-    setNameInput("");
-  }
 
   if (!isAuthReady) {
     return (
-      <AppShell requireAuth={false} showNavigation={false} title="메인화면">
-        <LoadingState message="세션을 준비하는 중입니다." />
+      <AppShell requireAuth={false} showNavigation={false} title="메인 화면">
+        <LoadingState message="로그인 상태를 준비하고 있어요." />
       </AppShell>
     );
   }
 
   if (!sessionName) {
     return (
-      <AppShell requireAuth={false} showNavigation={false} title="메인화면">
+      <AppShell
+        requireAuth={false}
+        showNavigation={false}
+        title="메인 화면"
+        subtitle="혼자 공부하던 흐름을 팀 스터디 루틴으로 가볍게 이어보세요."
+      >
         <SectionCard title="로그인">
-          <form className="space-y-3" onSubmit={handleLogin}>
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold text-slate-800">이름</span>
-              <input
-                value={nameInput}
-                onChange={(event) => setNameInput(event.target.value)}
-                placeholder="이름을 입력해 주세요"
-                className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
-              />
-            </label>
+          <div className="rounded-[18px] border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_12px_30px_rgba(121,184,149,0.08)]">
+            <p className="font-[family:var(--font-study-display)] text-[24px] leading-none tracking-[-0.05em] text-slate-950">
+              로그인 후
+              <br />
+              스터디를 이어가세요
+            </p>
+            <p className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">
+              팀 일정, 계획, 자료 흐름을 한 화면에서 확인할 수 있도록 로그인 화면으로
+              안내해드릴게요.
+            </p>
 
-            <button
-              type="submit"
-              className="w-full rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
+            <Link
+              href="/login"
+              className="mt-5 inline-flex w-full items-center justify-center rounded-[16px] bg-[var(--brand)] px-4 py-3.5 text-sm font-semibold text-white transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2"
             >
-              로그인하고 그룹 보기
-            </button>
-          </form>
+              로그인 시작하기
+            </Link>
+          </div>
         </SectionCard>
       </AppShell>
     );
   }
 
   return (
-    <AppShell requireAuth={false} showNavigation={false} title="메인화면">
+    <AppShell requireAuth={false} showNavigation={false} title="메인 화면">
       <SectionCard
         title={`${sessionName}님`}
         action={
@@ -80,7 +71,9 @@ export function StudyEntryScreen() {
           </button>
         }
       >
-        <p className="text-sm text-[var(--ink-soft)]">들어갈 스터디 그룹을 선택해 주세요.</p>
+        <p className="text-sm text-[var(--ink-soft)]">
+          들어갈 스터디 그룹을 선택해 주세요.
+        </p>
       </SectionCard>
 
       <SectionCard
@@ -100,7 +93,7 @@ export function StudyEntryScreen() {
         {!isLoading && groups.length === 0 ? (
           <div className="space-y-3">
             <p className="text-sm leading-6 text-[var(--ink-soft)]">
-              아직 참여 중인 그룹이 없습니다.
+              아직 참여 중인 스터디 그룹이 없습니다.
             </p>
             <Link
               href="/create"

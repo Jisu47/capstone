@@ -27,9 +27,9 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`${notoSansKr.variable} ${spaceGrotesk.variable} h-dvh antialiased`}
+      className={`${notoSansKr.variable} ${spaceGrotesk.variable} h-full antialiased`}
     >
-      <body className="flex h-dvh flex-col overflow-hidden">
+      <body className="min-h-full flex flex-col">
         <PrototypeProvider>{children}</PrototypeProvider>
       </body>
     </html>
