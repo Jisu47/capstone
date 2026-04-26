@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -7,6 +8,8 @@ import { useAuth } from "@/components/auth-provider";
 import { AppShell, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
 import { formatExamDate, getDaysLeft } from "@/lib/mock-data";
+
+const AUTH_SPLASH_DURATION_MS = 1400;
 
 function sortGroupsByExamDate(groups: ReturnType<typeof usePrototype>["groups"]) {
   return [...groups].sort((left, right) => {
@@ -77,15 +80,11 @@ function SplashScreen() {
   );
 }
 
-export function StudyEntryScreen() {
+function AuthenticatedHome() {
   const { groups, isLoading } = usePrototype();
-  const { isAuthReady, sessionName, signOut } = useAuth();
+  const { sessionName, signOut } = useAuth();
   const router = useRouter();
   const sortedGroups = sortGroupsByExamDate(groups);
-
-  if (!isAuthReady || !sessionName) {
-    return <SplashScreen />;
-  }
 
   return (
     <AppShell requireAuth={false} showNavigation={false} title="메인 화면">
@@ -102,7 +101,7 @@ export function StudyEntryScreen() {
         }
       >
         <p className="text-sm text-[var(--ink-soft)]">
-          이어갈 스터디 그룹을 선택해 주세요.
+          들어갈 스터디 그룹을 선택해 주세요.
         </p>
       </SectionCard>
 
@@ -167,5 +166,54 @@ export function StudyEntryScreen() {
         ))}
       </SectionCard>
     </AppShell>
+  );
+}
+
+export function StudyEntryScreen() {
+  const { isAuthReady, sessionName } = useAuth();
+  const [showAuthSplash, setShowAuthSplash] = useState(true);
+
+  useEffect(() => {
+    if (!isAuthReady || !sessionName) {
+      setShowAuthSplash(true);
+      return;
+    }
+
+    setShowAuthSplash(true);
+
+    const timeoutId = window.setTimeout(() => {
+      setShowAuthSplash(false);
+    }, AUTH_SPLASH_DURATION_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [isAuthReady, sessionName]);
+
+  if (!isAuthReady || !sessionName) {
+    return <SplashScreen />;
+  }
+
+  return (
+    <div className="relative min-h-dvh bg-[var(--surface)]">
+      <div
+        className={`transition-all duration-700 ease-out ${
+          showAuthSplash
+            ? "pointer-events-none translate-y-3 scale-[0.99] opacity-0"
+            : "translate-y-0 scale-100 opacity-100"
+        }`}
+      >
+        <AuthenticatedHome />
+      </div>
+
+      <div
+        aria-hidden={!showAuthSplash}
+        className={`absolute inset-0 z-20 transition-opacity duration-700 ease-out ${
+          showAuthSplash ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      >
+        <SplashScreen />
+      </div>
+    </div>
   );
 }
