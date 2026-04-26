@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useSyncExternalStore } from "react";
+import { createContext, useContext, useMemo, useSyncExternalStore } from "react";
 
 export type UserRole = "member" | "leader";
 
@@ -82,13 +82,7 @@ function readSessionName() {
   return window.localStorage.getItem(sessionStorageKey);
 }
 
-function readUsers(): AuthUser[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  const storedUsers = window.localStorage.getItem(usersStorageKey);
-
+function parseUsers(storedUsers: string | null): AuthUser[] {
   if (!storedUsers) {
     return [];
   }
@@ -132,6 +126,22 @@ function readUsers(): AuthUser[] {
   }
 }
 
+function readUsers() {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  return parseUsers(window.localStorage.getItem(usersStorageKey));
+}
+
+function readUsersSnapshot() {
+  if (typeof window === "undefined") {
+    return "[]";
+  }
+
+  return window.localStorage.getItem(usersStorageKey) ?? "[]";
+}
+
 function writeUsers(users: AuthUser[]) {
   if (typeof window === "undefined") {
     return;
@@ -140,14 +150,12 @@ function writeUsers(users: AuthUser[]) {
   window.localStorage.setItem(usersStorageKey, JSON.stringify(users));
 }
 
-function getCurrentUserSnapshot() {
-  const sessionName = readSessionName();
-
+function resolveCurrentUser(sessionName: string | null, usersStorageValue: string) {
   if (!sessionName) {
     return null;
   }
 
-  const users = readUsers();
+  const users = parseUsers(usersStorageValue);
   const user = users.find((entry) => entry.username === sessionName);
 
   if (user) {
@@ -194,11 +202,14 @@ export function AuthProvider({
     readSessionName,
     () => null,
   );
-  const currentUser = useSyncExternalStore(
+  const usersStorageValue = useSyncExternalStore(
     subscribeAuth,
-    getCurrentUserSnapshot,
-    () => null,
+    readUsersSnapshot,
+    () => "[]",
   );
+  const currentUser = useMemo(() => {
+    return resolveCurrentUser(sessionName, usersStorageValue);
+  }, [sessionName, usersStorageValue]);
 
   function signIn({ username, password }: SignInInput): AuthActionResult {
     const trimmedUsername = username.trim();
@@ -286,7 +297,10 @@ export function AuthProvider({
       return null;
     }
 
-    const activeUser = getCurrentUserSnapshot();
+    const activeUser = resolveCurrentUser(
+      readSessionName(),
+      readUsersSnapshot(),
+    );
 
     if (!activeUser) {
       return null;
