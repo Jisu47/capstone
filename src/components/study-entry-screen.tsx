@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { AppShell, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
@@ -16,68 +15,18 @@ function sortGroupsByExamDate(groups: ReturnType<typeof usePrototype>["groups"])
 }
 
 function SplashLogoMark() {
-  const [imageFailed, setImageFailed] = useState(false);
-
   return (
     <div className="relative flex h-44 w-44 items-center justify-center rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] shadow-[0_32px_80px_rgba(13,9,34,0.42)] backdrop-blur-md">
       <div className="absolute inset-4 rounded-[24px] bg-[radial-gradient(circle_at_top,rgba(174,155,255,0.28),transparent_48%),linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]" />
       <div className="absolute right-7 top-7 h-3.5 w-3.5 rounded-full bg-emerald-300/80 shadow-[0_0_18px_rgba(134,239,172,0.8)]" />
-
-      {!imageFailed ? (
-        <Image
-          src="/logo-study.png"
-          alt="Study logo"
-          width={124}
-          height={124}
-          className="relative z-10 h-31 w-31 object-contain drop-shadow-[0_10px_24px_rgba(9,7,24,0.34)]"
-          onError={() => setImageFailed(true)}
-          priority
-        />
-      ) : (
-        <svg
-          aria-hidden="true"
-          className="relative z-10 h-28 w-28 drop-shadow-[0_10px_24px_rgba(9,7,24,0.34)]"
-          fill="none"
-          viewBox="0 0 120 120"
-        >
-          <defs>
-            <linearGradient id="study-flow-logo-gradient" x1="16" x2="104" y1="20" y2="96">
-              <stop stopColor="#D6CCFF" />
-              <stop offset="0.5" stopColor="#B8C8FF" />
-              <stop offset="1" stopColor="#A8F3CE" />
-            </linearGradient>
-          </defs>
-
-          <path
-            d="M23 31.5v50.8c0 3 2.4 5.5 5.5 5.5h63.8c3 0 5.5-2.4 5.5-5.5V40.4"
-            stroke="url(#study-flow-logo-gradient)"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="5.2"
-          />
-          <path
-            d="M23 32.4c9.8 0 18.8 4.8 24.4 12.9l5 7.2 5.2-7.2c5.8-8.1 14.8-12.9 24.6-12.9"
-            stroke="url(#study-flow-logo-gradient)"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="5.2"
-          />
-          <path
-            d="M34 75.5l16.3-18.6c1.5-1.7 4.2-1.8 5.8-.1l9.3 9.7c1.7 1.8 4.5 1.6 6-.3L91 42.8"
-            stroke="url(#study-flow-logo-gradient)"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="6.4"
-          />
-          <path
-            d="M83.5 41.6 95 40l-1.6 11.7"
-            stroke="url(#study-flow-logo-gradient)"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="6.4"
-          />
-        </svg>
-      )}
+      <Image
+        src="/logo-study.png"
+        alt="Study logo"
+        width={133}
+        height={132}
+        className="relative z-10 h-32 w-32 object-contain drop-shadow-[0_10px_24px_rgba(9,7,24,0.34)]"
+        priority
+      />
     </div>
   );
 }
