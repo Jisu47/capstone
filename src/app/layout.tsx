@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR, Space_Grotesk } from "next/font/google";
+import { AuthProvider } from "@/components/auth-provider";
 import { PrototypeProvider } from "@/components/prototype-provider";
 import "./globals.css";
 
@@ -30,7 +31,9 @@ export default function RootLayout({
       className={`${notoSansKr.variable} ${spaceGrotesk.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <PrototypeProvider>{children}</PrototypeProvider>
+        <AuthProvider>
+          <PrototypeProvider>{children}</PrototypeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

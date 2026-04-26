@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/auth-provider";
 import { AppShell, LoadingState, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
 import { formatExamDate, getDaysLeft } from "@/lib/mock-data";
@@ -13,7 +14,8 @@ function sortGroupsByExamDate(groups: ReturnType<typeof usePrototype>["groups"])
 }
 
 export function StudyEntryScreen() {
-  const { groups, isAuthReady, isLoading, sessionName, signOut } = usePrototype();
+  const { groups, isLoading } = usePrototype();
+  const { isAuthReady, sessionName, signOut } = useAuth();
   const router = useRouter();
   const sortedGroups = sortGroupsByExamDate(groups);
 

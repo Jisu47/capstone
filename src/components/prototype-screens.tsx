@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useAuth } from "@/components/auth-provider";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { usePrototype } from "@/components/prototype-provider";
 import {
@@ -109,7 +110,8 @@ function AppShell({
   showNavigation?: boolean;
   children: React.ReactNode;
 }>) {
-  const { groups, error, isAuthReady, isLoading, isMutating, sessionName } = usePrototype();
+  const { groups, error, isLoading, isMutating } = usePrototype();
+  const { isAuthReady, sessionName } = useAuth();
   const resolvedNavGroupId =
     navGroupId === undefined ? (groupId ?? groups[0]?.id ?? null) : navGroupId;
   const resolvedNavReady = navReady ?? (groupId ? true : !isLoading);
