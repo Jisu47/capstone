@@ -348,8 +348,26 @@ function getUserById(database: PrototypeDatabase, userId: string) {
   return database.users.find((user) => user.id === userId);
 }
 
+function isStoredUser(user: StoredUser | undefined): user is StoredUser {
+  return Boolean(user);
+}
+
 function getGroupById(database: PrototypeDatabase, groupId: string) {
   return database.groups.find((group) => group.id === groupId);
+}
+
+function createStudyGroupDefaults(memberIds: string[]) {
+  return {
+    planAgentChat: [] as StudyGroup["planAgentChat"],
+    reviewDays: [] as StudyGroup["reviewDays"],
+    reviewIntervals: Object.fromEntries(
+      memberIds.map((memberId) => [memberId, null]),
+    ) as StudyGroup["reviewIntervals"],
+    planReferenceUploads: [] as StudyGroup["planReferenceUploads"],
+    planReferenceUnits: [] as StudyGroup["planReferenceUnits"],
+    roadmap: [] as StudyGroup["roadmap"],
+    personalPlanItems: [] as StudyGroup["personalPlanItems"],
+  };
 }
 
 function getStudyGroups(database: PrototypeDatabase) {
@@ -357,13 +375,14 @@ function getStudyGroups(database: PrototypeDatabase) {
     const members = database.groupMembers
       .filter((groupMember) => groupMember.groupId === group.id)
       .map((groupMember) => getUserById(database, groupMember.userId))
-      .filter(Boolean)
+      .filter(isStoredUser)
       .map((user) => ({
         id: user.id,
         name: user.name,
         role: user.role as StudyGroup["members"][number]["role"],
         focus: user.focus,
       }));
+    const memberIds = members.map((member) => member.id);
 
     const plan = database.planItems
       .filter((item) => item.groupId === group.id)
@@ -422,7 +441,10 @@ function getStudyGroups(database: PrototypeDatabase) {
       name: group.name,
       subject: group.subject,
       examDate: group.examDate,
+      presentationDate: group.presentationDate ?? null,
+      deadlineDate: group.deadlineDate ?? null,
       weeklyGoal: group.weeklyGoal,
+      overallGoal: group.overallGoal?.trim() ? group.overallGoal : group.weeklyGoal,
       description: group.description,
       recentUpdate: group.recentUpdate,
       members,
@@ -430,6 +452,7 @@ function getStudyGroups(database: PrototypeDatabase) {
       plan,
       chat,
       uploadDraftCount: Math.max(0, materials.length - 3),
+      ...createStudyGroupDefaults(memberIds),
     } satisfies StudyGroup;
   });
 
@@ -466,7 +489,10 @@ function upsertGroupFromStudyGroup(database: PrototypeDatabase, group: StudyGrou
     name: group.name,
     subject: group.subject,
     examDate: group.examDate,
+    presentationDate: group.presentationDate,
+    deadlineDate: group.deadlineDate,
     weeklyGoal: group.weeklyGoal,
+    overallGoal: group.overallGoal,
     description: group.description,
     recentUpdate: group.recentUpdate,
   });

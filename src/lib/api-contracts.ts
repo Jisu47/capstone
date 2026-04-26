@@ -128,7 +128,10 @@ export type StoredGroup = {
   name: string;
   subject: string;
   examDate: string;
+  presentationDate?: string | null;
+  deadlineDate?: string | null;
   weeklyGoal: string;
+  overallGoal?: string;
   description: string;
   recentUpdate: string;
 };
