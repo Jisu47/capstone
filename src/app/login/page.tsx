@@ -7,26 +7,32 @@ import { useAuth } from "@/components/auth-provider";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isAuthReady, sessionName, signIn } = useAuth();
-  const [email, setEmail] = useState("");
+  const { isAuthReady, currentUser, signIn, resolvePostAuthPath } = useAuth();
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isAuthReady && sessionName) {
-      router.replace("/");
+    if (isAuthReady && currentUser) {
+      router.replace(resolvePostAuthPath(currentUser));
     }
-  }, [isAuthReady, router, sessionName]);
+  }, [currentUser, isAuthReady, resolvePostAuthPath, router]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail || !password) {
+    const result = signIn({
+      username,
+      password,
+    });
+
+    if (!result.ok) {
+      setErrorMessage(result.error);
       return;
     }
 
-    signIn(trimmedEmail);
-    router.replace("/");
+    setErrorMessage(null);
+    router.replace(resolvePostAuthPath(result.user));
   }
 
   return (
@@ -41,21 +47,24 @@ export default function LoginPage() {
               로그인
             </h1>
             <p className="text-sm leading-6 text-slate-600">
-              스터디 흐름을 다시 이어갈 수 있도록 이메일과 비밀번호를 입력해 주세요.
+              가입한 아이디와 비밀번호를 입력하고 바로 내 페이지로 이동해 보세요.
             </p>
           </div>
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <label className="block space-y-2">
-            <span className="text-sm font-semibold text-slate-800">이메일</span>
+            <span className="text-sm font-semibold text-slate-800">아이디</span>
             <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              autoComplete="email"
+              type="text"
+              value={username}
+              onChange={(event) => {
+                setUsername(event.target.value);
+                setErrorMessage(null);
+              }}
+              autoComplete="username"
               required
-              placeholder="you@example.com"
+              placeholder="아이디를 입력해 주세요"
               className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
             />
           </label>
@@ -65,13 +74,22 @@ export default function LoginPage() {
             <input
               type="password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                setErrorMessage(null);
+              }}
               autoComplete="current-password"
               required
               placeholder="비밀번호를 입력해 주세요"
               className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
             />
           </label>
+
+          {errorMessage ? (
+            <p className="rounded-[14px] bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+              {errorMessage}
+            </p>
+          ) : null}
 
           <button
             type="submit"

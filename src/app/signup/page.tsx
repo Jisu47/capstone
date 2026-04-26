@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
-
-type RoleOption = "member" | "leader";
+import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import { useAuth, type UserRole } from "@/components/auth-provider";
 
 const roleOptions: Array<{
-  value: RoleOption;
+  value: UserRole;
   label: string;
   description: string;
 }> = [
@@ -23,47 +23,49 @@ const roleOptions: Array<{
 ];
 
 export default function SignupPage() {
+  const router = useRouter();
+  const { isAuthReady, currentUser, signUp, resolvePostAuthPath } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [role, setRole] = useState<RoleOption>("member");
-  const [feedback, setFeedback] = useState<{
-    type: "error" | "success";
-    message: string;
-  } | null>(null);
+  const [role, setRole] = useState<UserRole>("member");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const passwordMismatch =
     passwordConfirm.trim().length > 0 && password !== passwordConfirm;
 
-  function resetFeedback() {
-    setFeedback(null);
-  }
+  useEffect(() => {
+    if (isAuthReady && currentUser) {
+      router.replace(resolvePostAuthPath(currentUser));
+    }
+  }, [currentUser, isAuthReady, resolvePostAuthPath, router]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const trimmedUsername = username.trim();
-
-    if (!trimmedUsername || !password || !passwordConfirm) {
-      setFeedback({
-        type: "error",
-        message: "모든 항목을 입력해 주세요.",
-      });
+    if (!username.trim() || !password || !passwordConfirm) {
+      setErrorMessage("모든 항목을 입력해 주세요.");
       return;
     }
 
     if (password !== passwordConfirm) {
-      setFeedback({
-        type: "error",
-        message: "비밀번호와 비밀번호 확인이 일치하지 않습니다.",
-      });
+      setErrorMessage("비밀번호와 비밀번호 확인이 일치하지 않습니다.");
       return;
     }
 
-    setFeedback({
-      type: "success",
-      message: `${role === "leader" ? "팀장" : "팀원"} 계정 정보가 확인되었어요. 실제 회원가입 연동은 다음 단계에서 연결할 수 있어요.`,
+    const result = signUp({
+      username,
+      password,
+      role,
     });
+
+    if (!result.ok) {
+      setErrorMessage(result.error);
+      return;
+    }
+
+    setErrorMessage(null);
+    router.replace("/group-setup");
   }
 
   return (
@@ -78,7 +80,7 @@ export default function SignupPage() {
               회원가입
             </h1>
             <p className="text-sm leading-6 text-slate-600">
-              스터디에 바로 참여할 수 있도록 계정 정보와 역할을 입력해 주세요.
+              역할을 선택하고 계정을 만들면 다음 단계에서 그룹 설정으로 이동해요.
             </p>
           </div>
         </div>
@@ -91,7 +93,7 @@ export default function SignupPage() {
               value={username}
               onChange={(event) => {
                 setUsername(event.target.value);
-                resetFeedback();
+                setErrorMessage(null);
               }}
               autoComplete="username"
               required
@@ -107,7 +109,7 @@ export default function SignupPage() {
               value={password}
               onChange={(event) => {
                 setPassword(event.target.value);
-                resetFeedback();
+                setErrorMessage(null);
               }}
               autoComplete="new-password"
               required
@@ -123,7 +125,7 @@ export default function SignupPage() {
               value={passwordConfirm}
               onChange={(event) => {
                 setPasswordConfirm(event.target.value);
-                resetFeedback();
+                setErrorMessage(null);
               }}
               autoComplete="new-password"
               required
@@ -165,7 +167,7 @@ export default function SignupPage() {
                       checked={checked}
                       onChange={() => {
                         setRole(option.value);
-                        resetFeedback();
+                        setErrorMessage(null);
                       }}
                       className="mt-1 h-4 w-4 border-slate-300 text-sky-600 focus:ring-sky-400"
                     />
@@ -183,15 +185,9 @@ export default function SignupPage() {
             </div>
           </fieldset>
 
-          {feedback ? (
-            <p
-              className={`rounded-[14px] px-4 py-3 text-sm font-medium ${
-                feedback.type === "success"
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-rose-50 text-rose-700"
-              }`}
-            >
-              {feedback.message}
+          {errorMessage ? (
+            <p className="rounded-[14px] bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+              {errorMessage}
             </p>
           ) : null}
 

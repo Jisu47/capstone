@@ -2,12 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useAuth } from "@/components/auth-provider";
 import { AppShell, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
 import { type CreateGroupInput } from "@/lib/mock-data";
 
 export function StudyCreateScreen() {
   const { createGroup, isMutating } = usePrototype();
+  const { markGroupJoined } = useAuth();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState<CreateGroupInput>({
@@ -36,6 +38,7 @@ export function StudyCreateScreen() {
 
     try {
       const groupId = await createGroup(form);
+      markGroupJoined(groupId);
 
       startTransition(() => {
         router.push(`/group/${groupId}`);
