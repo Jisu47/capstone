@@ -7,21 +7,23 @@ import { AppShell, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
 import { type CreateGroupInput } from "@/lib/mock-data";
 
+const initialForm: CreateGroupInput = {
+  name: "알고리즘 기말 대비",
+  subject: "알고리즘",
+  examDate: "2026-04-30",
+  presentationDate: "2026-04-24",
+  deadlineDate: "2026-04-27",
+  weeklyGoal: "그래프와 DP 정리, 기출 2회독, 발표 질문 준비",
+  overallGoal: "기말고사 전까지 팀 전체가 핵심 문제를 안정적으로 설명하고 해결할 수 있는 상태 만들기",
+};
+
 export function StudyCreateScreen() {
   const { createGroup, isMutating } = usePrototype();
   const { markGroupJoined } = useAuth();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [form, setForm] = useState<CreateGroupInput>({
-    name: "알고리즘 기말 대비",
-    subject: "알고리즘",
-    examDate: "2026-04-30",
-    presentationDate: "2026-04-24",
-    deadlineDate: "2026-04-27",
-    weeklyGoal: "그리디와 DP 정리, 기출 2회독, 발표 질문 준비",
-    overallGoal:
-      "기말고사 직전까지 전 범위를 안정적으로 설명하고 문제 풀이 흐름을 공유할 수 있는 상태 만들기",
-  });
+  const [form, setForm] = useState<CreateGroupInput>(initialForm);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   function handleChange<Key extends keyof CreateGroupInput>(
     key: Key,
@@ -31,6 +33,7 @@ export function StudyCreateScreen() {
       ...previous,
       [key]: value,
     }));
+    setErrorMessage(null);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -43,14 +46,18 @@ export function StudyCreateScreen() {
       startTransition(() => {
         router.push(`/group/${groupId}`);
       });
-    } catch {}
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "그룹 생성 중 오류가 발생했어요.",
+      );
+    }
   }
 
   return (
     <AppShell
       showNavigation={false}
       title="새 스터디 그룹"
-      subtitle="시험 일정과 공동 목표를 먼저 정의하면 스터디 탭에서 그룹을 선택하고, 각 그룹의 상세 화면으로 이어갈 수 있어요."
+      subtitle="시험 일정과 공동 목표를 먼저 정리하면 그룹 홈과 계획, 자료 흐름까지 자연스럽게 이어져요."
     >
       <SectionCard title="기본 정보 입력">
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -91,9 +98,7 @@ export function StudyCreateScreen() {
               <input
                 type="date"
                 value={form.presentationDate}
-                onChange={(event) =>
-                  handleChange("presentationDate", event.target.value)
-                }
+                onChange={(event) => handleChange("presentationDate", event.target.value)}
                 className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
               />
             </label>
@@ -131,6 +136,12 @@ export function StudyCreateScreen() {
             />
           </label>
 
+          {errorMessage ? (
+            <p className="rounded-[14px] bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+              {errorMessage}
+            </p>
+          ) : null}
+
           <button
             type="submit"
             disabled={isPending || isMutating}
@@ -144,9 +155,9 @@ export function StudyCreateScreen() {
       <SectionCard title="생성 후 바로 이어지는 흐름">
         <div className="grid gap-3">
           {[
-            "스터디 탭에서 내 그룹 카드 목록을 보고 원하는 그룹을 선택할 수 있어요.",
-            "그룹을 선택하면 시험 일정, 공동 목표, 팀원 진행 상태가 담긴 그룹 정보 화면으로 이어져요.",
-            "계획 탭과 자료 탭은 선택한 그룹 기준으로 같은 데이터를 공유해요.",
+            "홈에서 새 그룹 카드가 보이고, 바로 그룹 홈으로 들어갈 수 있어요.",
+            "생성 직후 내 계정에 그룹 가입 상태가 반영되어 이후 로그인 시 바로 마이페이지로 이동해요.",
+            "그룹 홈, 계획, 자료 화면에서 같은 그룹 기준으로 학습 흐름을 이어갈 수 있어요.",
           ].map((item) => (
             <div
               key={item}

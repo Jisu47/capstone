@@ -1,10 +1,13 @@
 export type MemberRole = "팀장" | "팀원";
+export type AvatarPreset = "sky" | "emerald" | "rose" | "amber";
 
 export type Member = {
   id: string;
   name: string;
   role: MemberRole;
   focus: string;
+  bio: string;
+  avatarPreset: AvatarPreset;
 };
 
 export type MaterialFormat = "PDF" | "DOC" | "TXT" | "MD";
@@ -15,6 +18,7 @@ export type Material = {
   title: string;
   summary: string;
   uploadedBy: string;
+  uploadedByMemberId?: string;
   uploadedAt: string;
   format: MaterialFormat;
   locationHint: string;
@@ -124,6 +128,37 @@ export type GroupDetailsInput = {
 export type CreateGroupInput = GroupDetailsInput;
 
 export const currentUserId = "member-jiyoon";
+const avatarPresetOrder: AvatarPreset[] = ["sky", "emerald", "rose", "amber"];
+
+export function getAvatarPresetFromSeed(seed: string) {
+  const normalized = seed.trim();
+  const score = [...normalized].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return avatarPresetOrder[score % avatarPresetOrder.length];
+}
+
+function getDefaultMemberBio(role: MemberRole, focus: string) {
+  return role === "팀장"
+    ? `${focus} 중심으로 스터디 운영과 흐름 정리를 맡고 있어요.`
+    : `${focus} 위주로 학습 내용을 정리하고 있어요.`;
+}
+
+export function createMemberProfile(input: {
+  id: string;
+  name: string;
+  role: MemberRole;
+  focus: string;
+  bio?: string;
+  avatarPreset?: AvatarPreset;
+}): Member {
+  return {
+    id: input.id,
+    name: input.name,
+    role: input.role,
+    focus: input.focus,
+    bio: input.bio?.trim() || getDefaultMemberBio(input.role, input.focus),
+    avatarPreset: input.avatarPreset ?? getAvatarPresetFromSeed(input.id || input.name),
+  };
+}
 
 function createStatusMap(memberIds: string[], completedMemberIds: string[]) {
   return Object.fromEntries(
@@ -248,13 +283,42 @@ function makeIsoDate(date: string) {
   return `${date}T09:00:00.000Z`;
 }
 
-function createInitialMembers(): Member[] {
+function createDefaultTeammates() {
   return [
-    { id: currentUserId, name: "지윤", role: "팀장", focus: "개념 구조화" },
-    { id: "member-minsu", name: "민수", role: "팀원", focus: "기출 대비" },
-    { id: "member-seoyeon", name: "서연", role: "팀원", focus: "질답 정리" },
-    { id: "member-doyoon", name: "도윤", role: "팀원", focus: "자료 요약" },
+    createMemberProfile({
+      id: "member-minsu",
+      name: "민수",
+      role: "팀원",
+      focus: "기출 대비",
+    }),
+    createMemberProfile({
+      id: "member-seoyeon",
+      name: "서연",
+      role: "팀원",
+      focus: "질답 정리",
+    }),
+    createMemberProfile({
+      id: "member-doyoon",
+      name: "도윤",
+      role: "팀원",
+      focus: "자료 요약",
+    }),
   ];
+}
+
+function createInitialMembers(leaderOverride?: Member): Member[] {
+  const leader =
+    leaderOverride ??
+    createMemberProfile({
+      id: currentUserId,
+      name: "지윤",
+      role: "팀장",
+      focus: "개념 구조화",
+    });
+
+  return [leader, ...createDefaultTeammates()].filter(
+    (member, index, members) => members.findIndex((entry) => entry.id === member.id) === index,
+  );
 }
 
 function createPlanFlowDefaults(memberIds: string[]) {
@@ -428,8 +492,11 @@ export function getInitialGroups() {
   return createInitialGroups();
 }
 
-export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
-  const members = createInitialMembers();
+export function createGroupFromInput(
+  input: CreateGroupInput,
+  creator?: Member,
+): StudyGroup {
+  const members = createInitialMembers(creator);
   const memberIds = members.map((member) => member.id);
   const createdAt = new Date().toISOString();
   const trimmedSubject = input.subject.trim();
@@ -448,7 +515,8 @@ export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
       id: `${groupId}-mat-1`,
       title: `${trimmedSubject} 공용 요약본.pdf`,
       summary: `${trimmedSubject} 범위를 빠르게 훑을 수 있는 기본 정리 자료`,
-      uploadedBy: "지윤",
+      uploadedBy: members[0]?.name ?? "팀장",
+      uploadedByMemberId: members[0]?.id,
       uploadedAt: createdAt,
       format: "PDF",
       locationHint: "요약 1장",
@@ -458,7 +526,8 @@ export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
       id: `${groupId}-mat-2`,
       title: `${trimmedSubject} 예상문제 정리.pdf`,
       summary: `${trimmedSubject} 시험 대비용 예상문제와 체크 포인트`,
-      uploadedBy: "민수",
+      uploadedBy: members[1]?.name ?? "팀원",
+      uploadedByMemberId: members[1]?.id,
       uploadedAt: createdAt,
       format: "PDF",
       locationHint: "문제 1~3",
@@ -468,7 +537,8 @@ export function createGroupFromInput(input: CreateGroupInput): StudyGroup {
       id: `${groupId}-mat-3`,
       title: `${trimmedSubject} 발표 준비 메모.pdf`,
       summary: "발표와 질의응답 대비 포인트를 정리한 보조 자료",
-      uploadedBy: "서연",
+      uploadedBy: members[2]?.name ?? "팀원",
+      uploadedByMemberId: members[2]?.id,
       uploadedAt: createdAt,
       format: "PDF",
       locationHint: "질문 포인트",

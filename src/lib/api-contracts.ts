@@ -1,4 +1,5 @@
 import type {
+  AvatarPreset,
   ChatMessage,
   CreateGroupInput,
   Material,
@@ -121,6 +122,8 @@ export type StoredUser = {
   name: string;
   role: string;
   focus: string;
+  bio?: string;
+  avatarPreset?: AvatarPreset;
 };
 
 export type StoredGroup = {

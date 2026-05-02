@@ -30,6 +30,7 @@ import {
   type Material,
   type StudyGroup,
   currentUserId,
+  createMemberProfile,
   createGroupFromInput,
   formatUploadDate,
   getDaysLeft,
@@ -240,6 +241,8 @@ function buildSeedDatabase(): PrototypeDatabase {
         name: member.name,
         role: member.role,
         focus: member.focus,
+        bio: member.bio,
+        avatarPreset: member.avatarPreset,
       });
       database.groupMembers.push({ groupId: group.id, userId: member.id });
     }
@@ -376,12 +379,16 @@ function getStudyGroups(database: PrototypeDatabase) {
       .filter((groupMember) => groupMember.groupId === group.id)
       .map((groupMember) => getUserById(database, groupMember.userId))
       .filter(isStoredUser)
-      .map((user) => ({
-        id: user.id,
-        name: user.name,
-        role: user.role as StudyGroup["members"][number]["role"],
-        focus: user.focus,
-      }));
+      .map((user) =>
+        createMemberProfile({
+          id: user.id,
+          name: user.name,
+          role: user.role as StudyGroup["members"][number]["role"],
+          focus: user.focus,
+          bio: user.bio,
+          avatarPreset: user.avatarPreset,
+        }),
+      );
     const memberIds = members.map((member) => member.id);
 
     const plan = database.planItems
@@ -500,12 +507,20 @@ function upsertGroupFromStudyGroup(database: PrototypeDatabase, group: StudyGrou
   for (const member of group.members) {
     const existingUser = database.users.find((user) => user.id === member.id);
 
-    if (!existingUser) {
+    if (existingUser) {
+      existingUser.name = member.name;
+      existingUser.role = member.role;
+      existingUser.focus = member.focus;
+      existingUser.bio = member.bio;
+      existingUser.avatarPreset = member.avatarPreset;
+    } else {
       database.users.push({
         id: member.id,
         name: member.name,
         role: member.role,
         focus: member.focus,
+        bio: member.bio,
+        avatarPreset: member.avatarPreset,
       });
     }
 

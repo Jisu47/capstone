@@ -1,12 +1,17 @@
 "use client";
 
 import { createContext, useContext, useMemo, useSyncExternalStore } from "react";
+import { type AvatarPreset, getAvatarPresetFromSeed } from "@/lib/mock-data";
 
 export type UserRole = "member" | "leader";
 
 export type AuthUser = {
+  userId: string;
   username: string;
   password: string;
+  displayName: string;
+  bio: string;
+  avatarPreset: AvatarPreset;
   role: UserRole;
   hasJoinedGroup: boolean;
   joinedGroupId: string | null;
@@ -21,6 +26,12 @@ type SignUpInput = {
   username: string;
   password: string;
   role: UserRole;
+};
+
+export type UpdateProfileInput = {
+  displayName: string;
+  bio: string;
+  avatarPreset: AvatarPreset;
 };
 
 type AuthActionResult =
@@ -39,12 +50,13 @@ type AuthContextValue = {
   currentUser: AuthUser | null;
   signIn: (input: SignInInput) => AuthActionResult;
   signUp: (input: SignUpInput) => AuthActionResult;
+  updateProfile: (input: UpdateProfileInput) => AuthActionResult;
   signOut: () => void;
   markGroupJoined: (groupId: string) => AuthUser | null;
   resolvePostAuthPath: (user: AuthUser) => "/group-setup" | "/mypage";
 };
 
-const sessionStorageKey = "study-flow-session-name";
+const sessionStorageKey = "study-flow-session-user-id";
 const usersStorageKey = "study-flow-auth-users";
 const authChangeEvent = "study-flow-auth-change";
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -74,12 +86,31 @@ function dispatchAuthChange() {
   window.dispatchEvent(new Event(authChangeEvent));
 }
 
-function readSessionName() {
+function readSessionUserId() {
   if (typeof window === "undefined") {
     return null;
   }
 
   return window.localStorage.getItem(sessionStorageKey);
+}
+
+function buildLegacyUserId(username: string) {
+  return `legacy-${encodeURIComponent(username.trim().toLowerCase())}`;
+}
+
+function createUserId() {
+  return `user-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function getDefaultBio(role: UserRole) {
+  return role === "leader"
+    ? "스터디 흐름을 정리하고 일정과 계획을 함께 챙기고 있어요."
+    : "자료를 정리하고 질문을 모으며 스터디에 참여하고 있어요.";
+}
+
+function normalizeDisplayName(displayName: string, username: string) {
+  const trimmed = displayName.trim();
+  return trimmed.length > 0 ? trimmed : username.trim();
 }
 
 function parseUsers(storedUsers: string | null): AuthUser[] {
@@ -110,10 +141,30 @@ function parseUsers(storedUsers: string | null): AuthUser[] {
         return [];
       }
 
+      const username = user.username.trim();
+
+      if (!username) {
+        return [];
+      }
+
+      const userId =
+        typeof user.userId === "string" && user.userId.trim()
+          ? user.userId
+          : buildLegacyUserId(username);
+      const displayName = normalizeDisplayName(user.displayName ?? "", username);
+      const avatarPreset =
+        user.avatarPreset && ["sky", "emerald", "rose", "amber"].includes(user.avatarPreset)
+          ? user.avatarPreset
+          : getAvatarPresetFromSeed(userId);
+
       return [
         {
-          username: user.username,
+          userId,
+          username,
           password: user.password,
+          displayName,
+          bio: typeof user.bio === "string" && user.bio.trim() ? user.bio : getDefaultBio(user.role),
+          avatarPreset,
           role: user.role,
           hasJoinedGroup: user.hasJoinedGroup,
           joinedGroupId:
@@ -150,21 +201,27 @@ function writeUsers(users: AuthUser[]) {
   window.localStorage.setItem(usersStorageKey, JSON.stringify(users));
 }
 
-function resolveCurrentUser(sessionName: string | null, usersStorageValue: string) {
-  if (!sessionName) {
+function resolveCurrentUser(sessionUserId: string | null, usersStorageValue: string) {
+  if (!sessionUserId) {
     return null;
   }
 
   const users = parseUsers(usersStorageValue);
-  const user = users.find((entry) => entry.username === sessionName);
+  const user = users.find(
+    (entry) => entry.userId === sessionUserId || entry.username === sessionUserId,
+  );
 
   if (user) {
     return user;
   }
 
   return {
-    username: sessionName,
+    userId: buildLegacyUserId(sessionUserId),
+    username: sessionUserId,
     password: "",
+    displayName: sessionUserId,
+    bio: getDefaultBio("member"),
+    avatarPreset: getAvatarPresetFromSeed(sessionUserId),
     role: "member" as const,
     hasJoinedGroup: true,
     joinedGroupId: null,
@@ -173,11 +230,11 @@ function resolveCurrentUser(sessionName: string | null, usersStorageValue: strin
 
 function upsertUser(nextUser: AuthUser) {
   const users = readUsers();
-  const filteredUsers = users.filter((entry) => entry.username !== nextUser.username);
+  const filteredUsers = users.filter((entry) => entry.userId !== nextUser.userId);
   const nextUsers = [...filteredUsers, nextUser];
 
   writeUsers(nextUsers);
-  window.localStorage.setItem(sessionStorageKey, nextUser.username);
+  window.localStorage.setItem(sessionStorageKey, nextUser.userId);
   dispatchAuthChange();
 
   return nextUser;
@@ -197,9 +254,9 @@ export function AuthProvider({
     () => true,
     () => false,
   );
-  const sessionName = useSyncExternalStore(
+  const sessionUserId = useSyncExternalStore(
     subscribeAuth,
-    readSessionName,
+    readSessionUserId,
     () => null,
   );
   const usersStorageValue = useSyncExternalStore(
@@ -208,8 +265,9 @@ export function AuthProvider({
     () => "[]",
   );
   const currentUser = useMemo(() => {
-    return resolveCurrentUser(sessionName, usersStorageValue);
-  }, [sessionName, usersStorageValue]);
+    return resolveCurrentUser(sessionUserId, usersStorageValue);
+  }, [sessionUserId, usersStorageValue]);
+  const sessionName = currentUser?.displayName ?? currentUser?.username ?? null;
 
   function signIn({ username, password }: SignInInput): AuthActionResult {
     const trimmedUsername = username.trim();
@@ -239,7 +297,7 @@ export function AuthProvider({
       };
     }
 
-    window.localStorage.setItem(sessionStorageKey, matchedUser.username);
+    window.localStorage.setItem(sessionStorageKey, matchedUser.userId);
     dispatchAuthChange();
 
     return {
@@ -270,8 +328,12 @@ export function AuthProvider({
     }
 
     const nextUser: AuthUser = {
+      userId: createUserId(),
       username: trimmedUsername,
       password: trimmedPassword,
+      displayName: trimmedUsername,
+      bio: getDefaultBio(role),
+      avatarPreset: getAvatarPresetFromSeed(trimmedUsername),
       role,
       hasJoinedGroup: false,
       joinedGroupId: null,
@@ -280,6 +342,47 @@ export function AuthProvider({
     return {
       ok: true,
       user: upsertUser(nextUser),
+    };
+  }
+
+  function updateProfile({
+    displayName,
+    bio,
+    avatarPreset,
+  }: UpdateProfileInput): AuthActionResult {
+    if (typeof window === "undefined") {
+      return {
+        ok: false,
+        error: "프로필을 저장할 수 없습니다.",
+      };
+    }
+
+    const activeUser = resolveCurrentUser(readSessionUserId(), readUsersSnapshot());
+
+    if (!activeUser) {
+      return {
+        ok: false,
+        error: "로그인 상태를 다시 확인해 주세요.",
+      };
+    }
+
+    const normalizedDisplayName = displayName.trim();
+
+    if (!normalizedDisplayName) {
+      return {
+        ok: false,
+        error: "닉네임을 입력해 주세요.",
+      };
+    }
+
+    return {
+      ok: true,
+      user: upsertUser({
+        ...activeUser,
+        displayName: normalizedDisplayName,
+        bio: bio.trim() || getDefaultBio(activeUser.role),
+        avatarPreset,
+      }),
     };
   }
 
@@ -297,10 +400,7 @@ export function AuthProvider({
       return null;
     }
 
-    const activeUser = resolveCurrentUser(
-      readSessionName(),
-      readUsersSnapshot(),
-    );
+    const activeUser = resolveCurrentUser(readSessionUserId(), readUsersSnapshot());
 
     if (!activeUser) {
       return null;
@@ -321,6 +421,7 @@ export function AuthProvider({
         currentUser,
         signIn,
         signUp,
+        updateProfile,
         signOut,
         markGroupJoined,
         resolvePostAuthPath,

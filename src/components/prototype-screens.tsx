@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { BottomNavigation } from "@/components/bottom-navigation";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import { usePrototype } from "@/components/prototype-provider";
 import {
   type CreateGroupInput,
   type StudyGroup,
   type Weekday,
-  currentUserId,
   formatExamDate,
   formatUploadDate,
   getDaysLeft,
@@ -45,7 +45,7 @@ function sortMaterials(group: StudyGroup) {
   });
 }
 
-function getTodayTasks(groups: StudyGroup[]) {
+function getTodayTasks(groups: StudyGroup[], currentUserId: string) {
   return groups
     .flatMap((group) =>
       group.plan
@@ -270,8 +270,8 @@ function LoadingState({
 }
 
 export function HomeScreen() {
-  const { groups, isLoading } = usePrototype();
-  const todayTasks = getTodayTasks(groups);
+  const { groups, isLoading, currentUserId } = usePrototype();
+  const todayTasks = getTodayTasks(groups, currentUserId);
   const dDayGroups = [...groups].sort((left, right) => {
     return getDaysLeft(left.examDate) - getDaysLeft(right.examDate);
   });
@@ -631,9 +631,22 @@ export function GroupOverviewScreen({ groupId }: Readonly<{ groupId: string }>) 
 }
 
 export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
-  const { groups, queueMockUpload, sendQuestion, isAnswering, isLoading } = usePrototype();
+  const {
+    groups,
+    uploadMaterialFile,
+    recordMaterialView,
+    getWeaknessInsights,
+    sendQuestion,
+    isAnswering,
+    isLoading,
+    isMutating,
+  } = usePrototype();
   const group = getGroupById(groups, groupId);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [draft, setDraft] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   if (isLoading && !group) {
     return (
@@ -653,6 +666,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   const activeGroup = group;
   const materials = sortMaterials(activeGroup);
+  const weaknessInsights = getWeaknessInsights(activeGroup.id);
   const recommendedQuestions = [
     `${activeGroup.subject} 핵심 개념만 정리해 줘`,
     "시험 범위에서 중요한 자료를 먼저 골라 줘",
@@ -669,25 +683,75 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
     setDraft("");
   }
 
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+    setFeedbackMessage(null);
+
+    try {
+      await uploadMaterialFile(activeGroup.id, file);
+      setFeedbackMessage(`${file.name} 자료를 업로드했어요.`);
+    } catch (error) {
+      setUploadError(
+        error instanceof Error ? error.message : "자료 업로드 중 오류가 발생했어요.",
+      );
+    } finally {
+      setIsUploading(false);
+      event.target.value = "";
+    }
+  }
+
+  function handleRecordMaterial(material: (typeof materials)[number]) {
+    recordMaterialView(
+      activeGroup.id,
+      material.id,
+      material.title,
+      material.locationHint,
+      3 * 60 * 1000,
+    );
+    setFeedbackMessage(`${material.title} 읽기 기록을 남겼어요.`);
+    setUploadError(null);
+  }
+
   return (
     <AppShell groupId={groupId} title="자료">
       <SectionCard title="자료 추가">
         <div className="rounded-[16px] border border-dashed border-slate-200 bg-white p-4">
           <p className="text-sm font-semibold text-slate-900">공용 자료를 더 모아볼 수 있어요.</p>
           <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">
-            현재는 파일 선택 없이 예시 자료가 바로 추가됩니다.
+            PDF, 이미지, 문서 자료를 업로드하면 팀원 모두가 같은 자료를 기준으로 질문할 수 있어요.
           </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.ppt,.pptx"
+            onChange={handleFileChange}
+            className="hidden"
+          />
           <button
             type="button"
-            onClick={() => {
-              void queueMockUpload(activeGroup.id);
-            }}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading || isMutating}
             className="mt-4 w-full rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
           >
-            {activeGroup.uploadDraftCount > 0
-              ? `자료 ${activeGroup.uploadDraftCount}개 더 보기`
-              : "자료 추가하기"}
+            {isUploading ? "업로드 중..." : "파일 선택해서 업로드"}
           </button>
+          {feedbackMessage ? (
+            <p className="mt-3 rounded-[14px] bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+              {feedbackMessage}
+            </p>
+          ) : null}
+          {uploadError ? (
+            <p className="mt-3 rounded-[14px] bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+              {uploadError}
+            </p>
+          ) : null}
         </div>
       </SectionCard>
 
@@ -709,6 +773,69 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
               </span>
             </div>
             <p className="text-sm leading-6 text-[var(--ink-soft)]">{material.summary}</p>
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => handleRecordMaterial(material)}
+                className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white"
+              >
+                읽기 기록 남기기
+              </button>
+            </div>
+          </div>
+        ))}
+      </SectionCard>
+
+      <SectionCard title="팀원별 취약 포인트">
+        {weaknessInsights.map((insight) => (
+          <div
+            key={insight.memberId}
+            className="rounded-[16px] border border-slate-200 bg-white p-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]"
+          >
+            <div className="flex items-start gap-3">
+              <ProfileAvatar
+                name={insight.memberName}
+                avatarPreset={insight.avatarPreset}
+                size="sm"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{insight.memberName}</p>
+                    <p className="mt-1 text-xs text-slate-500">{insight.role}</p>
+                  </div>
+                  <div className="text-right text-[11px] font-medium text-slate-500">
+                    <p>미완료 {insight.incompleteCount}개</p>
+                    <p>질문 {insight.questionCount}회</p>
+                  </div>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">{insight.summary}</p>
+                {insight.bio ? (
+                  <p className="mt-2 text-xs leading-5 text-slate-500">{insight.bio}</p>
+                ) : null}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {insight.keyTopics.length > 0 ? (
+                    insight.keyTopics.map((topic) => (
+                      <span
+                        key={`${insight.memberId}-${topic}`}
+                        className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-700"
+                      >
+                        {topic}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-700">
+                      아직 분석 데이터가 부족해요
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-slate-500 sm:grid-cols-3">
+                  <p>오래 본 구간: {insight.longestStayLabel ?? "-"}</p>
+                  <p>질문이 많았던 구간: {insight.frequentQuestionLabel ?? "-"}</p>
+                  <p>누적 읽기 시간: {insight.totalViewMinutes}분</p>
+                </div>
+              </div>
+            </div>
           </div>
         ))}
       </SectionCard>
@@ -799,7 +926,8 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
   );
 }
 export function PlanScreen({ groupId }: Readonly<{ groupId: string }>) {
-  const { groups, togglePlanItem, updatePlanItem, addPlanItem, isLoading } = usePrototype();
+  const { groups, currentUserId, togglePlanItem, updatePlanItem, addPlanItem, isLoading } =
+    usePrototype();
   const group = getGroupById(groups, groupId);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<{

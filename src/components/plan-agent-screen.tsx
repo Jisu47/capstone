@@ -16,7 +16,7 @@ import {
   isLeader,
   reviewIntervalOptions,
 } from "@/lib/plan-flow";
-import { currentUserId, type StudyGroup } from "@/lib/mock-data";
+import { type StudyGroup } from "@/lib/mock-data";
 
 function getGroupById(groups: StudyGroup[], groupId: string) {
   return groups.find((group) => group.id === groupId);
@@ -26,6 +26,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   const {
     groups,
     isLoading,
+    currentUserId,
     sendPlanAgentMessage,
     isPlanAgentAnswering,
     applyPlanAgentDraft,

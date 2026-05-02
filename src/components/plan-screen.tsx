@@ -20,7 +20,7 @@ import {
   reviewIntervalOptions,
   type PersonalPlanItemDraft,
 } from "@/lib/plan-flow";
-import { currentUserId, type StudyGroup, type Weekday } from "@/lib/mock-data";
+import { type StudyGroup, type Weekday } from "@/lib/mock-data";
 
 function getGroupById(groups: StudyGroup[], groupId: string) {
   return groups.find((group) => group.id === groupId);
@@ -109,6 +109,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
     groups,
     isLoading,
     isMutating,
+    currentUserId,
     togglePlanItem,
     uploadPlanReference,
     updateReviewDays,

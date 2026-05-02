@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePrototype } from "@/components/prototype-provider";
-import { currentUserId, type StudyGroup } from "@/lib/mock-data";
+import { type StudyGroup } from "@/lib/mock-data";
 
 type StudyHubProps = {
   group: StudyGroup;
@@ -26,7 +26,7 @@ function formatTimer(totalSeconds: number) {
   return `${hours}:${minutes}:${seconds}`;
 }
 
-function createInitialPersonalTodos(group: StudyGroup): PersonalTodo[] {
+function createInitialPersonalTodos(group: StudyGroup, currentUserId: string): PersonalTodo[] {
   const currentMember = group.members.find((member) => member.id === currentUserId);
 
   return [
@@ -78,19 +78,24 @@ function CheckIcon({ active }: Readonly<{ active: boolean }>) {
 }
 
 export function StudyHub({ group }: Readonly<StudyHubProps>) {
-  const { isMutating, togglePlanItem } = usePrototype();
+  const { isMutating, togglePlanItem, currentUserId } = usePrototype();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [pendingChecklistId, setPendingChecklistId] = useState<string | null>(null);
   const [personalTodos, setPersonalTodos] = useState<PersonalTodo[]>(() =>
-    createInitialPersonalTodos(group),
+    createInitialPersonalTodos(group, currentUserId),
   );
   const [personalTodoCount, setPersonalTodoCount] = useState(3);
   const teammates = group.members.filter((member) => member.id !== currentUserId).slice(0, 2);
   const selectedMember = teammates.find((member) => member.id === selectedMemberId) ?? null;
   const pendingChecklistItem = group.plan.find((item) => item.id === pendingChecklistId) ?? null;
   const completedCount = group.plan.filter((item) => item.memberStatus[currentUserId]).length;
+
+  useEffect(() => {
+    setPersonalTodos(createInitialPersonalTodos(group, currentUserId));
+    setPersonalTodoCount(3);
+  }, [currentUserId, group.id]);
 
   useEffect(() => {
     if (!isTimerRunning) {

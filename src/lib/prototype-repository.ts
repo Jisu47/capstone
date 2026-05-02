@@ -12,6 +12,7 @@ import {
   buildRecentUpdateFromGoal,
   buildMockAnswer,
   createGroupFromInput,
+  createMemberProfile,
   currentUserId,
   getInitialGroups,
   type CreateGroupInput,
@@ -323,7 +324,9 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
 
   const materials = group.materials.map<MaterialRow>((material) => {
     const uploader =
-      group.members.find((member) => member.name === material.uploadedBy)?.id ?? currentUserId;
+      material.uploadedByMemberId ??
+      group.members.find((member) => member.name === material.uploadedBy)?.id ??
+      currentUserId;
 
     return {
       id: material.id,
@@ -660,12 +663,12 @@ function rowsToGroups({
       .map((membership) => {
         const profile = profilesById.get(membership.member_id);
 
-        return {
+        return createMemberProfile({
           id: membership.member_id,
           name: profile?.name ?? membership.member_id,
-          role: (profile?.role ?? "member") as Member["role"],
+          role: (profile?.role ?? "팀원") as Member["role"],
           focus: profile?.focus ?? "",
-        };
+        });
       });
 
     const memberIds = members.map((member) => member.id);
@@ -681,9 +684,11 @@ function rowsToGroups({
       summary: material.summary,
       uploadedBy:
         profilesById.get(material.uploaded_by_member_id)?.name ?? material.uploaded_by_member_id,
+      uploadedByMemberId: material.uploaded_by_member_id,
       uploadedAt: material.uploaded_at,
       format: material.format,
       locationHint: material.location_hint,
+      processingStatus: "ready" as const,
     }));
 
     const plan = (planItemsByGroup.get(group.id) ?? [])
@@ -960,10 +965,68 @@ export async function listPrototypeGroups() {
   return rowsToGroups(rows);
 }
 
-export async function createPrototypeGroup(input: CreateGroupInput) {
-  const group = createGroupFromInput(input);
+function toProfileRow(member: Member): ProfileRow {
+  return {
+    id: member.id,
+    name: member.name,
+    role: member.role,
+    focus: member.bio || member.focus,
+  };
+}
+
+export async function createPrototypeGroup(input: CreateGroupInput, creator?: Member) {
+  const group = createGroupFromInput(input, creator);
   await persistGroup(group);
   return group.id;
+}
+
+export async function syncPrototypeProfile(member: Member) {
+  const client = getSupabaseBrowserClient();
+
+  ensureSuccess(
+    "Failed to sync current user profile",
+    await client.from("profiles").upsert(toProfileRow(member)),
+  );
+}
+
+export async function ensurePrototypeGroupMembership(groupId: string, member: Member) {
+  const client = getSupabaseBrowserClient();
+
+  await syncPrototypeProfile(member);
+
+  const existingMembership = await client
+    .from("group_members")
+    .select("group_id")
+    .eq("group_id", groupId)
+    .eq("member_id", member.id)
+    .maybeSingle();
+
+  const membership = unwrapNullableData(
+    "Failed to inspect group membership",
+    existingMembership,
+  );
+
+  if (membership) {
+    return;
+  }
+
+  const memberRows = unwrapData(
+    "Failed to inspect group members",
+    await client.from("group_members").select("member_id").eq("group_id", groupId),
+  ) as Array<{ member_id: string }>;
+
+  ensureSuccess(
+    "Failed to add current user to group members",
+    await client.from("group_members").upsert(
+      {
+        group_id: groupId,
+        member_id: member.id,
+        sort_order: memberRows.length,
+        review_interval_days: null,
+      },
+      { onConflict: "group_id,member_id" },
+    ),
+  );
 }
 
 export async function updatePrototypeGroupDetails(groupId: string, updates: GroupDetailsInput) {
@@ -1084,6 +1147,41 @@ export async function addPrototypeUpload(group: StudyGroup) {
         recent_update: `Mock material ${nextCount} added from the upload box.`,
       })
       .eq("id", group.id),
+  );
+}
+
+export async function addPrototypeUploadedMaterial(
+  groupId: string,
+  material: Pick<
+    Material,
+    "id" | "title" | "summary" | "uploadedAt" | "format" | "locationHint"
+  >,
+  memberId: string,
+) {
+  const client = getSupabaseBrowserClient();
+
+  ensureSuccess(
+    "Failed to save uploaded material",
+    await client.from("materials").insert({
+      id: material.id,
+      group_id: groupId,
+      title: material.title,
+      summary: material.summary,
+      uploaded_by_member_id: memberId,
+      uploaded_at: material.uploadedAt,
+      format: material.format,
+      location_hint: material.locationHint,
+    }),
+  );
+
+  ensureSuccess(
+    "Failed to update recent material activity",
+    await client
+      .from("study_groups")
+      .update({
+        recent_update: `${material.title} 자료가 업로드되었습니다.`,
+      })
+      .eq("id", groupId),
   );
 }
 
