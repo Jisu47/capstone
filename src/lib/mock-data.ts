@@ -166,12 +166,17 @@ function createStatusMap(memberIds: string[], completedMemberIds: string[]) {
   );
 }
 
-function createWelcomeChat(subject: string, materials: Material[]): ChatMessage[] {
+function createWelcomeChat(
+  subject: string,
+  materials: Material[],
+  idPrefix = "chat-welcome",
+): ChatMessage[] {
   const primaryMaterial = materials[0];
+  const uniqueSeed = primaryMaterial?.id ?? subject;
 
   return [
     {
-      id: `chat-welcome-${subject}`,
+      id: `${idPrefix}-${uniqueSeed}`,
       role: "assistant",
       text: `${subject} 스터디 자료를 바탕으로 핵심 개념 요약, 시험 범위 정리, 후속 질문 생성을 도와드릴게요.`,
       createdAt: "방금 전",
