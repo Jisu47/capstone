@@ -199,9 +199,10 @@ function createPlan(
     completedMemberIds: string[];
   }>,
   memberIds: string[],
+  idPrefix = "plan",
 ): WeeklyPlanItem[] {
   return entries.map((entry, index) => ({
-    id: `plan-${entry.day}-${index + 1}`,
+    id: `${idPrefix}-${index + 1}`,
     day: entry.day,
     title: entry.title,
     detail: entry.detail,
@@ -232,7 +233,12 @@ export function buildRecentUpdateFromGoal(weeklyGoal: string) {
   return `${focus} 기준으로 모임 운영 정보가 업데이트되었습니다.`;
 }
 
-function createAutoPlan(subject: string, weeklyGoal: string, memberIds: string[]) {
+function createAutoPlan(
+  subject: string,
+  weeklyGoal: string,
+  memberIds: string[],
+  idPrefix = "plan-auto",
+) {
   const goals = parseGoals(weeklyGoal);
   const teammateA = memberIds[1];
   const teammateB = memberIds[2];
@@ -276,6 +282,7 @@ function createAutoPlan(subject: string, weeklyGoal: string, memberIds: string[]
       },
     ],
     memberIds,
+    idPrefix,
   );
 }
 
@@ -458,6 +465,7 @@ function createInitialGroups(): StudyGroup[] {
           },
         ],
         memberIds,
+        "group-os-plan",
       ),
       chat: createWelcomeChat("운영체제", operatingMaterials),
       uploadDraftCount: 0,
@@ -559,7 +567,7 @@ export function createGroupFromInput(
     recentUpdate: `${goals[0] ?? "핵심 개념 정리"} 기준으로 자동 계획이 생성됨`,
     members,
     materials,
-    plan: createAutoPlan(trimmedSubject, trimmedWeeklyGoal, memberIds),
+    plan: createAutoPlan(trimmedSubject, trimmedWeeklyGoal, memberIds, `${groupId}-plan`),
     chat: createWelcomeChat(trimmedSubject, materials),
     uploadDraftCount: 0,
     ...createPlanFlowDefaults(memberIds),
