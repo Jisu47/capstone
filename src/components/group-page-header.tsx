@@ -13,10 +13,12 @@ type GroupPageHeaderProps = {
 function CircleButton({
   asLink = false,
   href,
+  ariaLabel,
   children,
 }: Readonly<{
   asLink?: boolean;
   href?: string;
+  ariaLabel?: string;
   children: React.ReactNode;
 }>) {
   const className =
@@ -24,13 +26,17 @@ function CircleButton({
 
   if (asLink && href) {
     return (
-      <Link href={href} className={className}>
+      <Link href={href} className={className} aria-label={ariaLabel}>
         {children}
       </Link>
     );
   }
 
-  return <div className={className}>{children}</div>;
+  return (
+    <div className={className} aria-label={ariaLabel}>
+      {children}
+    </div>
+  );
 }
 
 function resolveGroupHref(pathname: string, nextGroupId: string) {
@@ -111,7 +117,7 @@ export function GroupPageHeader({
           </button>
         </div>
 
-        <CircleButton>
+        <CircleButton asLink href="/mypage" ariaLabel="마이페이지로 이동">
           <svg
             aria-hidden="true"
             className="h-5 w-5"
