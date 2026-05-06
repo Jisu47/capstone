@@ -147,7 +147,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
   }
 
   const activeGroup = group;
-  const leaderMode = isLeader(activeGroup);
+  const leaderMode = isLeader(activeGroup, currentUserId);
   const reviewCards = buildReviewCards(activeGroup, currentUserId);
   const personalPlanItems = getCurrentUserPersonalPlanItems(activeGroup, currentUserId);
   const reviewInterval = activeGroup.reviewIntervals[currentUserId] ?? null;

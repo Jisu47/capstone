@@ -122,7 +122,11 @@ function getLastPlanAgentQuestion(messages: ChatMessage[]) {
   return lastUserMessage?.text.trim() ?? "";
 }
 
-export function isLeader(group: StudyGroup, memberId = currentUserId) {
+export function isLeader(group: StudyGroup, memberId?: string | null) {
+  if (!memberId) {
+    return false;
+  }
+
   return group.members.find((member) => member.id === memberId)?.role === "팀장";
 }
 

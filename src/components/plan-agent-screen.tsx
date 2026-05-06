@@ -52,7 +52,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   }
 
   const activeGroup = group;
-  const leaderMode = isLeader(activeGroup);
+  const leaderMode = isLeader(activeGroup, currentUserId);
   const draft = buildPlanAgentDraft(activeGroup);
   const reviewInterval = activeGroup.reviewIntervals[currentUserId] ?? null;
   const planAgentBusy = isPlanAgentAnswering(activeGroup.id);
