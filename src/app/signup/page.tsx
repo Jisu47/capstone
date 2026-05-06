@@ -69,10 +69,10 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md rounded-[28px] border border-[var(--line)] bg-white/92 p-7 shadow-[0_18px_48px_rgba(18,35,61,0.12)] backdrop-blur">
+    <main className="flex min-h-dvh items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(121,184,149,0.12),_transparent_28%),linear-gradient(180deg,rgba(251,253,251,0.98),rgba(248,252,249,0.94))] px-4 py-12">
+      <div className="w-full max-w-md rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-7 shadow-[0_18px_48px_rgba(121,184,149,0.12)] backdrop-blur">
         <div className="mb-8 space-y-3">
-          <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+          <span className="inline-flex rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
             Sign Up
           </span>
           <div className="space-y-2">
@@ -98,7 +98,7 @@ export default function SignupPage() {
               autoComplete="username"
               required
               placeholder="아이디를 입력해 주세요"
-              className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+              className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--brand)] focus:ring-4 focus:ring-[rgba(121,184,149,0.16)]"
             />
           </label>
 
@@ -114,7 +114,7 @@ export default function SignupPage() {
               autoComplete="new-password"
               required
               placeholder="비밀번호를 입력해 주세요"
-              className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+              className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--brand)] focus:ring-4 focus:ring-[rgba(121,184,149,0.16)]"
             />
           </label>
 
@@ -134,7 +134,7 @@ export default function SignupPage() {
               className={`w-full rounded-[16px] border bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-4 ${
                 passwordMismatch
                   ? "border-rose-300 focus:border-rose-500 focus:ring-rose-100"
-                  : "border-slate-200 focus:border-sky-500 focus:ring-sky-100"
+                  : "border-slate-200 focus:border-[var(--brand)] focus:ring-[rgba(121,184,149,0.16)]"
               }`}
             />
           </label>
@@ -153,13 +153,13 @@ export default function SignupPage() {
 
                 return (
                   <label
-                    key={option.value}
-                    className={`flex cursor-pointer items-start gap-3 rounded-[18px] border px-4 py-4 transition ${
-                      checked
-                        ? "border-sky-500 bg-sky-50 shadow-[0_8px_20px_rgba(14,165,233,0.08)]"
-                        : "border-slate-200 bg-white hover:border-sky-200"
-                    }`}
-                  >
+                  key={option.value}
+                  className={`flex cursor-pointer items-start gap-3 rounded-[18px] border px-4 py-4 transition ${
+                    checked
+                      ? "border-[var(--brand)] bg-[var(--brand-soft)] shadow-[0_8px_20px_rgba(121,184,149,0.10)]"
+                      : "border-slate-200 bg-white hover:border-[rgba(121,184,149,0.34)]"
+                  }`}
+                >
                     <input
                       type="radio"
                       name="role"
@@ -169,7 +169,7 @@ export default function SignupPage() {
                         setRole(option.value);
                         setErrorMessage(null);
                       }}
-                      className="mt-1 h-4 w-4 border-slate-300 text-sky-600 focus:ring-sky-400"
+                      className="mt-1 h-4 w-4 border-slate-300 text-[var(--brand)] focus:ring-[var(--brand)]"
                     />
                     <span className="space-y-1">
                       <span className="block text-sm font-semibold text-slate-900">
@@ -193,7 +193,7 @@ export default function SignupPage() {
 
           <button
             type="submit"
-            className="inline-flex w-full items-center justify-center rounded-[18px] bg-sky-600 px-4 py-4 text-base font-semibold text-white shadow-[0_14px_28px_rgba(2,132,199,0.22)] transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-sky-300 disabled:shadow-none"
+            className="inline-flex w-full items-center justify-center rounded-[18px] bg-[var(--brand)] px-4 py-4 text-base font-semibold text-white shadow-[0_14px_28px_rgba(121,184,149,0.22)] transition hover:brightness-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-[rgba(121,184,149,0.55)] disabled:shadow-none"
             disabled={passwordMismatch}
           >
             회원가입
@@ -204,7 +204,7 @@ export default function SignupPage() {
           이미 계정이 있으신가요?{" "}
           <Link
             href="/login"
-            className="font-semibold text-sky-700 transition hover:text-sky-800"
+            className="font-semibold text-[var(--brand)] transition hover:brightness-90"
           >
             로그인
           </Link>
