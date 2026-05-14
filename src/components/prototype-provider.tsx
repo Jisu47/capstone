@@ -25,6 +25,7 @@ import {
   type Member,
   type ReviewIntervalDays,
   type StudyGroup,
+  type UnderstandingLevel,
   type Weekday,
 } from "@/lib/mock-data";
 import type {
@@ -43,6 +44,8 @@ import {
   addPrototypeUserQuestion,
   applyPrototypePlanAgentDraft,
   bootstrapPrototypeGroups,
+  clearPrototypePlanItemCompletion,
+  completePrototypePlanItemWithFeedback,
   createPrototypeGroup,
   ensurePrototypeGroupMembership,
   listPrototypeGroups,
@@ -68,6 +71,12 @@ type PrototypeContextValue = {
   syncCurrentUserProfile: () => Promise<void>;
   updateGroupDetails: (groupId: string, updates: GroupDetailsInput) => Promise<void>;
   togglePlanItem: (groupId: string, itemId: string) => Promise<void>;
+  clearPlanItemCompletion: (groupId: string, itemId: string) => Promise<void>;
+  completePlanItemWithFeedback: (
+    groupId: string,
+    itemId: string,
+    understandingLevel: UnderstandingLevel,
+  ) => Promise<void>;
   updatePlanItem: (groupId: string, itemId: string, updates: PlanItemDraft) => Promise<void>;
   addPlanItem: (groupId: string, item: PlanItemDraft) => Promise<void>;
   queueMockUpload: (groupId: string) => Promise<void>;
@@ -124,7 +133,9 @@ function toErrorMessage(error: unknown) {
       error.message.includes("plan_reference_units") ||
       error.message.includes("group_roadmap_items") ||
       error.message.includes("personal_plan_items") ||
+      error.message.includes("plan_item_feedbacks") ||
       error.message.includes("review_interval_days") ||
+      error.message.includes("source_plan_item_id") ||
       error.message.includes("scope")
     ) {
       return "Supabase 스키마가 아직 준비되지 않았어요. bootstrap SQL을 먼저 실행해 주세요.";
@@ -378,6 +389,35 @@ export function PrototypeProvider({
   async function togglePlanItem(_groupId: string, itemId: string) {
     await runMutation(async () => {
       await togglePrototypePlanItem(itemId, resolvedCurrentUserId);
+      await refreshGroups();
+    });
+  }
+
+  async function clearPlanItemCompletion(_groupId: string, itemId: string) {
+    await runMutation(async () => {
+      await clearPrototypePlanItemCompletion(itemId, resolvedCurrentUserId);
+      await refreshGroups();
+    });
+  }
+
+  async function completePlanItemWithFeedback(
+    groupId: string,
+    itemId: string,
+    understandingLevel: UnderstandingLevel,
+  ) {
+    const group = getGroupById(groups, groupId);
+
+    if (!group) {
+      return;
+    }
+
+    await runMutation(async () => {
+      await completePrototypePlanItemWithFeedback(
+        group,
+        itemId,
+        resolvedCurrentUserId,
+        understandingLevel,
+      );
       await refreshGroups();
     });
   }
@@ -686,6 +726,8 @@ export function PrototypeProvider({
     syncCurrentUserProfile,
     updateGroupDetails,
     togglePlanItem,
+    clearPlanItemCompletion,
+    completePlanItemWithFeedback,
     updatePlanItem,
     addPlanItem,
     queueMockUpload,

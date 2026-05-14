@@ -327,5 +327,6 @@ export function createPersonalPlanItemPreview(
     title: input.title.trim(),
     detail: input.detail.trim(),
     completed: false,
+    sourcePlanItemId: null,
   };
 }

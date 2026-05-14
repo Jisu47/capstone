@@ -2,17 +2,34 @@
 
 import { useEffect, useState } from "react";
 import { usePrototype } from "@/components/prototype-provider";
-import { type StudyGroup } from "@/lib/mock-data";
+import { getCurrentUserPersonalPlanItems } from "@/lib/plan-flow";
+import { type StudyGroup, type UnderstandingLevel } from "@/lib/mock-data";
 
 type StudyHubProps = {
   group: StudyGroup;
 };
 
-type PersonalTodo = {
-  id: string;
-  title: string;
-  done: boolean;
-};
+const understandingOptions: Array<{
+  value: UnderstandingLevel;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "low",
+    label: "낮음",
+    description: "다시 정리하거나 복습이 필요해요.",
+  },
+  {
+    value: "medium",
+    label: "보통",
+    description: "핵심은 이해했지만 한 번 더 보면 좋아요.",
+  },
+  {
+    value: "high",
+    label: "높음",
+    description: "혼자 다시 설명할 수 있을 정도예요.",
+  },
+];
 
 function formatTimer(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600)
@@ -24,31 +41,6 @@ function formatTimer(totalSeconds: number) {
   const seconds = (totalSeconds % 60).toString().padStart(2, "0");
 
   return `${hours}:${minutes}:${seconds}`;
-}
-
-function createInitialPersonalTodos(group: StudyGroup, currentUserId: string): PersonalTodo[] {
-  const currentMember = group.members.find((member) => member.id === currentUserId);
-
-  return [
-    {
-      id: `${group.id}-personal-focus`,
-      title: `${currentMember?.focus ?? "핵심 개념"} 다시 정리하기`,
-      done: false,
-    },
-    {
-      id: `${group.id}-personal-review`,
-      title: `${group.subject} 예상 질문 3개 만들기`,
-      done: false,
-    },
-  ];
-}
-
-function createAdditionalPersonalTodo(group: StudyGroup, index: number): PersonalTodo {
-  return {
-    id: `${group.id}-personal-extra-${index}`,
-    title: `${group.subject} 보완할 내용 ${index}`,
-    done: false,
-  };
 }
 
 function getTeammateSessionLength(index: number) {
@@ -78,24 +70,24 @@ function CheckIcon({ active }: Readonly<{ active: boolean }>) {
 }
 
 export function StudyHub({ group }: Readonly<StudyHubProps>) {
-  const { isMutating, togglePlanItem, currentUserId } = usePrototype();
+  const {
+    clearPlanItemCompletion,
+    completePlanItemWithFeedback,
+    currentUserId,
+    isMutating,
+    togglePersonalPlanItem,
+  } = usePrototype();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [pendingChecklistId, setPendingChecklistId] = useState<string | null>(null);
-  const [personalTodos, setPersonalTodos] = useState<PersonalTodo[]>(() =>
-    createInitialPersonalTodos(group, currentUserId),
-  );
-  const [personalTodoCount, setPersonalTodoCount] = useState(3);
+  const [selectedUnderstanding, setSelectedUnderstanding] = useState<UnderstandingLevel | null>(null);
   const teammates = group.members.filter((member) => member.id !== currentUserId).slice(0, 2);
   const selectedMember = teammates.find((member) => member.id === selectedMemberId) ?? null;
   const pendingChecklistItem = group.plan.find((item) => item.id === pendingChecklistId) ?? null;
+  const pendingChecklistChecked = pendingChecklistItem?.memberStatus[currentUserId] ?? false;
   const completedCount = group.plan.filter((item) => item.memberStatus[currentUserId]).length;
-
-  useEffect(() => {
-    setPersonalTodos(createInitialPersonalTodos(group, currentUserId));
-    setPersonalTodoCount(3);
-  }, [currentUserId, group.id]);
+  const personalPlanItems = getCurrentUserPersonalPlanItems(group, currentUserId);
 
   useEffect(() => {
     if (!isTimerRunning) {
@@ -111,29 +103,28 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
     };
   }, [isTimerRunning]);
 
-  async function confirmChecklistToggle() {
+  function closeChecklistModal() {
+    setPendingChecklistId(null);
+    setSelectedUnderstanding(null);
+  }
+
+  async function confirmChecklistAction() {
     if (!pendingChecklistItem) {
       return;
     }
 
-    await togglePlanItem(group.id, pendingChecklistItem.id);
-    setPendingChecklistId(null);
-  }
+    if (pendingChecklistChecked) {
+      await clearPlanItemCompletion(group.id, pendingChecklistItem.id);
+      closeChecklistModal();
+      return;
+    }
 
-  function togglePersonalTodo(todoId: string) {
-    setPersonalTodos((previous) =>
-      previous.map((todo) =>
-        todo.id === todoId ? { ...todo, done: !todo.done } : todo,
-      ),
-    );
-  }
+    if (!selectedUnderstanding) {
+      return;
+    }
 
-  function addPersonalTodo() {
-    setPersonalTodos((previous) => [
-      ...previous,
-      createAdditionalPersonalTodo(group, personalTodoCount),
-    ]);
-    setPersonalTodoCount((previous) => previous + 1);
+    await completePlanItemWithFeedback(group.id, pendingChecklistItem.id, selectedUnderstanding);
+    closeChecklistModal();
   }
 
   return (
@@ -143,7 +134,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                오늘의 스터디
+                이번 주 스터디
               </p>
               <h2 className="mt-2 text-[22px] font-semibold tracking-[-0.04em] text-slate-950">
                 {group.weeklyGoal}
@@ -173,7 +164,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
 
         <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-[15px] font-semibold text-slate-900">함께 공부 중</h2>
+            <h2 className="text-[15px] font-semibold text-slate-900">공부 중인 팀원</h2>
             <span className="text-xs text-slate-500">{teammates.length}명</span>
           </div>
 
@@ -186,9 +177,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                   key={member.id}
                   type="button"
                   onClick={() =>
-                    setSelectedMemberId((previous) =>
-                      previous === member.id ? null : member.id,
-                    )
+                    setSelectedMemberId((previous) => (previous === member.id ? null : member.id))
                   }
                   className={`w-full rounded-[14px] border px-4 py-3 text-left transition ${
                     active
@@ -213,7 +202,9 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
           {selectedMember ? (
             <div className="mt-3 rounded-[14px] border border-slate-200 bg-white px-4 py-3 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
               <p className="text-sm font-semibold text-slate-900">{selectedMember.name}</p>
-              <p className="mt-1 text-sm text-slate-600">{selectedMember.focus} 중심으로 진행 중</p>
+              <p className="mt-1 text-sm text-slate-600">
+                {selectedMember.focus} 중심으로 공부를 이어가고 있어요.
+              </p>
             </div>
           ) : null}
         </section>
@@ -252,12 +243,8 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-slate-900">
-                              {item.title}
-                            </p>
-                            <p className="mt-1 text-xs leading-5 text-slate-500">
-                              {item.detail}
-                            </p>
+                            <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                            <p className="mt-1 text-xs leading-5 text-slate-500">{item.detail}</p>
                           </div>
                           <CheckIcon active={checked} />
                         </div>
@@ -273,51 +260,97 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
 
           <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="text-[15px] font-semibold text-slate-900">추가 할 일</h2>
-              <button
-                type="button"
-                onClick={addPersonalTodo}
-                className="rounded-[12px] border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)]"
-              >
-                추가
-              </button>
+              <h2 className="text-[15px] font-semibold text-slate-900">개인 보강 할 일</h2>
+              <span className="text-xs text-slate-500">{personalPlanItems.length}개</span>
             </div>
 
-            <div className="space-y-2">
-              {personalTodos.map((todo) => (
-                <button
-                  key={todo.id}
-                  type="button"
-                  onClick={() => togglePersonalTodo(todo.id)}
-                  className={`flex w-full items-center gap-3 rounded-[14px] border px-4 py-3 text-left transition ${
-                    todo.done
-                      ? "border-[var(--brand)] bg-white text-[var(--brand)] shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
-                      : "border-slate-200 bg-white hover:border-slate-300"
-                  }`}
-                >
-                  <CheckIcon active={todo.done} />
-                  <span className="text-sm font-medium text-slate-700">{todo.title}</span>
-                </button>
-              ))}
-            </div>
+            {personalPlanItems.length === 0 ? (
+              <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+                체크리스트를 완료한 뒤 이해도를 낮음으로 선택하면 개인 보강 할 일이 여기에
+                추가돼요.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {personalPlanItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      void togglePersonalPlanItem(item.id, !item.completed);
+                    }}
+                    className={`flex w-full items-start gap-3 rounded-[14px] border px-4 py-3 text-left transition ${
+                      item.completed
+                        ? "border-[var(--brand)] bg-white text-[var(--brand)] shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
+                        : "border-slate-200 bg-white hover:border-slate-300"
+                    }`}
+                  >
+                    <CheckIcon active={item.completed} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-700">{item.title}</p>
+                      {item.detail ? (
+                        <p className="mt-1 text-xs leading-5 text-slate-500">{item.detail}</p>
+                      ) : null}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       </div>
 
       {pendingChecklistItem ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/24 px-6">
-          <div className="w-full max-w-[296px] rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.10)]">
-            <p className="text-base font-semibold text-slate-900">체크 상태 변경</p>
+          <div className="w-full max-w-[320px] rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.10)]">
+            <p className="text-base font-semibold text-slate-900">
+              {pendingChecklistChecked ? "체크 해제" : "이해도 체크"}
+            </p>
+
             <p className="mt-2 text-sm leading-6 text-slate-600">
               {pendingChecklistItem.title}
-              <br />
-              완료 상태를 바꿀까요?
             </p>
+
+            {pendingChecklistChecked ? (
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                완료 체크를 해제할까요? 이미 만들어진 개인 보강 할 일은 그대로 남아 있어요.
+              </p>
+            ) : (
+              <>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  이 할 일을 어느 정도 이해했는지 선택해 주세요. 이해도가 낮으면 개인 보강 할
+                  일이 자동으로 추가됩니다.
+                </p>
+
+                <div className="mt-4 space-y-2">
+                  {understandingOptions.map((option) => {
+                    const active = selectedUnderstanding === option.value;
+
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setSelectedUnderstanding(option.value)}
+                        className={`w-full rounded-[14px] border px-4 py-3 text-left transition ${
+                          active
+                            ? "border-[var(--brand)] bg-[var(--brand-soft)] shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
+                            : "border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
+                        <p className="text-sm font-semibold text-slate-900">{option.label}</p>
+                        <p className="mt-1 text-xs leading-5 text-slate-500">
+                          {option.description}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
 
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setPendingChecklistId(null)}
+                onClick={closeChecklistModal}
                 className="rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
               >
                 취소
@@ -325,12 +358,12 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
               <button
                 type="button"
                 onClick={() => {
-                  void confirmChecklistToggle();
+                  void confirmChecklistAction();
                 }}
-                disabled={isMutating}
+                disabled={isMutating || (!pendingChecklistChecked && !selectedUnderstanding)}
                 className="rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-70"
               >
-                {isMutating ? "저장 중" : "확인"}
+                {isMutating ? "저장 중" : pendingChecklistChecked ? "해제하기" : "완료"}
               </button>
             </div>
           </div>

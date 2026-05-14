@@ -370,6 +370,7 @@ function createStudyGroupDefaults(memberIds: string[]) {
     planReferenceUnits: [] as StudyGroup["planReferenceUnits"],
     roadmap: [] as StudyGroup["roadmap"],
     personalPlanItems: [] as StudyGroup["personalPlanItems"],
+    planItemFeedbacks: [] as StudyGroup["planItemFeedbacks"],
   };
 }
 

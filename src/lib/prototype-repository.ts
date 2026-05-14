@@ -20,12 +20,14 @@ import {
   type Material,
   type Member,
   type PersonalPlanItem,
+  type PlanItemFeedback,
   type PlanReferenceUnit,
   type PlanReferenceUpload,
   type ReviewIntervalDays,
   type RoadmapItem,
   type SourceCard,
   type StudyGroup,
+  type UnderstandingLevel,
   type Weekday,
 } from "@/lib/mock-data";
 
@@ -152,8 +154,17 @@ type PersonalPlanItemRow = {
   title: string;
   detail: string;
   completed: boolean;
+  source_plan_item_id: string | null;
   sort_order: number;
   created_at: string;
+};
+
+type PlanItemFeedbackRow = {
+  plan_item_id: string;
+  member_id: string;
+  understanding_level: UnderstandingLevel;
+  created_at: string;
+  updated_at: string;
 };
 
 type GroupBundle = {
@@ -169,6 +180,7 @@ type GroupBundle = {
   planReferenceUnits: PlanReferenceUnitRow[];
   roadmapItems: GroupRoadmapItemRow[];
   personalPlanItems: PersonalPlanItemRow[];
+  planItemFeedbacks: PlanItemFeedbackRow[];
 };
 
 type FetchRows = {
@@ -184,6 +196,7 @@ type FetchRows = {
   planReferenceUnits: PlanReferenceUnitRow[];
   roadmapItems: GroupRoadmapItemRow[];
   personalPlanItems: PersonalPlanItemRow[];
+  planItemFeedbacks: PlanItemFeedbackRow[];
 };
 
 function unwrapData<T>(
@@ -445,8 +458,17 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
     title: item.title,
     detail: item.detail,
     completed: item.completed,
+    source_plan_item_id: item.sourcePlanItemId ?? null,
     sort_order: index,
     created_at: addMinutes(groupCreatedAt, index + 1),
+  }));
+
+  const planItemFeedbacks = group.planItemFeedbacks.map<PlanItemFeedbackRow>((item) => ({
+    plan_item_id: item.planItemId,
+    member_id: item.memberId,
+    understanding_level: item.understandingLevel,
+    created_at: item.createdAt,
+    updated_at: item.updatedAt,
   }));
 
   return {
@@ -462,6 +484,7 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
     planReferenceUnits,
     roadmapItems,
     personalPlanItems,
+    planItemFeedbacks,
   };
 }
 
@@ -487,6 +510,7 @@ function mergeBundles(bundles: GroupBundle[]) {
     planReferenceUnits: bundles.flatMap((bundle) => bundle.planReferenceUnits),
     roadmapItems: bundles.flatMap((bundle) => bundle.roadmapItems),
     personalPlanItems: bundles.flatMap((bundle) => bundle.personalPlanItems),
+    planItemFeedbacks: bundles.flatMap((bundle) => bundle.planItemFeedbacks),
   };
 }
 
@@ -506,6 +530,7 @@ async function fetchRows(): Promise<FetchRows> {
     planReferenceUnitsResponse,
     roadmapItemsResponse,
     personalPlanItemsResponse,
+    planItemFeedbacksResponse,
   ] = await Promise.all([
     client.from("study_groups").select("*").order("created_at", { ascending: false }),
     client.from("profiles").select("*"),
@@ -531,6 +556,10 @@ async function fetchRows(): Promise<FetchRows> {
       .from("personal_plan_items")
       .select("*")
       .order("sort_order", { ascending: true }),
+    client
+      .from("plan_item_feedbacks")
+      .select("*")
+      .order("updated_at", { ascending: true }),
   ]);
 
   return {
@@ -567,6 +596,10 @@ async function fetchRows(): Promise<FetchRows> {
       "Failed to load personal plan items",
       personalPlanItemsResponse,
     ) as PersonalPlanItemRow[],
+    planItemFeedbacks: unwrapData(
+      "Failed to load plan item feedbacks",
+      planItemFeedbacksResponse,
+    ) as PlanItemFeedbackRow[],
   };
 }
 
@@ -583,6 +616,7 @@ function rowsToGroups({
   planReferenceUnits,
   roadmapItems,
   personalPlanItems,
+  planItemFeedbacks,
 }: FetchRows): StudyGroup[] {
   const profilesById = new Map(profiles.map((profile) => [profile.id, profile]));
   const groupMembersByGroup = new Map<string, GroupMemberRow[]>();
@@ -595,6 +629,7 @@ function rowsToGroups({
   const planReferenceUnitsByGroup = new Map<string, PlanReferenceUnitRow[]>();
   const roadmapItemsByGroup = new Map<string, GroupRoadmapItemRow[]>();
   const personalPlanItemsByGroup = new Map<string, PersonalPlanItemRow[]>();
+  const planItemFeedbacksByGroup = new Map<string, PlanItemFeedbackRow[]>();
 
   for (const membership of groupMembers) {
     const entries = groupMembersByGroup.get(membership.group_id) ?? [];
@@ -655,6 +690,20 @@ function rowsToGroups({
     const entries = personalPlanItemsByGroup.get(item.group_id) ?? [];
     entries.push(item);
     personalPlanItemsByGroup.set(item.group_id, entries);
+  }
+
+  const planItemGroupById = new Map(planItems.map((item) => [item.id, item.group_id]));
+
+  for (const item of planItemFeedbacks) {
+    const groupId = planItemGroupById.get(item.plan_item_id);
+
+    if (!groupId) {
+      continue;
+    }
+
+    const entries = planItemFeedbacksByGroup.get(groupId) ?? [];
+    entries.push(item);
+    planItemFeedbacksByGroup.set(groupId, entries);
   }
 
   return groups.map((group) => {
@@ -773,6 +822,17 @@ function rowsToGroups({
       title: item.title,
       detail: item.detail,
       completed: item.completed,
+      sourcePlanItemId: item.source_plan_item_id,
+    }));
+
+    const mappedPlanItemFeedbacks = (
+      planItemFeedbacksByGroup.get(group.id) ?? []
+    ).map<PlanItemFeedback>((item) => ({
+      planItemId: item.plan_item_id,
+      memberId: item.member_id,
+      understandingLevel: item.understanding_level,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
     }));
 
     return {
@@ -798,6 +858,7 @@ function rowsToGroups({
       planReferenceUnits: mappedPlanReferenceUnits,
       roadmap: mappedRoadmap,
       personalPlanItems: mappedPersonalPlanItems,
+      planItemFeedbacks: mappedPlanItemFeedbacks,
     };
   });
 }
@@ -863,6 +924,14 @@ async function seedInitialData() {
     "Failed to seed personal plan items",
     await client.from("personal_plan_items").upsert(merged.personalPlanItems),
   );
+  if (merged.planItemFeedbacks.length > 0) {
+    ensureSuccess(
+      "Failed to seed plan item feedbacks",
+      await client
+        .from("plan_item_feedbacks")
+        .upsert(merged.planItemFeedbacks, { onConflict: "plan_item_id,member_id" }),
+    );
+  }
 }
 
 async function persistGroup(group: StudyGroup) {
@@ -935,6 +1004,13 @@ async function persistGroup(group: StudyGroup) {
       ensureSuccess(
         "Failed to save personal plan items",
         await client.from("personal_plan_items").insert(bundle.personalPlanItems),
+      );
+    }
+
+    if (bundle.planItemFeedbacks.length > 0) {
+      ensureSuccess(
+        "Failed to save plan item feedbacks",
+        await client.from("plan_item_feedbacks").insert(bundle.planItemFeedbacks),
       );
     }
   } catch (error) {
@@ -1080,6 +1156,147 @@ export async function togglePrototypePlanItem(itemId: string, memberId = current
     await client.from("plan_item_completions").insert({
       plan_item_id: itemId,
       member_id: memberId,
+    }),
+  );
+}
+
+export async function clearPrototypePlanItemCompletion(
+  itemId: string,
+  memberId = currentUserId,
+) {
+  const client = getSupabaseBrowserClient();
+
+  ensureSuccess(
+    "Failed to delete plan completion",
+    await client
+      .from("plan_item_completions")
+      .delete()
+      .eq("plan_item_id", itemId)
+      .eq("member_id", memberId),
+  );
+
+  ensureSuccess(
+    "Failed to delete plan item feedback",
+    await client
+      .from("plan_item_feedbacks")
+      .delete()
+      .eq("plan_item_id", itemId)
+      .eq("member_id", memberId),
+  );
+}
+
+export async function completePrototypePlanItemWithFeedback(
+  group: StudyGroup,
+  itemId: string,
+  memberId: string,
+  understandingLevel: UnderstandingLevel,
+) {
+  const client = getSupabaseBrowserClient();
+  const targetItem = group.plan.find((item) => item.id === itemId);
+
+  if (!targetItem) {
+    throw new Error("Failed to find the selected plan item.");
+  }
+
+  const existingCompletion = await client
+    .from("plan_item_completions")
+    .select("plan_item_id")
+    .eq("plan_item_id", itemId)
+    .eq("member_id", memberId)
+    .maybeSingle();
+
+  const completionData = unwrapNullableData(
+    "Failed to inspect plan completion",
+    existingCompletion,
+  );
+
+  if (!completionData) {
+    ensureSuccess(
+      "Failed to save plan completion",
+      await client.from("plan_item_completions").insert({
+        plan_item_id: itemId,
+        member_id: memberId,
+      }),
+    );
+  }
+
+  const now = new Date().toISOString();
+  const existingFeedback = await client
+    .from("plan_item_feedbacks")
+    .select("created_at")
+    .eq("plan_item_id", itemId)
+    .eq("member_id", memberId)
+    .maybeSingle();
+
+  const feedbackData = unwrapNullableData(
+    "Failed to inspect plan item feedback",
+    existingFeedback,
+  );
+
+  ensureSuccess(
+    "Failed to save plan item feedback",
+    await client.from("plan_item_feedbacks").upsert(
+      {
+        plan_item_id: itemId,
+        member_id: memberId,
+        understanding_level: understandingLevel,
+        created_at: feedbackData?.created_at ?? now,
+        updated_at: now,
+      },
+      { onConflict: "plan_item_id,member_id" },
+    ),
+  );
+
+  if (understandingLevel !== "low") {
+    return;
+  }
+
+  const generatedTitle = `${targetItem.title} 다시 복습하기`;
+  const generatedDetail = targetItem.detail.trim()
+    ? `${targetItem.detail} 이해도가 낮아 개인 보강 할 일로 추가됐어요.`
+    : "이해도가 낮아 개인 보강 할 일로 추가됐어요.";
+  const existingPersonalItem = await client
+    .from("personal_plan_items")
+    .select("id")
+    .eq("group_id", group.id)
+    .eq("member_id", memberId)
+    .eq("source_plan_item_id", itemId)
+    .maybeSingle();
+
+  const personalItemData = unwrapNullableData(
+    "Failed to inspect generated personal plan item",
+    existingPersonalItem,
+  );
+
+  if (personalItemData) {
+    ensureSuccess(
+      "Failed to refresh generated personal plan item",
+      await client
+        .from("personal_plan_items")
+        .update({
+          title: generatedTitle,
+          detail: generatedDetail,
+          completed: false,
+        })
+        .eq("id", personalItemData.id),
+    );
+    return;
+  }
+
+  const currentItemCount = group.personalPlanItems.filter((item) => item.memberId === memberId).length;
+
+  ensureSuccess(
+    "Failed to create generated personal plan item",
+    await client.from("personal_plan_items").insert({
+      id: createId("personal-plan"),
+      group_id: group.id,
+      member_id: memberId,
+      title: generatedTitle,
+      detail: generatedDetail,
+      completed: false,
+      source_plan_item_id: itemId,
+      sort_order: currentItemCount,
+      created_at: now,
     }),
   );
 }
@@ -1288,6 +1505,7 @@ export async function addPrototypePersonalPlanItem(
       title: item.title,
       detail: item.detail,
       completed: false,
+      source_plan_item_id: null,
       sort_order: sortOrder,
       created_at: new Date().toISOString(),
     }),

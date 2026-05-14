@@ -44,6 +44,7 @@ export type ChatMessage = {
 export type Weekday = "월" | "화" | "수" | "목" | "금";
 
 export type ReviewIntervalDays = 3 | 7 | 14 | 28;
+export type UnderstandingLevel = "low" | "medium" | "high";
 
 export type WeeklyPlanItem = {
   id: string;
@@ -88,6 +89,15 @@ export type PersonalPlanItem = {
   title: string;
   detail: string;
   completed: boolean;
+  sourcePlanItemId?: string | null;
+};
+
+export type PlanItemFeedback = {
+  planItemId: string;
+  memberId: string;
+  understandingLevel: UnderstandingLevel;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type StudyGroup = {
@@ -113,6 +123,7 @@ export type StudyGroup = {
   planReferenceUnits: PlanReferenceUnit[];
   roadmap: RoadmapItem[];
   personalPlanItems: PersonalPlanItem[];
+  planItemFeedbacks: PlanItemFeedback[];
 };
 
 export type GroupDetailsInput = {
@@ -344,6 +355,7 @@ function createPlanFlowDefaults(memberIds: string[]) {
     planReferenceUnits: [] as PlanReferenceUnit[],
     roadmap: [] as RoadmapItem[],
     personalPlanItems: [] as PersonalPlanItem[],
+    planItemFeedbacks: [] as PlanItemFeedback[],
   };
 }
 

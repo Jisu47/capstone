@@ -134,8 +134,21 @@ create table if not exists public.personal_plan_items (
   title text not null,
   detail text not null default '',
   completed boolean not null default false,
+  source_plan_item_id text references public.plan_items(id) on delete set null,
   sort_order integer not null default 0,
   created_at timestamptz not null default timezone('utc', now())
+);
+
+alter table public.personal_plan_items
+  add column if not exists source_plan_item_id text references public.plan_items(id) on delete set null;
+
+create table if not exists public.plan_item_feedbacks (
+  plan_item_id text not null references public.plan_items(id) on delete cascade,
+  member_id text not null references public.profiles(id) on delete cascade,
+  understanding_level text not null check (understanding_level in ('low', 'medium', 'high')),
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  primary key (plan_item_id, member_id)
 );
 
 create index if not exists idx_group_members_group_id
@@ -159,8 +172,14 @@ create index if not exists idx_group_roadmap_items_group_id
 create index if not exists idx_personal_plan_items_group_id
   on public.personal_plan_items (group_id);
 
+create index if not exists idx_personal_plan_items_source_plan_item_id
+  on public.personal_plan_items (source_plan_item_id);
+
 create index if not exists idx_plan_item_completions_member_id
   on public.plan_item_completions (member_id);
+
+create index if not exists idx_plan_item_feedbacks_member_id
+  on public.plan_item_feedbacks (member_id);
 
 create index if not exists idx_chat_messages_group_id
   on public.chat_messages (group_id);
@@ -183,6 +202,7 @@ alter table public.plan_reference_uploads enable row level security;
 alter table public.plan_reference_units enable row level security;
 alter table public.group_roadmap_items enable row level security;
 alter table public.personal_plan_items enable row level security;
+alter table public.plan_item_feedbacks enable row level security;
 
 drop policy if exists "profiles_select_all" on public.profiles;
 create policy "profiles_select_all"
@@ -354,6 +374,35 @@ create policy "plan_item_completions_update_all"
 drop policy if exists "plan_item_completions_delete_all" on public.plan_item_completions;
 create policy "plan_item_completions_delete_all"
   on public.plan_item_completions
+  for delete
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "plan_item_feedbacks_select_all" on public.plan_item_feedbacks;
+create policy "plan_item_feedbacks_select_all"
+  on public.plan_item_feedbacks
+  for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "plan_item_feedbacks_insert_all" on public.plan_item_feedbacks;
+create policy "plan_item_feedbacks_insert_all"
+  on public.plan_item_feedbacks
+  for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "plan_item_feedbacks_update_all" on public.plan_item_feedbacks;
+create policy "plan_item_feedbacks_update_all"
+  on public.plan_item_feedbacks
+  for update
+  to anon, authenticated
+  using (true)
+  with check (true);
+
+drop policy if exists "plan_item_feedbacks_delete_all" on public.plan_item_feedbacks;
+create policy "plan_item_feedbacks_delete_all"
+  on public.plan_item_feedbacks
   for delete
   to anon, authenticated
   using (true);
