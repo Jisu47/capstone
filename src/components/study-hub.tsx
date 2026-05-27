@@ -17,17 +17,17 @@ const understandingOptions: Array<{
   {
     value: "low",
     label: "낮음",
-    description: "다시 정리하거나 복습이 필요해요.",
+    description: "다시 복습이 필요해요. 저장된 할 일 목록에 후보로 저장됩니다.",
   },
   {
     value: "medium",
     label: "보통",
-    description: "핵심은 이해했지만 한 번 더 보면 좋아요.",
+    description: "한 번 더 보면 더 안정적으로 기억할 수 있어요.",
   },
   {
     value: "high",
     label: "높음",
-    description: "혼자 다시 설명할 수 있을 정도예요.",
+    description: "지금 바로 설명하거나 문제를 풀 수 있는 상태예요.",
   },
 ];
 
@@ -81,7 +81,9 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [pendingChecklistId, setPendingChecklistId] = useState<string | null>(null);
-  const [selectedUnderstanding, setSelectedUnderstanding] = useState<UnderstandingLevel | null>(null);
+  const [selectedUnderstanding, setSelectedUnderstanding] = useState<UnderstandingLevel | null>(
+    null,
+  );
   const teammates = group.members.filter((member) => member.id !== currentUserId).slice(0, 2);
   const selectedMember = teammates.find((member) => member.id === selectedMemberId) ?? null;
   const pendingChecklistItem = group.plan.find((item) => item.id === pendingChecklistId) ?? null;
@@ -244,7 +246,9 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                            <p className="mt-1 text-xs leading-5 text-slate-500">{item.detail}</p>
+                            <p className="mt-1 text-xs leading-5 text-slate-500">
+                              {item.detail}
+                            </p>
                           </div>
                           <CheckIcon active={checked} />
                         </div>
@@ -266,8 +270,8 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
 
             {personalPlanItems.length === 0 ? (
               <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
-                체크리스트를 완료한 뒤 이해도를 낮음으로 선택하면 개인 보강 할 일이 여기에
-                추가돼요.
+                아직 추가된 개인 할 일이 없습니다. 계획 탭에서 저장된 할 일 목록을 열고
+                필요한 항목을 선택해 추가해 보세요.
               </div>
             ) : (
               <div className="space-y-2">
@@ -312,13 +316,14 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
 
             {pendingChecklistChecked ? (
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                완료 체크를 해제할까요? 이미 만들어진 개인 보강 할 일은 그대로 남아 있어요.
+                완료 체크를 해제할까요? 이미 저장된 할 일 목록이나 현재 개인 할 일은
+                그대로 유지됩니다.
               </p>
             ) : (
               <>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  이 할 일을 어느 정도 이해했는지 선택해 주세요. 이해도가 낮으면 개인 보강 할
-                  일이 자동으로 추가됩니다.
+                  이 할 일을 어느 정도 이해했는지 선택해 주세요. 이해도가 낮으면
+                  저장된 개인 할 일 목록에 보강 후보로 저장됩니다.
                 </p>
 
                 <div className="mt-4 space-y-2">

@@ -4,6 +4,7 @@ import {
   type PersonalPlanItem,
   type PlanReferenceUnit,
   type PlanReferenceUpload,
+  type ReviewCandidate,
   type ReviewIntervalDays,
   type RoadmapItem,
   type StudyGroup,
@@ -37,6 +38,11 @@ export type PersonalPlanItemDraft = {
   detail: string;
 };
 
+export type SavedPersonalTaskDraft = {
+  title: string;
+  detail: string;
+};
+
 export const orderedWeekdays: Weekday[] = ["월", "화", "수", "목", "금"];
 
 export const reviewIntervalOptions: Array<{
@@ -48,6 +54,14 @@ export const reviewIntervalOptions: Array<{
   { label: "2주", days: 14 },
   { label: "한달", days: 28 },
 ];
+
+const jsDayToWeekday: Partial<Record<number, Weekday>> = {
+  1: "월",
+  2: "화",
+  3: "수",
+  4: "목",
+  5: "금",
+};
 
 const subjectUnitCatalogs: Array<{
   match: RegExp;
@@ -314,6 +328,80 @@ export function buildReviewCards(group: StudyGroup, memberId = currentUserId) {
 
 export function getCurrentUserPersonalPlanItems(group: StudyGroup, memberId = currentUserId) {
   return group.personalPlanItems.filter((item) => item.memberId === memberId);
+}
+
+export function getCurrentUserSavedPersonalTaskItems(
+  group: StudyGroup,
+  memberId = currentUserId,
+) {
+  return group.savedPersonalTaskLibraryItems.filter((item) => item.memberId === memberId);
+}
+
+export function getCurrentUserReviewCandidates(group: StudyGroup, memberId = currentUserId) {
+  return group.reviewCandidates.filter((item) => item.memberId === memberId);
+}
+
+export function getPendingReviewCandidates(group: StudyGroup, memberId = currentUserId) {
+  const addedSourcePlanItemIds = new Set(
+    group.personalPlanItems
+      .filter((item) => item.memberId === memberId && item.sourcePlanItemId)
+      .map((item) => item.sourcePlanItemId),
+  );
+
+  return getCurrentUserReviewCandidates(group, memberId).filter(
+    (item) => !addedSourcePlanItemIds.has(item.sourcePlanItemId),
+  );
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function addDays(date: Date, days: number) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+}
+
+export function getReviewCandidateScheduledDate(
+  group: StudyGroup,
+  candidate: ReviewCandidate,
+  memberId = currentUserId,
+) {
+  const reviewInterval = group.reviewIntervals[memberId] ?? null;
+
+  if (!reviewInterval || group.reviewDays.length === 0) {
+    return null;
+  }
+
+  const reviewDaySet = new Set(group.reviewDays);
+  const dueDate = startOfDay(addDays(new Date(candidate.createdAt), reviewInterval));
+
+  for (let offset = 0; offset < 14; offset += 1) {
+    const candidateDate = addDays(dueDate, offset);
+    const weekday = jsDayToWeekday[candidateDate.getDay()];
+
+    if (weekday && reviewDaySet.has(weekday)) {
+      return candidateDate;
+    }
+  }
+
+  return null;
+}
+
+export function isReviewCandidateDue(
+  group: StudyGroup,
+  candidate: ReviewCandidate,
+  memberId = currentUserId,
+  now = new Date(),
+) {
+  const scheduledDate = getReviewCandidateScheduledDate(group, candidate, memberId);
+
+  if (!scheduledDate) {
+    return false;
+  }
+
+  return startOfDay(now).getTime() >= scheduledDate.getTime();
 }
 
 export function createPersonalPlanItemPreview(

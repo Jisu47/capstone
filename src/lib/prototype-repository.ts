@@ -3,9 +3,11 @@ import {
   buildMockPlanReferenceUnits,
   buildPlanAgentDraft,
   buildPlanAgentAnswer,
+  isReviewCandidateDue,
   type PersonalPlanItemDraft,
   type PlanAgentDraft,
   type PlanReferenceUploadDraft,
+  type SavedPersonalTaskDraft,
 } from "@/lib/plan-flow";
 import {
   buildGroupDescription,
@@ -23,8 +25,10 @@ import {
   type PlanItemFeedback,
   type PlanReferenceUnit,
   type PlanReferenceUpload,
+  type ReviewCandidate,
   type ReviewIntervalDays,
   type RoadmapItem,
+  type SavedPersonalTaskItem,
   type SourceCard,
   type StudyGroup,
   type UnderstandingLevel,
@@ -159,6 +163,29 @@ type PersonalPlanItemRow = {
   created_at: string;
 };
 
+type PersonalTaskLibraryItemRow = {
+  id: string;
+  group_id: string;
+  member_id: string;
+  title: string;
+  detail: string;
+  source_plan_item_id: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+type ReviewCandidateRow = {
+  id: string;
+  group_id: string;
+  member_id: string;
+  source_plan_item_id: string;
+  title: string;
+  detail: string;
+  created_at: string;
+  updated_at: string;
+};
+
 type PlanItemFeedbackRow = {
   plan_item_id: string;
   member_id: string;
@@ -179,7 +206,9 @@ type GroupBundle = {
   planReferenceUploads: PlanReferenceUploadRow[];
   planReferenceUnits: PlanReferenceUnitRow[];
   roadmapItems: GroupRoadmapItemRow[];
+  reviewCandidates: ReviewCandidateRow[];
   personalPlanItems: PersonalPlanItemRow[];
+  personalTaskLibraryItems: PersonalTaskLibraryItemRow[];
   planItemFeedbacks: PlanItemFeedbackRow[];
 };
 
@@ -195,7 +224,9 @@ type FetchRows = {
   planReferenceUploads: PlanReferenceUploadRow[];
   planReferenceUnits: PlanReferenceUnitRow[];
   roadmapItems: GroupRoadmapItemRow[];
+  reviewCandidates: ReviewCandidateRow[];
   personalPlanItems: PersonalPlanItemRow[];
+  personalTaskLibraryItems: PersonalTaskLibraryItemRow[];
   planItemFeedbacks: PlanItemFeedbackRow[];
 };
 
@@ -451,6 +482,17 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
     sort_order: index,
   }));
 
+  const reviewCandidates = group.reviewCandidates.map<ReviewCandidateRow>((item) => ({
+    id: item.id,
+    group_id: group.id,
+    member_id: item.memberId,
+    source_plan_item_id: item.sourcePlanItemId,
+    title: item.title,
+    detail: item.detail,
+    created_at: item.createdAt,
+    updated_at: item.updatedAt,
+  }));
+
   const personalPlanItems = group.personalPlanItems.map<PersonalPlanItemRow>((item, index) => ({
     id: item.id,
     group_id: group.id,
@@ -462,6 +504,20 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
     sort_order: index,
     created_at: addMinutes(groupCreatedAt, index + 1),
   }));
+
+  const personalTaskLibraryItems = group.savedPersonalTaskLibraryItems.map<PersonalTaskLibraryItemRow>(
+    (item, index) => ({
+      id: item.id,
+      group_id: group.id,
+      member_id: item.memberId,
+      title: item.title,
+      detail: item.detail,
+      source_plan_item_id: item.sourcePlanItemId ?? null,
+      sort_order: index,
+      created_at: item.createdAt,
+      updated_at: item.updatedAt,
+    }),
+  );
 
   const planItemFeedbacks = group.planItemFeedbacks.map<PlanItemFeedbackRow>((item) => ({
     plan_item_id: item.planItemId,
@@ -483,7 +539,9 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
     planReferenceUploads,
     planReferenceUnits,
     roadmapItems,
+    reviewCandidates,
     personalPlanItems,
+    personalTaskLibraryItems,
     planItemFeedbacks,
   };
 }
@@ -509,7 +567,9 @@ function mergeBundles(bundles: GroupBundle[]) {
     planReferenceUploads: bundles.flatMap((bundle) => bundle.planReferenceUploads),
     planReferenceUnits: bundles.flatMap((bundle) => bundle.planReferenceUnits),
     roadmapItems: bundles.flatMap((bundle) => bundle.roadmapItems),
+    reviewCandidates: bundles.flatMap((bundle) => bundle.reviewCandidates),
     personalPlanItems: bundles.flatMap((bundle) => bundle.personalPlanItems),
+    personalTaskLibraryItems: bundles.flatMap((bundle) => bundle.personalTaskLibraryItems),
     planItemFeedbacks: bundles.flatMap((bundle) => bundle.planItemFeedbacks),
   };
 }
@@ -529,7 +589,9 @@ async function fetchRows(): Promise<FetchRows> {
     planReferenceUploadsResponse,
     planReferenceUnitsResponse,
     roadmapItemsResponse,
+    reviewCandidatesResponse,
     personalPlanItemsResponse,
+    personalTaskLibraryItemsResponse,
     planItemFeedbacksResponse,
   ] = await Promise.all([
     client.from("study_groups").select("*").order("created_at", { ascending: false }),
@@ -553,7 +615,15 @@ async function fetchRows(): Promise<FetchRows> {
       .select("*")
       .order("sort_order", { ascending: true }),
     client
+      .from("review_candidates")
+      .select("*")
+      .order("created_at", { ascending: true }),
+    client
       .from("personal_plan_items")
+      .select("*")
+      .order("sort_order", { ascending: true }),
+    client
+      .from("personal_task_library_items")
       .select("*")
       .order("sort_order", { ascending: true }),
     client
@@ -592,10 +662,18 @@ async function fetchRows(): Promise<FetchRows> {
       "Failed to load roadmap items",
       roadmapItemsResponse,
     ) as GroupRoadmapItemRow[],
+    reviewCandidates: unwrapData(
+      "Failed to load review candidates",
+      reviewCandidatesResponse,
+    ) as ReviewCandidateRow[],
     personalPlanItems: unwrapData(
       "Failed to load personal plan items",
       personalPlanItemsResponse,
     ) as PersonalPlanItemRow[],
+    personalTaskLibraryItems: unwrapData(
+      "Failed to load saved personal task items",
+      personalTaskLibraryItemsResponse,
+    ) as PersonalTaskLibraryItemRow[],
     planItemFeedbacks: unwrapData(
       "Failed to load plan item feedbacks",
       planItemFeedbacksResponse,
@@ -615,7 +693,9 @@ function rowsToGroups({
   planReferenceUploads,
   planReferenceUnits,
   roadmapItems,
+  reviewCandidates,
   personalPlanItems,
+  personalTaskLibraryItems,
   planItemFeedbacks,
 }: FetchRows): StudyGroup[] {
   const profilesById = new Map(profiles.map((profile) => [profile.id, profile]));
@@ -628,7 +708,9 @@ function rowsToGroups({
   const planReferenceUploadsByGroup = new Map<string, PlanReferenceUploadRow[]>();
   const planReferenceUnitsByGroup = new Map<string, PlanReferenceUnitRow[]>();
   const roadmapItemsByGroup = new Map<string, GroupRoadmapItemRow[]>();
+  const reviewCandidatesByGroup = new Map<string, ReviewCandidateRow[]>();
   const personalPlanItemsByGroup = new Map<string, PersonalPlanItemRow[]>();
+  const personalTaskLibraryItemsByGroup = new Map<string, PersonalTaskLibraryItemRow[]>();
   const planItemFeedbacksByGroup = new Map<string, PlanItemFeedbackRow[]>();
 
   for (const membership of groupMembers) {
@@ -686,10 +768,22 @@ function rowsToGroups({
     roadmapItemsByGroup.set(item.group_id, entries);
   }
 
+  for (const item of reviewCandidates) {
+    const entries = reviewCandidatesByGroup.get(item.group_id) ?? [];
+    entries.push(item);
+    reviewCandidatesByGroup.set(item.group_id, entries);
+  }
+
   for (const item of personalPlanItems) {
     const entries = personalPlanItemsByGroup.get(item.group_id) ?? [];
     entries.push(item);
     personalPlanItemsByGroup.set(item.group_id, entries);
+  }
+
+  for (const item of personalTaskLibraryItems) {
+    const entries = personalTaskLibraryItemsByGroup.get(item.group_id) ?? [];
+    entries.push(item);
+    personalTaskLibraryItemsByGroup.set(item.group_id, entries);
   }
 
   const planItemGroupById = new Map(planItems.map((item) => [item.id, item.group_id]));
@@ -814,6 +908,18 @@ function rowsToGroups({
       }),
     );
 
+    const mappedReviewCandidates = (
+      reviewCandidatesByGroup.get(group.id) ?? []
+    ).map<ReviewCandidate>((item) => ({
+      id: item.id,
+      memberId: item.member_id,
+      title: item.title,
+      detail: item.detail,
+      sourcePlanItemId: item.source_plan_item_id,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+    }));
+
     const mappedPersonalPlanItems = (
       personalPlanItemsByGroup.get(group.id) ?? []
     ).map<PersonalPlanItem>((item) => ({
@@ -823,6 +929,18 @@ function rowsToGroups({
       detail: item.detail,
       completed: item.completed,
       sourcePlanItemId: item.source_plan_item_id,
+    }));
+
+    const mappedSavedPersonalTaskLibraryItems = (
+      personalTaskLibraryItemsByGroup.get(group.id) ?? []
+    ).map<SavedPersonalTaskItem>((item) => ({
+      id: item.id,
+      memberId: item.member_id,
+      title: item.title,
+      detail: item.detail,
+      sourcePlanItemId: item.source_plan_item_id,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
     }));
 
     const mappedPlanItemFeedbacks = (
@@ -857,7 +975,9 @@ function rowsToGroups({
       planReferenceUploads: mappedPlanReferenceUploads,
       planReferenceUnits: mappedPlanReferenceUnits,
       roadmap: mappedRoadmap,
+      reviewCandidates: mappedReviewCandidates,
       personalPlanItems: mappedPersonalPlanItems,
+      savedPersonalTaskLibraryItems: mappedSavedPersonalTaskLibraryItems,
       planItemFeedbacks: mappedPlanItemFeedbacks,
     };
   });
@@ -920,10 +1040,30 @@ async function seedInitialData() {
     "Failed to seed roadmap items",
     await client.from("group_roadmap_items").upsert(merged.roadmapItems),
   );
+  if (merged.reviewCandidates.length > 0) {
+    ensureSuccess(
+      "Failed to seed review candidates",
+      await client
+        .from("review_candidates")
+        .upsert(merged.reviewCandidates, {
+          onConflict: "group_id,member_id,source_plan_item_id",
+        }),
+    );
+  }
   ensureSuccess(
     "Failed to seed personal plan items",
     await client.from("personal_plan_items").upsert(merged.personalPlanItems),
   );
+  if (merged.personalTaskLibraryItems.length > 0) {
+    ensureSuccess(
+      "Failed to seed saved personal task items",
+      await client
+        .from("personal_task_library_items")
+        .upsert(merged.personalTaskLibraryItems, {
+          onConflict: "id",
+        }),
+    );
+  }
   if (merged.planItemFeedbacks.length > 0) {
     ensureSuccess(
       "Failed to seed plan item feedbacks",
@@ -1000,10 +1140,24 @@ async function persistGroup(group: StudyGroup) {
       );
     }
 
+    if (bundle.reviewCandidates.length > 0) {
+      ensureSuccess(
+        "Failed to save review candidates",
+        await client.from("review_candidates").insert(bundle.reviewCandidates),
+      );
+    }
+
     if (bundle.personalPlanItems.length > 0) {
       ensureSuccess(
         "Failed to save personal plan items",
         await client.from("personal_plan_items").insert(bundle.personalPlanItems),
+      );
+    }
+
+    if (bundle.personalTaskLibraryItems.length > 0) {
+      ensureSuccess(
+        "Failed to save saved personal task items",
+        await client.from("personal_task_library_items").insert(bundle.personalTaskLibraryItems),
       );
     }
 
@@ -1253,50 +1407,58 @@ export async function completePrototypePlanItemWithFeedback(
 
   const generatedTitle = `${targetItem.title} 다시 복습하기`;
   const generatedDetail = targetItem.detail.trim()
-    ? `${targetItem.detail} 이해도가 낮아 개인 보강 할 일로 추가됐어요.`
-    : "이해도가 낮아 개인 보강 할 일로 추가됐어요.";
-  const existingPersonalItem = await client
-    .from("personal_plan_items")
-    .select("id")
+    ? `${targetItem.detail} 이해도가 낮아 복습 후보로 저장됐어요.`
+    : "이해도가 낮아 복습 후보로 저장됐어요.";
+  const existingSavedTask = await client
+    .from("personal_task_library_items")
+    .select("id, created_at")
     .eq("group_id", group.id)
     .eq("member_id", memberId)
     .eq("source_plan_item_id", itemId)
     .maybeSingle();
 
-  const personalItemData = unwrapNullableData(
-    "Failed to inspect generated personal plan item",
-    existingPersonalItem,
+  const savedTaskData = unwrapNullableData(
+    "Failed to inspect saved personal task",
+    existingSavedTask,
   );
 
-  if (personalItemData) {
+  if (savedTaskData) {
     ensureSuccess(
-      "Failed to refresh generated personal plan item",
+      "Failed to refresh saved personal task",
       await client
-        .from("personal_plan_items")
+        .from("personal_task_library_items")
         .update({
           title: generatedTitle,
           detail: generatedDetail,
-          completed: false,
+          updated_at: now,
         })
-        .eq("id", personalItemData.id),
+        .eq("id", savedTaskData.id),
     );
     return;
   }
 
-  const currentItemCount = group.personalPlanItems.filter((item) => item.memberId === memberId).length;
+  const existingSavedTaskCount = await client
+    .from("personal_task_library_items")
+    .select("id", { count: "exact", head: true })
+    .eq("group_id", group.id)
+    .eq("member_id", memberId);
+
+  if (existingSavedTaskCount.error) {
+    throw new Error(`Failed to inspect saved task count: ${existingSavedTaskCount.error.message}`);
+  }
 
   ensureSuccess(
-    "Failed to create generated personal plan item",
-    await client.from("personal_plan_items").insert({
-      id: createId("personal-plan"),
+    "Failed to create saved personal task",
+    await client.from("personal_task_library_items").insert({
+      id: createId("saved-personal-task"),
       group_id: group.id,
       member_id: memberId,
       title: generatedTitle,
       detail: generatedDetail,
-      completed: false,
       source_plan_item_id: itemId,
-      sort_order: currentItemCount,
+      sort_order: existingSavedTaskCount.count ?? 0,
       created_at: now,
+      updated_at: now,
     }),
   );
 }
@@ -1488,6 +1650,72 @@ export async function updatePrototypeReviewInterval(
   );
 }
 
+export async function addPrototypeDueReviewCandidateTodos(groups: StudyGroup[]) {
+  const client = getSupabaseBrowserClient();
+  let createdCount = 0;
+
+  for (const group of groups) {
+    const groupCreatedCountsByMember = new Map<string, number>();
+    const dueCandidates = group.reviewCandidates.filter((candidate) => {
+      const alreadyAdded = group.personalPlanItems.some((item) => {
+        return (
+          item.memberId === candidate.memberId &&
+          item.sourcePlanItemId === candidate.sourcePlanItemId
+        );
+      });
+
+      return (
+        !alreadyAdded &&
+        isReviewCandidateDue(group, candidate, candidate.memberId)
+      );
+    });
+
+    for (const candidate of dueCandidates) {
+      const existingPersonalItem = await client
+        .from("personal_plan_items")
+        .select("id")
+        .eq("group_id", group.id)
+        .eq("member_id", candidate.memberId)
+        .eq("source_plan_item_id", candidate.sourcePlanItemId)
+        .maybeSingle();
+
+      const personalItemData = unwrapNullableData(
+        "Failed to inspect review personal todo",
+        existingPersonalItem,
+      );
+
+      if (personalItemData) {
+        continue;
+      }
+
+      const groupCreatedCount = groupCreatedCountsByMember.get(candidate.memberId) ?? 0;
+      const currentItemCount =
+        group.personalPlanItems.filter((item) => item.memberId === candidate.memberId).length +
+        groupCreatedCount;
+
+      ensureSuccess(
+        "Failed to create review personal todo",
+        await client.from("personal_plan_items").insert({
+          id: createId("personal-review"),
+          group_id: group.id,
+          member_id: candidate.memberId,
+          title: `[복습] ${candidate.title}`,
+          detail: candidate.detail,
+          completed: false,
+          source_plan_item_id: candidate.sourcePlanItemId,
+          sort_order: currentItemCount,
+          created_at: new Date().toISOString(),
+        }),
+      );
+
+      groupCreatedCountsByMember.set(candidate.memberId, groupCreatedCount + 1);
+      createdCount += 1;
+    }
+  }
+
+  return createdCount > 0;
+}
+
 export async function addPrototypePersonalPlanItem(
   groupId: string,
   memberId: string,
@@ -1506,6 +1734,130 @@ export async function addPrototypePersonalPlanItem(
       detail: item.detail,
       completed: false,
       source_plan_item_id: null,
+      sort_order: sortOrder,
+      created_at: new Date().toISOString(),
+    }),
+  );
+}
+
+export async function savePrototypePersonalTaskLibraryItem(
+  groupId: string,
+  memberId: string,
+  item: SavedPersonalTaskDraft,
+  sortOrder: number,
+  sourcePlanItemId: string | null = null,
+) {
+  const client = getSupabaseBrowserClient();
+  const now = new Date().toISOString();
+
+  ensureSuccess(
+    "Failed to create saved personal task",
+    await client.from("personal_task_library_items").insert({
+      id: createId("saved-personal-task"),
+      group_id: groupId,
+      member_id: memberId,
+      title: item.title,
+      detail: item.detail,
+      source_plan_item_id: sourcePlanItemId,
+      sort_order: sortOrder,
+      created_at: now,
+      updated_at: now,
+    }),
+  );
+}
+
+export async function updatePrototypePersonalTaskLibraryItem(
+  itemId: string,
+  item: SavedPersonalTaskDraft,
+) {
+  const client = getSupabaseBrowserClient();
+
+  ensureSuccess(
+    "Failed to update saved personal task",
+    await client
+      .from("personal_task_library_items")
+      .update({
+        title: item.title,
+        detail: item.detail,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", itemId),
+  );
+}
+
+export async function deletePrototypePersonalTaskLibraryItem(itemId: string) {
+  const client = getSupabaseBrowserClient();
+
+  ensureSuccess(
+    "Failed to delete saved personal task",
+    await client.from("personal_task_library_items").delete().eq("id", itemId),
+  );
+}
+
+export async function addSavedTaskToPrototypePersonalPlan(
+  groupId: string,
+  memberId: string,
+  savedTaskId: string,
+  sortOrder: number,
+) {
+  const client = getSupabaseBrowserClient();
+  const savedTaskResponse = await client
+    .from("personal_task_library_items")
+    .select("title, detail, source_plan_item_id")
+    .eq("id", savedTaskId)
+    .eq("group_id", groupId)
+    .eq("member_id", memberId)
+    .maybeSingle();
+
+  const savedTask = unwrapNullableData(
+    "Failed to inspect saved personal task",
+    savedTaskResponse,
+  );
+
+  if (!savedTask) {
+    throw new Error("Failed to find the selected saved personal task.");
+  }
+
+  if (savedTask.source_plan_item_id) {
+    const existingPersonalItemResponse = await client
+      .from("personal_plan_items")
+      .select("id")
+      .eq("group_id", groupId)
+      .eq("member_id", memberId)
+      .eq("source_plan_item_id", savedTask.source_plan_item_id)
+      .maybeSingle();
+
+    const existingPersonalItem = unwrapNullableData(
+      "Failed to inspect active personal task",
+      existingPersonalItemResponse,
+    );
+
+    if (existingPersonalItem) {
+      ensureSuccess(
+        "Failed to refresh active personal task",
+        await client
+          .from("personal_plan_items")
+          .update({
+            title: savedTask.title,
+            detail: savedTask.detail,
+            completed: false,
+          })
+          .eq("id", existingPersonalItem.id),
+      );
+      return;
+    }
+  }
+
+  ensureSuccess(
+    "Failed to create personal plan item from saved task",
+    await client.from("personal_plan_items").insert({
+      id: createId("personal-plan"),
+      group_id: groupId,
+      member_id: memberId,
+      title: savedTask.title,
+      detail: savedTask.detail,
+      completed: false,
+      source_plan_item_id: savedTask.source_plan_item_id,
       sort_order: sortOrder,
       created_at: new Date().toISOString(),
     }),

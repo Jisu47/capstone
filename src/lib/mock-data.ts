@@ -92,6 +92,26 @@ export type PersonalPlanItem = {
   sourcePlanItemId?: string | null;
 };
 
+export type SavedPersonalTaskItem = {
+  id: string;
+  memberId: string;
+  title: string;
+  detail: string;
+  sourcePlanItemId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ReviewCandidate = {
+  id: string;
+  memberId: string;
+  title: string;
+  detail: string;
+  sourcePlanItemId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type PlanItemFeedback = {
   planItemId: string;
   memberId: string;
@@ -122,7 +142,9 @@ export type StudyGroup = {
   planReferenceUploads: PlanReferenceUpload[];
   planReferenceUnits: PlanReferenceUnit[];
   roadmap: RoadmapItem[];
+  reviewCandidates: ReviewCandidate[];
   personalPlanItems: PersonalPlanItem[];
+  savedPersonalTaskLibraryItems: SavedPersonalTaskItem[];
   planItemFeedbacks: PlanItemFeedback[];
 };
 
@@ -354,7 +376,9 @@ function createPlanFlowDefaults(memberIds: string[]) {
     planReferenceUploads: [] as PlanReferenceUpload[],
     planReferenceUnits: [] as PlanReferenceUnit[],
     roadmap: [] as RoadmapItem[],
+    reviewCandidates: [] as ReviewCandidate[],
     personalPlanItems: [] as PersonalPlanItem[],
+    savedPersonalTaskLibraryItems: [] as SavedPersonalTaskItem[],
     planItemFeedbacks: [] as PlanItemFeedback[],
   };
 }

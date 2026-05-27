@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -32,21 +33,25 @@ import type {
   PersonalPlanItemDraft,
   PlanAgentDraft,
   PlanReferenceUploadDraft,
+  SavedPersonalTaskDraft,
 } from "@/lib/plan-flow";
 import { getReviewIntervalLabel } from "@/lib/plan-flow";
 import {
   addPrototypeAssistantAnswer,
-  addPrototypePersonalPlanItem,
+  addPrototypeDueReviewCandidateTodos,
+  addSavedTaskToPrototypePersonalPlan,
   addPrototypePlanItem,
   addPrototypePlanReferenceUpload,
   addPrototypeUpload,
   addPrototypeUploadedMaterial,
   addPrototypeUserQuestion,
+  deletePrototypePersonalTaskLibraryItem,
   applyPrototypePlanAgentDraft,
   bootstrapPrototypeGroups,
   clearPrototypePlanItemCompletion,
   completePrototypePlanItemWithFeedback,
   createPrototypeGroup,
+  savePrototypePersonalTaskLibraryItem,
   ensurePrototypeGroupMembership,
   listPrototypeGroups,
   syncPrototypeProfile,
@@ -54,6 +59,7 @@ import {
   togglePrototypePlanItem,
   updatePrototypeGroupDetails,
   updatePrototypePersonalPlanItem,
+  updatePrototypePersonalTaskLibraryItem,
   updatePrototypePlanItem,
   updatePrototypeReviewDays,
   updatePrototypeReviewInterval,
@@ -98,9 +104,15 @@ type PrototypeContextValue = {
     groupId: string,
     reviewIntervalDays: ReviewIntervalDays | null,
   ) => Promise<void>;
-  addPersonalPlanItem: (groupId: string, item: PersonalPlanItemDraft) => Promise<void>;
   updatePersonalPlanItem: (itemId: string, item: PersonalPlanItemDraft) => Promise<void>;
   togglePersonalPlanItem: (itemId: string, completed: boolean) => Promise<void>;
+  savePersonalTaskLibraryItem: (groupId: string, item: SavedPersonalTaskDraft) => Promise<void>;
+  updatePersonalTaskLibraryItem: (
+    itemId: string,
+    item: SavedPersonalTaskDraft,
+  ) => Promise<void>;
+  deletePersonalTaskLibraryItem: (itemId: string) => Promise<void>;
+  addSavedTaskToPersonalPlan: (groupId: string, savedTaskId: string) => Promise<void>;
   sendQuestion: (groupId: string, question: string) => Promise<void>;
   sendPlanAgentMessage: (groupId: string, question: string) => Promise<void>;
   applyPlanAgentDraft: (groupId: string, draft: PlanAgentDraft) => Promise<void>;
@@ -132,7 +144,9 @@ function toErrorMessage(error: unknown) {
       error.message.includes("plan_reference_uploads") ||
       error.message.includes("plan_reference_units") ||
       error.message.includes("group_roadmap_items") ||
+      error.message.includes("review_candidates") ||
       error.message.includes("personal_plan_items") ||
+      error.message.includes("personal_task_library_items") ||
       error.message.includes("plan_item_feedbacks") ||
       error.message.includes("review_interval_days") ||
       error.message.includes("source_plan_item_id") ||
@@ -251,10 +265,20 @@ export function PrototypeProvider({
     return storedGroups.map((group) => personalizeGroup(group, currentMember));
   }, [currentMember, storedGroups]);
 
-  async function refreshGroups() {
-    const nextGroups = await listPrototypeGroups();
+  const applyDueReviewCandidateTodos = useCallback(async (nextGroups: StudyGroup[]) => {
+    const hasNewReviewTodos = await addPrototypeDueReviewCandidateTodos(nextGroups);
+
+    if (!hasNewReviewTodos) {
+      return nextGroups;
+    }
+
+    return listPrototypeGroups();
+  }, []);
+
+  const refreshGroups = useCallback(async () => {
+    const nextGroups = await applyDueReviewCandidateTodos(await listPrototypeGroups());
     setStoredGroups(nextGroups);
-  }
+  }, [applyDueReviewCandidateTodos]);
 
   async function runMutation<T>(action: () => Promise<T>) {
     setMutationCount((count) => count + 1);
@@ -286,7 +310,9 @@ export function PrototypeProvider({
 
     async function bootstrap() {
       try {
-        const nextGroups = await bootstrapPrototypeGroups();
+        const nextGroups = await applyDueReviewCandidateTodos(
+          await bootstrapPrototypeGroups(),
+        );
 
         if (cancelled) {
           return;
@@ -311,7 +337,7 @@ export function PrototypeProvider({
       cancelled = true;
       timeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
     };
-  }, []);
+  }, [applyDueReviewCandidateTodos]);
 
   useEffect(() => {
     if (!currentUser?.joinedGroupId || !currentMember || isLoading) {
@@ -344,7 +370,7 @@ export function PrototypeProvider({
     }).finally(() => {
       syncingMembershipKeyRef.current = null;
     });
-  }, [currentMember, currentUser?.joinedGroupId, isLoading, storedGroups]);
+  }, [currentMember, currentUser?.joinedGroupId, isLoading, refreshGroups, storedGroups]);
 
   async function createGroup(input: CreateGroupInput) {
     return runMutation(async () => {
@@ -541,7 +567,49 @@ export function PrototypeProvider({
     });
   }
 
-  async function addPersonalPlanItem(groupId: string, item: PersonalPlanItemDraft) {
+  async function savePersonalTaskLibraryItem(
+    groupId: string,
+    item: SavedPersonalTaskDraft,
+  ) {
+    const group = getGroupById(groups, groupId);
+
+    if (!group) {
+      return;
+    }
+
+    const currentItemCount = group.savedPersonalTaskLibraryItems.filter(
+      (entry) => entry.memberId === resolvedCurrentUserId,
+    ).length;
+
+    await runMutation(async () => {
+      await savePrototypePersonalTaskLibraryItem(
+        groupId,
+        resolvedCurrentUserId,
+        item,
+        currentItemCount,
+      );
+      await refreshGroups();
+    });
+  }
+
+  async function updatePersonalTaskLibraryItem(
+    itemId: string,
+    item: SavedPersonalTaskDraft,
+  ) {
+    await runMutation(async () => {
+      await updatePrototypePersonalTaskLibraryItem(itemId, item);
+      await refreshGroups();
+    });
+  }
+
+  async function deletePersonalTaskLibraryItem(itemId: string) {
+    await runMutation(async () => {
+      await deletePrototypePersonalTaskLibraryItem(itemId);
+      await refreshGroups();
+    });
+  }
+
+  async function addSavedTaskToPersonalPlan(groupId: string, savedTaskId: string) {
     const group = getGroupById(groups, groupId);
 
     if (!group) {
@@ -553,10 +621,10 @@ export function PrototypeProvider({
     ).length;
 
     await runMutation(async () => {
-      await addPrototypePersonalPlanItem(
+      await addSavedTaskToPrototypePersonalPlan(
         groupId,
         resolvedCurrentUserId,
-        item,
+        savedTaskId,
         currentItemCount,
       );
       await refreshGroups();
@@ -737,9 +805,12 @@ export function PrototypeProvider({
     uploadPlanReference,
     updateReviewDays,
     updateReviewInterval,
-    addPersonalPlanItem,
     updatePersonalPlanItem,
     togglePersonalPlanItem,
+    savePersonalTaskLibraryItem,
+    updatePersonalTaskLibraryItem,
+    deletePersonalTaskLibraryItem,
+    addSavedTaskToPersonalPlan,
     sendQuestion,
     sendPlanAgentMessage,
     applyPlanAgentDraft,
