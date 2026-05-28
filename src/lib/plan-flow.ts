@@ -12,14 +12,6 @@ import {
   type WeeklyPlanItem,
 } from "@/lib/mock-data";
 
-export type ReviewCard = {
-  id: string;
-  day: Weekday;
-  title: string;
-  detail: string;
-  referenceSequence: number;
-};
-
 export type PlanAgentDraft = {
   weeklyGoal: string;
   recentUpdate: string;
@@ -54,14 +46,6 @@ export const reviewIntervalOptions: Array<{
   { label: "2주", days: 14 },
   { label: "한달", days: 28 },
 ];
-
-const jsDayToWeekday: Partial<Record<number, Weekday>> = {
-  1: "월",
-  2: "화",
-  3: "수",
-  4: "목",
-  5: "금",
-};
 
 const subjectUnitCatalogs: Array<{
   match: RegExp;
@@ -276,56 +260,6 @@ export function buildPlanAgentAnswer(
   };
 }
 
-export function buildReviewCards(group: StudyGroup, memberId = currentUserId) {
-  const reviewInterval = group.reviewIntervals[memberId] ?? null;
-
-  if (!reviewInterval || group.reviewDays.length === 0) {
-    return [] as ReviewCard[];
-  }
-
-  const unitsBySequence = new Map(
-    group.planReferenceUnits.map((unit) => [unit.sequence, unit]),
-  );
-  const seen = new Set<string>();
-
-  return [...group.plan]
-    .sort((left, right) => orderedWeekdays.indexOf(left.day) - orderedWeekdays.indexOf(right.day))
-    .flatMap((item) => {
-      if (!group.reviewDays.includes(item.day)) {
-        return [];
-      }
-
-      if (!item.referenceUnitSequence) {
-        return [];
-      }
-
-      const targetSequence = item.referenceUnitSequence - reviewInterval;
-      const targetUnit = unitsBySequence.get(targetSequence);
-
-      if (!targetUnit) {
-        return [];
-      }
-
-      const dedupeKey = `${item.day}:${targetSequence}`;
-
-      if (seen.has(dedupeKey)) {
-        return [];
-      }
-
-      seen.add(dedupeKey);
-
-      return [
-        {
-          id: `${item.id}-review-${targetSequence}`,
-          day: item.day,
-          title: "복습 계획",
-          detail: `${getReviewIntervalLabel(reviewInterval)} 전 진도인 "${targetUnit.label}" 범위를 다시 확인합니다.`,
-          referenceSequence: targetSequence,
-        },
-      ] satisfies ReviewCard[];
-    });
-}
-
 export function getCurrentUserPersonalPlanItems(group: StudyGroup, memberId = currentUserId) {
   return group.personalPlanItems.filter((item) => item.memberId === memberId);
 }
@@ -370,23 +304,11 @@ export function getReviewCandidateScheduledDate(
 ) {
   const reviewInterval = group.reviewIntervals[memberId] ?? null;
 
-  if (!reviewInterval || group.reviewDays.length === 0) {
+  if (!reviewInterval) {
     return null;
   }
 
-  const reviewDaySet = new Set(group.reviewDays);
-  const dueDate = startOfDay(addDays(new Date(candidate.createdAt), reviewInterval));
-
-  for (let offset = 0; offset < 14; offset += 1) {
-    const candidateDate = addDays(dueDate, offset);
-    const weekday = jsDayToWeekday[candidateDate.getDay()];
-
-    if (weekday && reviewDaySet.has(weekday)) {
-      return candidateDate;
-    }
-  }
-
-  return null;
+  return startOfDay(addDays(new Date(candidate.createdAt), reviewInterval));
 }
 
 export function isReviewCandidateDue(
@@ -402,6 +324,20 @@ export function isReviewCandidateDue(
   }
 
   return startOfDay(now).getTime() >= scheduledDate.getTime();
+}
+
+export function getNextPendingReviewDate(group: StudyGroup, memberId = currentUserId) {
+  const scheduledTimes = getPendingReviewCandidates(group, memberId)
+    .map((candidate) => getReviewCandidateScheduledDate(group, candidate, memberId))
+    .filter((date): date is Date => Boolean(date))
+    .map((date) => date.getTime())
+    .sort((left, right) => left - right);
+
+  if (scheduledTimes.length === 0) {
+    return null;
+  }
+
+  return new Date(scheduledTimes[0]);
 }
 
 export function createPersonalPlanItemPreview(

@@ -97,7 +97,6 @@ function buildGroupContext(scope: AiChatScope, group: AiChatGroupContext) {
 
   return [
     ...header,
-    `Review days: ${group.reviewDays.join(", ") || "Not set"}`,
     `Current user review interval: ${group.reviewIntervalLabel}`,
     "",
     "Roadmap:",
@@ -123,9 +122,9 @@ function buildSystemInstruction(scope: AiChatScope) {
   return [
     "You are Study Flow's planning agent assistant.",
     "Answer in Korean.",
-    "Use the provided roadmap, weekly plan, and review settings to suggest realistic study planning guidance.",
+    "Use the provided roadmap, weekly plan, and review interval setting to suggest realistic study planning guidance.",
     "Do not claim that changes were already applied.",
-    "When appropriate, mention how review days and review intervals affect the plan.",
+    "When appropriate, mention how the review interval affects the plan.",
     "Keep the answer concise enough for a mobile chat UI.",
   ].join(" ");
 }

@@ -39,6 +39,7 @@ import { getReviewIntervalLabel } from "@/lib/plan-flow";
 import {
   addPrototypeAssistantAnswer,
   addPrototypeDueReviewCandidateTodos,
+  addPrototypePersonalPlanItem,
   addSavedTaskToPrototypePersonalPlan,
   addPrototypePlanItem,
   addPrototypePlanReferenceUpload,
@@ -104,6 +105,7 @@ type PrototypeContextValue = {
     groupId: string,
     reviewIntervalDays: ReviewIntervalDays | null,
   ) => Promise<void>;
+  addPersonalPlanItem: (groupId: string, item: PersonalPlanItemDraft) => Promise<void>;
   updatePersonalPlanItem: (itemId: string, item: PersonalPlanItemDraft) => Promise<void>;
   togglePersonalPlanItem: (itemId: string, completed: boolean) => Promise<void>;
   savePersonalTaskLibraryItem: (groupId: string, item: SavedPersonalTaskDraft) => Promise<void>;
@@ -567,6 +569,28 @@ export function PrototypeProvider({
     });
   }
 
+  async function addPersonalPlanItem(groupId: string, item: PersonalPlanItemDraft) {
+    const group = getGroupById(groups, groupId);
+
+    if (!group) {
+      return;
+    }
+
+    const currentItemCount = group.personalPlanItems.filter(
+      (entry) => entry.memberId === resolvedCurrentUserId,
+    ).length;
+
+    await runMutation(async () => {
+      await addPrototypePersonalPlanItem(
+        groupId,
+        resolvedCurrentUserId,
+        item,
+        currentItemCount,
+      );
+      await refreshGroups();
+    });
+  }
+
   async function savePersonalTaskLibraryItem(
     groupId: string,
     item: SavedPersonalTaskDraft,
@@ -667,7 +691,6 @@ export function PrototypeProvider({
         overallGoal: group.overallGoal,
         description: group.description,
         recentUpdate: group.recentUpdate,
-        reviewDays: group.reviewDays,
         reviewIntervalLabel: getReviewIntervalLabel(
           group.reviewIntervals[resolvedCurrentUserId] ?? null,
         ),
@@ -805,6 +828,7 @@ export function PrototypeProvider({
     uploadPlanReference,
     updateReviewDays,
     updateReviewInterval,
+    addPersonalPlanItem,
     updatePersonalPlanItem,
     togglePersonalPlanItem,
     savePersonalTaskLibraryItem,

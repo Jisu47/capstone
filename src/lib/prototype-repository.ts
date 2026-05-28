@@ -1407,56 +1407,45 @@ export async function completePrototypePlanItemWithFeedback(
 
   const generatedTitle = `${targetItem.title} 다시 복습하기`;
   const generatedDetail = targetItem.detail.trim()
-    ? `${targetItem.detail} 이해도가 낮아 복습 후보로 저장됐어요.`
-    : "이해도가 낮아 복습 후보로 저장됐어요.";
-  const existingSavedTask = await client
-    .from("personal_task_library_items")
+    ? `${targetItem.detail} 이해도가 낮아 복습 예정 항목으로 저장됐어요.`
+    : "이해도가 낮아 복습 예정 항목으로 저장됐어요.";
+  const existingReviewCandidate = await client
+    .from("review_candidates")
     .select("id, created_at")
     .eq("group_id", group.id)
     .eq("member_id", memberId)
     .eq("source_plan_item_id", itemId)
     .maybeSingle();
 
-  const savedTaskData = unwrapNullableData(
-    "Failed to inspect saved personal task",
-    existingSavedTask,
+  const reviewCandidateData = unwrapNullableData(
+    "Failed to inspect review candidate",
+    existingReviewCandidate,
   );
 
-  if (savedTaskData) {
+  if (reviewCandidateData) {
     ensureSuccess(
-      "Failed to refresh saved personal task",
+      "Failed to refresh review candidate",
       await client
-        .from("personal_task_library_items")
+        .from("review_candidates")
         .update({
           title: generatedTitle,
           detail: generatedDetail,
           updated_at: now,
         })
-        .eq("id", savedTaskData.id),
+        .eq("id", reviewCandidateData.id),
     );
     return;
   }
 
-  const existingSavedTaskCount = await client
-    .from("personal_task_library_items")
-    .select("id", { count: "exact", head: true })
-    .eq("group_id", group.id)
-    .eq("member_id", memberId);
-
-  if (existingSavedTaskCount.error) {
-    throw new Error(`Failed to inspect saved task count: ${existingSavedTaskCount.error.message}`);
-  }
-
   ensureSuccess(
-    "Failed to create saved personal task",
-    await client.from("personal_task_library_items").insert({
-      id: createId("saved-personal-task"),
+    "Failed to create review candidate",
+    await client.from("review_candidates").insert({
+      id: createId("review-candidate"),
       group_id: group.id,
       member_id: memberId,
       title: generatedTitle,
       detail: generatedDetail,
       source_plan_item_id: itemId,
-      sort_order: existingSavedTaskCount.count ?? 0,
       created_at: now,
       updated_at: now,
     }),

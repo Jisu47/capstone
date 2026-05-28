@@ -17,7 +17,7 @@ const understandingOptions: Array<{
   {
     value: "low",
     label: "낮음",
-    description: "다시 복습이 필요해요. 저장된 할 일 목록에 후보로 저장됩니다.",
+    description: "다시 복습이 필요해요. 복습 예정 항목으로 저장됩니다.",
   },
   {
     value: "medium",
@@ -270,8 +270,8 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
 
             {personalPlanItems.length === 0 ? (
               <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
-                아직 추가된 개인 할 일이 없습니다. 계획 탭에서 저장된 할 일 목록을 열고
-                필요한 항목을 선택해 추가해 보세요.
+                아직 추가된 개인 할 일이 없습니다. 계획 탭에서 직접 추가하거나
+                복습 시점이 되면 [복습] 할 일이 여기에 자동으로 들어옵니다.
               </div>
             ) : (
               <div className="space-y-2">
@@ -316,14 +316,14 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
 
             {pendingChecklistChecked ? (
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                완료 체크를 해제할까요? 이미 저장된 할 일 목록이나 현재 개인 할 일은
+                완료 체크를 해제할까요? 이미 저장된 복습 예정 항목이나 현재 개인 할 일은
                 그대로 유지됩니다.
               </p>
             ) : (
               <>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   이 할 일을 어느 정도 이해했는지 선택해 주세요. 이해도가 낮으면
-                  저장된 개인 할 일 목록에 보강 후보로 저장됩니다.
+                  복습 예정 항목으로 저장되고, 복습 간격이 지나면 개인 할 일에 자동으로 추가됩니다.
                 </p>
 
                 <div className="mt-4 space-y-2">
