@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { type AuthUser, useAuth } from "@/components/auth-provider";
+import { type AuthUser, type UserRole, useAuth } from "@/components/auth-provider";
 import type { AiChatRequest, AiChatScope } from "@/lib/ai-chat";
 import { uploadMaterial } from "@/lib/client-api";
 import {
@@ -144,12 +144,14 @@ function toErrorMessage(error: unknown) {
   return "알 수 없는 오류가 발생했어요.";
 }
 
-function buildCurrentMember(user: AuthUser): Member {
+function buildCurrentMember(user: AuthUser, roleOverride?: UserRole | null): Member {
+  const resolvedRole = roleOverride ?? user.role ?? "member";
+
   return createMemberProfile({
     id: user.userId,
-    name: user.displayName.trim() || user.username,
-    role: user.role === "leader" ? "팀장" : "팀원",
-    focus: user.role === "leader" ? "그룹 운영" : "학습 정리",
+    name: user.displayName.trim() || user.email,
+    role: resolvedRole === "leader" ? "팀장" : "팀원",
+    focus: resolvedRole === "leader" ? "그룹 운영" : "학습 정리",
     bio: user.bio,
     avatarPreset: user.avatarPreset,
   });
@@ -337,7 +339,9 @@ export function PrototypeProvider({
 
   async function createGroup(input: CreateGroupInput) {
     return runMutation(async () => {
-      const groupId = await createPrototypeGroup(input, currentMember ?? undefined);
+      const creator = currentUser ? buildCurrentMember(currentUser, "leader") : undefined;
+      const groupId = await createPrototypeGroup(input, creator);
+      await markGroupJoined(groupId, "leader");
       await refreshGroups();
       return groupId;
     });
@@ -345,11 +349,15 @@ export function PrototypeProvider({
 
   async function joinGroup(groupId: string) {
     await runMutation(async () => {
-      await ensureCurrentMember(groupId);
+      const joiningMember = currentUser ? buildCurrentMember(currentUser, "member") : null;
+
+      if (joiningMember) {
+        await ensurePrototypeGroupMembership(groupId, joiningMember);
+      }
+
+      await markGroupJoined(groupId, "member");
       await refreshGroups();
     });
-
-    markGroupJoined(groupId);
   }
 
   async function syncCurrentUserProfile() {
@@ -414,7 +422,7 @@ export function PrototypeProvider({
     }
 
     await runMutation(async () => {
-      await addPrototypeUpload(group);
+      await addPrototypeUpload(group, resolvedCurrentUserId);
       await refreshGroups();
     });
   }

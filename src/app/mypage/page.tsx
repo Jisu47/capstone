@@ -17,10 +17,22 @@ const avatarOptions: Array<{ value: AvatarPreset; label: string }> = [
   { value: "amber", label: "Amber" },
 ];
 
+function getRoleLabel(role: "leader" | "member" | null) {
+  if (role === "leader") {
+    return "팀장";
+  }
+
+  if (role === "member") {
+    return "팀원";
+  }
+
+  return "미정";
+}
+
 export default function MyPage() {
   const router = useRouter();
   const { isAuthReady, currentUser, updateProfile, signOut } = useAuth();
-  const { groups, syncCurrentUserProfile, isMutating } = usePrototype();
+  const { groups, isMutating } = usePrototype();
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [avatarPreset, setAvatarPreset] = useState<AvatarPreset>("sky");
@@ -65,7 +77,7 @@ export default function MyPage() {
   }, [currentUser, joinedGroup]);
 
   async function handleSaveProfile() {
-    const result = updateProfile({
+    const result = await updateProfile({
       displayName,
       bio,
       avatarPreset,
@@ -77,16 +89,8 @@ export default function MyPage() {
       return;
     }
 
-    try {
-      await syncCurrentUserProfile();
-      setErrorMessage(null);
-      setFeedback("프로필이 저장됐어요.");
-    } catch (error) {
-      setFeedback(null);
-      setErrorMessage(
-        error instanceof Error ? error.message : "프로필 저장 중 오류가 발생했어요.",
-      );
-    }
+    setErrorMessage(null);
+    setFeedback("프로필이 저장됐어요.");
   }
 
   if (!isAuthReady || !currentUser) {
@@ -115,8 +119,9 @@ export default function MyPage() {
           <button
             type="button"
             onClick={() => {
-              signOut();
-              router.replace("/");
+              void signOut().finally(() => {
+                router.replace("/");
+              });
             }}
             className="text-sm font-semibold text-sky-700"
           >
@@ -132,10 +137,8 @@ export default function MyPage() {
           />
           <div className="min-w-0">
             <p className="text-base font-semibold text-slate-950">{currentUser.displayName}</p>
-            <p className="mt-1 text-sm text-slate-500">@{currentUser.username}</p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              {currentUser.bio}
-            </p>
+            <p className="mt-1 text-sm text-slate-500">{currentUser.email}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{currentUser.bio}</p>
           </div>
         </div>
 
@@ -145,7 +148,7 @@ export default function MyPage() {
               역할
             </p>
             <p className="mt-2 text-base font-semibold text-slate-950">
-              {currentUser.role === "leader" ? "팀장" : "팀원"}
+              {getRoleLabel(currentUser.role)}
             </p>
           </div>
           <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4">
@@ -257,7 +260,8 @@ export default function MyPage() {
                 {joinedGroup.name}
               </h2>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                현재 연결된 그룹입니다. 그룹 홈으로 이동하거나 메인 화면에서 다른 스터디 흐름을 이어볼 수 있어요.
+                현재 연결된 그룹입니다. 그룹 홈으로 이동하거나 메인 화면에서 다른 스터디 흐름도
+                이어볼 수 있어요.
               </p>
             </div>
 
@@ -289,7 +293,8 @@ export default function MyPage() {
         ) : (
           <div className="space-y-3">
             <p className="text-sm leading-6 text-slate-600">
-              연결된 그룹 정보를 아직 찾지 못했어요. 그룹 설정 화면에서 다시 그룹을 만들거나 참여해 주세요.
+              연결된 그룹 정보를 아직 찾지 못했어요. 그룹 설정 화면에서 다시 그룹을 만들거나 참여해
+              주세요.
             </p>
             <Link
               href="/group-setup"
@@ -331,7 +336,7 @@ export default function MyPage() {
           </div>
         ) : (
           <p className="text-sm leading-6 text-slate-600">
-            같은 그룹에 표시할 팀원 프로필이 아직 없어요.
+            같은 그룹의 팀원 프로필이 아직 없어요.
           </p>
         )}
       </SectionCard>

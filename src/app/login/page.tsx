@@ -8,7 +8,7 @@ import { useAuth } from "@/components/auth-provider";
 export default function LoginPage() {
   const router = useRouter();
   const { isAuthReady, currentUser, signIn, resolvePostAuthPath } = useAuth();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -18,11 +18,11 @@ export default function LoginPage() {
     }
   }, [currentUser, isAuthReady, resolvePostAuthPath, router]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const result = signIn({
-      username,
+    const result = await signIn({
+      email,
       password,
     });
 
@@ -47,24 +47,24 @@ export default function LoginPage() {
               로그인
             </h1>
             <p className="text-sm leading-6 text-slate-600">
-              가입한 아이디와 비밀번호를 입력하고 바로 내 페이지로 이동해 보세요.
+              가입한 이메일과 비밀번호를 입력하고 바로 내 페이지로 이동해 보세요.
             </p>
           </div>
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <label className="block space-y-2">
-            <span className="text-sm font-semibold text-slate-800">아이디</span>
+            <span className="text-sm font-semibold text-slate-800">이메일</span>
             <input
-              type="text"
-              value={username}
+              type="email"
+              value={email}
               onChange={(event) => {
-                setUsername(event.target.value);
+                setEmail(event.target.value);
                 setErrorMessage(null);
               }}
-              autoComplete="username"
+              autoComplete="email"
               required
-              placeholder="아이디를 입력해 주세요"
+              placeholder="이메일을 입력해 주세요"
               className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
             />
           </label>

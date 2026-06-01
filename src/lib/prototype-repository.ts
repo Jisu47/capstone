@@ -14,6 +14,7 @@ import {
   createGroupFromInput,
   createMemberProfile,
   currentUserId,
+  getAvatarPresetFromSeed,
   getInitialGroups,
   type CreateGroupInput,
   type GroupDetailsInput,
@@ -39,9 +40,15 @@ export type PlanItemDraft = {
 
 type ProfileRow = {
   id: string;
-  name: string;
-  role: Member["role"];
-  focus: string;
+  email: string | null;
+  name: string | null;
+  display_name: string | null;
+  role: string | null;
+  focus: string | null;
+  bio: string | null;
+  avatar_preset: string | null;
+  has_joined_group: boolean | null;
+  joined_group_id: string | null;
 };
 
 type StudyGroupRow = {
@@ -225,6 +232,39 @@ function createId(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function toStoredProfileRole(role: Member["role"]) {
+  return role === "팀장" ? "leader" : "member";
+}
+
+function toMemberRole(role: string | null | undefined): Member["role"] {
+  if (role === "leader" || role === "팀장") {
+    return "팀장";
+  }
+
+  return "팀원";
+}
+
+function getProfileDisplayName(profile: ProfileRow | undefined, fallback: string) {
+  return profile?.display_name?.trim() || profile?.name?.trim() || fallback;
+}
+
+function getProfileFocus(profile: ProfileRow | undefined, role: Member["role"]) {
+  return profile?.focus?.trim() || (role === "팀장" ? "그룹 운영" : "학습 정리");
+}
+
+function getProfileAvatarPreset(profile: ProfileRow | undefined, fallbackSeed: string) {
+  if (
+    profile?.avatar_preset === "sky" ||
+    profile?.avatar_preset === "emerald" ||
+    profile?.avatar_preset === "rose" ||
+    profile?.avatar_preset === "amber"
+  ) {
+    return profile.avatar_preset;
+  }
+
+  return getAvatarPresetFromSeed(fallbackSeed);
+}
+
 function normalizeGroupDetailsInput(input: GroupDetailsInput) {
   const name = input.name.trim();
   const subject = input.subject.trim();
@@ -295,9 +335,15 @@ function getSourceMaterialId(group: StudyGroup, source: SourceCard) {
 function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
   const profiles = group.members.map<ProfileRow>((member) => ({
     id: member.id,
+    email: null,
     name: member.name,
-    role: member.role,
+    display_name: member.name,
+    role: toStoredProfileRole(member.role),
     focus: member.focus,
+    bio: member.bio,
+    avatar_preset: member.avatarPreset,
+    has_joined_group: true,
+    joined_group_id: group.id,
   }));
 
   const groupRow: StudyGroupRow = {
@@ -662,12 +708,15 @@ function rowsToGroups({
       .sort((left, right) => left.sort_order - right.sort_order)
       .map((membership) => {
         const profile = profilesById.get(membership.member_id);
+        const role = toMemberRole(profile?.role);
 
         return createMemberProfile({
           id: membership.member_id,
-          name: profile?.name ?? membership.member_id,
-          role: (profile?.role ?? "팀원") as Member["role"],
-          focus: profile?.focus ?? "",
+          name: getProfileDisplayName(profile, membership.member_id),
+          role,
+          focus: getProfileFocus(profile, role),
+          bio: profile?.bio ?? undefined,
+          avatarPreset: getProfileAvatarPreset(profile, membership.member_id),
         });
       });
 
@@ -682,8 +731,10 @@ function rowsToGroups({
       id: material.id,
       title: material.title,
       summary: material.summary,
-      uploadedBy:
-        profilesById.get(material.uploaded_by_member_id)?.name ?? material.uploaded_by_member_id,
+      uploadedBy: getProfileDisplayName(
+        profilesById.get(material.uploaded_by_member_id),
+        material.uploaded_by_member_id,
+      ),
       uploadedByMemberId: material.uploaded_by_member_id,
       uploadedAt: material.uploaded_at,
       format: material.format,
@@ -739,8 +790,10 @@ function rowsToGroups({
       mimeType: upload.mime_type,
       imageDataUrl: upload.image_data_url,
       uploadedAt: upload.created_at,
-      uploadedBy:
-        profilesById.get(upload.uploaded_by_member_id)?.name ?? upload.uploaded_by_member_id,
+      uploadedBy: getProfileDisplayName(
+        profilesById.get(upload.uploaded_by_member_id),
+        upload.uploaded_by_member_id,
+      ),
       summary: upload.summary,
     }));
 
@@ -965,12 +1018,15 @@ export async function listPrototypeGroups() {
   return rowsToGroups(rows);
 }
 
-function toProfileRow(member: Member): ProfileRow {
+function toProfileRow(member: Member) {
   return {
     id: member.id,
     name: member.name,
-    role: member.role,
-    focus: member.bio || member.focus,
+    display_name: member.name,
+    role: toStoredProfileRole(member.role),
+    focus: member.focus,
+    bio: member.bio,
+    avatar_preset: member.avatarPreset,
   };
 }
 
@@ -1121,7 +1177,7 @@ export async function addPrototypePlanItem(group: StudyGroup, item: PlanItemDraf
   );
 }
 
-export async function addPrototypeUpload(group: StudyGroup) {
+export async function addPrototypeUpload(group: StudyGroup, memberId = currentUserId) {
   const client = getSupabaseBrowserClient();
   const nextCount = group.uploadDraftCount + 1;
 
@@ -1132,7 +1188,7 @@ export async function addPrototypeUpload(group: StudyGroup) {
       group_id: group.id,
       title: `${group.subject} upload ${nextCount}.pdf`,
       summary: "Mock upload metadata stored in Supabase.",
-      uploaded_by_member_id: currentUserId,
+      uploaded_by_member_id: memberId,
       uploaded_at: new Date().toISOString(),
       format: "PDF",
       location_hint: `Upload box #${nextCount}`,

@@ -93,7 +93,9 @@ function AuthenticatedHome() {
         action={
           <button
             type="button"
-            onClick={signOut}
+            onClick={() => {
+              void signOut();
+            }}
             className="text-sm font-semibold text-[var(--brand)]"
           >
             로그아웃

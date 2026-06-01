@@ -1,31 +1,31 @@
 "use client";
 
-import { createContext, useContext, useMemo, useSyncExternalStore } from "react";
+import type { User } from "@supabase/supabase-js";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { type AvatarPreset, getAvatarPresetFromSeed } from "@/lib/mock-data";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export type UserRole = "member" | "leader";
 
 export type AuthUser = {
   userId: string;
-  username: string;
-  password: string;
+  email: string;
   displayName: string;
   bio: string;
   avatarPreset: AvatarPreset;
-  role: UserRole;
+  role: UserRole | null;
   hasJoinedGroup: boolean;
   joinedGroupId: string | null;
 };
 
 type SignInInput = {
-  username: string;
+  email: string;
   password: string;
 };
 
 type SignUpInput = {
-  username: string;
+  email: string;
   password: string;
-  role: UserRole;
 };
 
 export type UpdateProfileInput = {
@@ -48,200 +48,180 @@ type AuthContextValue = {
   isAuthReady: boolean;
   sessionName: string | null;
   currentUser: AuthUser | null;
-  signIn: (input: SignInInput) => AuthActionResult;
-  signUp: (input: SignUpInput) => AuthActionResult;
-  updateProfile: (input: UpdateProfileInput) => AuthActionResult;
-  signOut: () => void;
-  markGroupJoined: (groupId: string) => AuthUser | null;
+  signIn: (input: SignInInput) => Promise<AuthActionResult>;
+  signUp: (input: SignUpInput) => Promise<AuthActionResult>;
+  updateProfile: (input: UpdateProfileInput) => Promise<AuthActionResult>;
+  signOut: () => Promise<void>;
+  markGroupJoined: (groupId: string, role: UserRole) => Promise<AuthUser | null>;
   resolvePostAuthPath: (user: AuthUser) => "/group-setup" | "/mypage";
 };
 
-const sessionStorageKey = "study-flow-session-user-id";
-const usersStorageKey = "study-flow-auth-users";
-const authChangeEvent = "study-flow-auth-change";
+type ProfileRow = {
+  id: string;
+  email: string | null;
+  name: string | null;
+  display_name: string | null;
+  bio: string | null;
+  focus: string | null;
+  avatar_preset: string | null;
+  role: string | null;
+  has_joined_group: boolean | null;
+  joined_group_id: string | null;
+};
+
+type ProfileOverrides = Partial<
+  Pick<
+    ProfileRow,
+    | "email"
+    | "name"
+    | "display_name"
+    | "bio"
+    | "focus"
+    | "avatar_preset"
+    | "role"
+    | "has_joined_group"
+    | "joined_group_id"
+  >
+>;
+
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function subscribeAuth(callback: () => void) {
-  if (typeof window === "undefined") {
-    return () => undefined;
+function isAvatarPreset(value: string | null | undefined): value is AvatarPreset {
+  return value === "sky" || value === "emerald" || value === "rose" || value === "amber";
+}
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+function deriveDisplayName(email: string) {
+  const localPart = email.split("@")[0]?.trim();
+  return localPart && localPart.length > 0 ? localPart : email;
+}
+
+function getDefaultBio(role: UserRole | null) {
+  if (role === "leader") {
+    return "스터디 방향을 정리하고 일정과 계획을 함께 관리하고 있어요.";
   }
 
-  const handleStorage = () => callback();
-  const handleAuthChange = () => callback();
-
-  window.addEventListener("storage", handleStorage);
-  window.addEventListener(authChangeEvent, handleAuthChange);
-
-  return () => {
-    window.removeEventListener("storage", handleStorage);
-    window.removeEventListener(authChangeEvent, handleAuthChange);
-  };
-}
-
-function dispatchAuthChange() {
-  if (typeof window === "undefined") {
-    return;
+  if (role === "member") {
+    return "자료를 정리하고 질문을 모으며 스터디에 참여하고 있어요.";
   }
 
-  window.dispatchEvent(new Event(authChangeEvent));
+  return "함께 목표를 준비할 그룹을 찾고 있어요.";
 }
 
-function readSessionUserId() {
-  if (typeof window === "undefined") {
-    return null;
+function getDefaultFocus(role: UserRole | null) {
+  if (role === "leader") {
+    return "그룹 운영";
   }
 
-  return window.localStorage.getItem(sessionStorageKey);
-}
-
-function buildLegacyUserId(username: string) {
-  return `legacy-${encodeURIComponent(username.trim().toLowerCase())}`;
-}
-
-function createUserId() {
-  return `user-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function getDefaultBio(role: UserRole) {
-  return role === "leader"
-    ? "스터디 흐름을 정리하고 일정과 계획을 함께 챙기고 있어요."
-    : "자료를 정리하고 질문을 모으며 스터디에 참여하고 있어요.";
-}
-
-function normalizeDisplayName(displayName: string, username: string) {
-  const trimmed = displayName.trim();
-  return trimmed.length > 0 ? trimmed : username.trim();
-}
-
-function parseUsers(storedUsers: string | null): AuthUser[] {
-  if (!storedUsers) {
-    return [];
+  if (role === "member") {
+    return "학습 정리";
   }
 
-  try {
-    const parsed = JSON.parse(storedUsers) as unknown;
-
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.flatMap((entry) => {
-      if (!entry || typeof entry !== "object") {
-        return [];
-      }
-
-      const user = entry as Partial<AuthUser>;
-
-      if (
-        typeof user.username !== "string" ||
-        typeof user.password !== "string" ||
-        (user.role !== "member" && user.role !== "leader") ||
-        typeof user.hasJoinedGroup !== "boolean"
-      ) {
-        return [];
-      }
-
-      const username = user.username.trim();
-
-      if (!username) {
-        return [];
-      }
-
-      const userId =
-        typeof user.userId === "string" && user.userId.trim()
-          ? user.userId
-          : buildLegacyUserId(username);
-      const displayName = normalizeDisplayName(user.displayName ?? "", username);
-      const avatarPreset =
-        user.avatarPreset && ["sky", "emerald", "rose", "amber"].includes(user.avatarPreset)
-          ? user.avatarPreset
-          : getAvatarPresetFromSeed(userId);
-
-      return [
-        {
-          userId,
-          username,
-          password: user.password,
-          displayName,
-          bio: typeof user.bio === "string" && user.bio.trim() ? user.bio : getDefaultBio(user.role),
-          avatarPreset,
-          role: user.role,
-          hasJoinedGroup: user.hasJoinedGroup,
-          joinedGroupId:
-            typeof user.joinedGroupId === "string" ? user.joinedGroupId : null,
-        },
-      ];
-    });
-  } catch {
-    return [];
-  }
+  return "학습 준비";
 }
 
-function readUsers() {
-  if (typeof window === "undefined") {
-    return [];
+function normalizeRole(role: string | null | undefined): UserRole | null {
+  if (role === "leader" || role === "member") {
+    return role;
   }
 
-  return parseUsers(window.localStorage.getItem(usersStorageKey));
+  if (role === "팀장") {
+    return "leader";
+  }
+
+  if (role === "팀원") {
+    return "member";
+  }
+
+  return null;
 }
 
-function readUsersSnapshot() {
-  if (typeof window === "undefined") {
-    return "[]";
-  }
-
-  return window.localStorage.getItem(usersStorageKey) ?? "[]";
+function toStoredRole(role: UserRole | null) {
+  return role;
 }
 
-function writeUsers(users: AuthUser[]) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(usersStorageKey, JSON.stringify(users));
-}
-
-function resolveCurrentUser(sessionUserId: string | null, usersStorageValue: string) {
-  if (!sessionUserId) {
-    return null;
-  }
-
-  const users = parseUsers(usersStorageValue);
-  const user = users.find(
-    (entry) => entry.userId === sessionUserId || entry.username === sessionUserId,
-  );
-
-  if (user) {
-    return user;
-  }
+function buildAuthUser(user: User, profile: ProfileRow | null): AuthUser {
+  const email = profile?.email?.trim() || user.email?.trim() || "";
+  const normalizedRole = normalizeRole(profile?.role);
+  const displayName =
+    profile?.display_name?.trim() ||
+    profile?.name?.trim() ||
+    deriveDisplayName(email || user.id);
 
   return {
-    userId: buildLegacyUserId(sessionUserId),
-    username: sessionUserId,
-    password: "",
-    displayName: sessionUserId,
-    bio: getDefaultBio("member"),
-    avatarPreset: getAvatarPresetFromSeed(sessionUserId),
-    role: "member" as const,
-    hasJoinedGroup: true,
-    joinedGroupId: null,
+    userId: user.id,
+    email,
+    displayName,
+    bio: profile?.bio?.trim() || getDefaultBio(normalizedRole),
+    avatarPreset: isAvatarPreset(profile?.avatar_preset)
+      ? profile.avatar_preset
+      : getAvatarPresetFromSeed(user.id),
+    role: normalizedRole,
+    hasJoinedGroup: profile?.has_joined_group ?? false,
+    joinedGroupId: profile?.joined_group_id ?? null,
   };
-}
-
-function upsertUser(nextUser: AuthUser) {
-  const users = readUsers();
-  const filteredUsers = users.filter((entry) => entry.userId !== nextUser.userId);
-  const nextUsers = [...filteredUsers, nextUser];
-
-  writeUsers(nextUsers);
-  window.localStorage.setItem(sessionStorageKey, nextUser.userId);
-  dispatchAuthChange();
-
-  return nextUser;
 }
 
 function resolvePostAuthPath(user: AuthUser) {
   return user.hasJoinedGroup ? "/mypage" : "/group-setup";
+}
+
+async function fetchProfile(userId: string) {
+  const client = getSupabaseBrowserClient();
+  const response = await client.from("profiles").select("*").eq("id", userId).maybeSingle();
+
+  if (response.error) {
+    throw new Error(`Failed to load profile: ${response.error.message}`);
+  }
+
+  return (response.data ?? null) as ProfileRow | null;
+}
+
+async function upsertProfile(user: User, overrides: ProfileOverrides = {}) {
+  const client = getSupabaseBrowserClient();
+  const existingProfile = await fetchProfile(user.id);
+  const email = overrides.email?.trim() || existingProfile?.email?.trim() || user.email?.trim() || "";
+  const role = normalizeRole(overrides.role ?? existingProfile?.role);
+  const displayName =
+    overrides.display_name?.trim() ||
+    overrides.name?.trim() ||
+    existingProfile?.display_name?.trim() ||
+    existingProfile?.name?.trim() ||
+    deriveDisplayName(email || user.id);
+  const bio = overrides.bio?.trim() || existingProfile?.bio?.trim() || getDefaultBio(role);
+  const focus = overrides.focus?.trim() || existingProfile?.focus?.trim() || getDefaultFocus(role);
+  const avatarPreset = isAvatarPreset(overrides.avatar_preset)
+    ? overrides.avatar_preset
+    : isAvatarPreset(existingProfile?.avatar_preset)
+      ? existingProfile.avatar_preset
+      : getAvatarPresetFromSeed(user.id);
+
+  const payload: ProfileRow = {
+    id: user.id,
+    email,
+    name: displayName,
+    display_name: displayName,
+    bio,
+    focus,
+    avatar_preset: avatarPreset,
+    role: toStoredRole(role),
+    has_joined_group: overrides.has_joined_group ?? existingProfile?.has_joined_group ?? false,
+    joined_group_id:
+      overrides.joined_group_id !== undefined
+        ? overrides.joined_group_id
+        : existingProfile?.joined_group_id ?? null,
+  };
+
+  const response = await client.from("profiles").upsert(payload).select("*").single();
+
+  if (response.error) {
+    throw new Error(`Failed to save profile: ${response.error.message}`);
+  }
+
+  return response.data as ProfileRow;
 }
 
 export function AuthProvider({
@@ -249,115 +229,167 @@ export function AuthProvider({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const isAuthReady = useSyncExternalStore(
-    subscribeAuth,
-    () => true,
-    () => false,
-  );
-  const sessionUserId = useSyncExternalStore(
-    subscribeAuth,
-    readSessionUserId,
-    () => null,
-  );
-  const usersStorageValue = useSyncExternalStore(
-    subscribeAuth,
-    readUsersSnapshot,
-    () => "[]",
-  );
-  const currentUser = useMemo(() => {
-    return resolveCurrentUser(sessionUserId, usersStorageValue);
-  }, [sessionUserId, usersStorageValue]);
-  const sessionName = currentUser?.displayName ?? currentUser?.username ?? null;
+  const client = useMemo(() => getSupabaseBrowserClient(), []);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [sessionUser, setSessionUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
 
-  function signIn({ username, password }: SignInInput): AuthActionResult {
-    const trimmedUsername = username.trim();
-    const trimmedPassword = password.trim();
-
-    if (!trimmedUsername || !trimmedPassword || typeof window === "undefined") {
-      return {
-        ok: false,
-        error: "아이디와 비밀번호를 모두 입력해 주세요.",
-      };
+  async function syncAuthState(nextUser: User | null) {
+    if (!nextUser) {
+      setSessionUser(null);
+      setCurrentUser(null);
+      return;
     }
 
-    const users = readUsers();
-    const matchedUser = users.find((entry) => entry.username === trimmedUsername);
-
-    if (!matchedUser) {
-      return {
-        ok: false,
-        error: "가입된 계정을 찾을 수 없습니다.",
-      };
-    }
-
-    if (matchedUser.password !== trimmedPassword) {
-      return {
-        ok: false,
-        error: "비밀번호가 일치하지 않습니다.",
-      };
-    }
-
-    window.localStorage.setItem(sessionStorageKey, matchedUser.userId);
-    dispatchAuthChange();
-
-    return {
-      ok: true,
-      user: matchedUser,
-    };
+    const profile = await upsertProfile(nextUser);
+    setSessionUser(nextUser);
+    setCurrentUser(buildAuthUser(nextUser, profile));
   }
 
-  function signUp({ username, password, role }: SignUpInput): AuthActionResult {
-    const trimmedUsername = username.trim();
+  useEffect(() => {
+    let cancelled = false;
+
+    async function bootstrap() {
+      try {
+        const { data, error } = await client.auth.getSession();
+
+        if (error) {
+          throw error;
+        }
+
+        if (!cancelled) {
+          await syncAuthState(data.session?.user ?? null);
+        }
+      } catch {
+        if (!cancelled) {
+          setSessionUser(null);
+          setCurrentUser(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsAuthReady(true);
+        }
+      }
+    }
+
+    void bootstrap();
+
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange((_event, session) => {
+      void syncAuthState(session?.user ?? null).finally(() => {
+        setIsAuthReady(true);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [client]);
+
+  const sessionName = currentUser?.displayName ?? (currentUser?.email ? deriveDisplayName(currentUser.email) : null);
+
+  async function signIn({ email, password }: SignInInput): Promise<AuthActionResult> {
+    const normalizedEmail = normalizeEmail(email);
     const trimmedPassword = password.trim();
 
-    if (!trimmedUsername || !trimmedPassword || typeof window === "undefined") {
+    if (!normalizedEmail || !trimmedPassword) {
       return {
         ok: false,
-        error: "아이디와 비밀번호를 모두 입력해 주세요.",
+        error: "이메일과 비밀번호를 모두 입력해 주세요.",
       };
     }
 
-    const users = readUsers();
-    const hasDuplicate = users.some((entry) => entry.username === trimmedUsername);
-
-    if (hasDuplicate) {
-      return {
-        ok: false,
-        error: "이미 사용 중인 아이디입니다.",
-      };
-    }
-
-    const nextUser: AuthUser = {
-      userId: createUserId(),
-      username: trimmedUsername,
+    const { data, error } = await client.auth.signInWithPassword({
+      email: normalizedEmail,
       password: trimmedPassword,
-      displayName: trimmedUsername,
-      bio: getDefaultBio(role),
-      avatarPreset: getAvatarPresetFromSeed(trimmedUsername),
-      role,
-      hasJoinedGroup: false,
-      joinedGroupId: null,
-    };
+    });
+
+    if (error || !data.user) {
+      return {
+        ok: false,
+        error: error?.message ?? "로그인에 실패했어요.",
+      };
+    }
+
+    const profile = await upsertProfile(data.user, { email: normalizedEmail });
+    const user = buildAuthUser(data.user, profile);
+    setSessionUser(data.user);
+    setCurrentUser(user);
 
     return {
       ok: true,
-      user: upsertUser(nextUser),
+      user,
     };
   }
 
-  function updateProfile({
+  async function signUp({ email, password }: SignUpInput): Promise<AuthActionResult> {
+    const normalizedEmail = normalizeEmail(email);
+    const trimmedPassword = password.trim();
+
+    if (!normalizedEmail || !trimmedPassword) {
+      return {
+        ok: false,
+        error: "이메일과 비밀번호를 모두 입력해 주세요.",
+      };
+    }
+
+    const signUpResult = await client.auth.signUp({
+      email: normalizedEmail,
+      password: trimmedPassword,
+    });
+
+    if (signUpResult.error || !signUpResult.data.user) {
+      return {
+        ok: false,
+        error: signUpResult.error?.message ?? "회원가입에 실패했어요.",
+      };
+    }
+
+    const createdProfile = await upsertProfile(signUpResult.data.user, {
+      email: normalizedEmail,
+      role: null,
+      has_joined_group: false,
+      joined_group_id: null,
+    });
+
+    let activeUser = signUpResult.data.user;
+
+    if (!signUpResult.data.session) {
+      const signInResult = await client.auth.signInWithPassword({
+        email: normalizedEmail,
+        password: trimmedPassword,
+      });
+
+      if (signInResult.error || !signInResult.data.user) {
+        return {
+          ok: false,
+          error:
+            signInResult.error?.message ??
+            "계정은 생성됐지만 바로 로그인하지 못했어요. 다시 로그인해 주세요.",
+        };
+      }
+
+      activeUser = signInResult.data.user;
+    }
+
+    const user = buildAuthUser(activeUser, createdProfile);
+    setSessionUser(activeUser);
+    setCurrentUser(user);
+
+    return {
+      ok: true,
+      user,
+    };
+  }
+
+  async function updateProfile({
     displayName,
     bio,
     avatarPreset,
-  }: UpdateProfileInput): AuthActionResult {
-    if (typeof window === "undefined") {
-      return {
-        ok: false,
-        error: "프로필을 저장할 수 없습니다.",
-      };
-    }
-
-    const activeUser = resolveCurrentUser(readSessionUserId(), readUsersSnapshot());
+  }: UpdateProfileInput): Promise<AuthActionResult> {
+    const activeUser = sessionUser;
 
     if (!activeUser) {
       return {
@@ -375,42 +407,42 @@ export function AuthProvider({
       };
     }
 
+    const nextProfile = await upsertProfile(activeUser, {
+      display_name: normalizedDisplayName,
+      name: normalizedDisplayName,
+      bio,
+      avatar_preset: avatarPreset,
+    });
+    const user = buildAuthUser(activeUser, nextProfile);
+    setCurrentUser(user);
+
     return {
       ok: true,
-      user: upsertUser({
-        ...activeUser,
-        displayName: normalizedDisplayName,
-        bio: bio.trim() || getDefaultBio(activeUser.role),
-        avatarPreset,
-      }),
+      user,
     };
   }
 
-  function signOut() {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.localStorage.removeItem(sessionStorageKey);
-    dispatchAuthChange();
+  async function signOut() {
+    await client.auth.signOut();
+    setSessionUser(null);
+    setCurrentUser(null);
   }
 
-  function markGroupJoined(groupId: string) {
-    if (typeof window === "undefined") {
+  async function markGroupJoined(groupId: string, role: UserRole) {
+    if (!sessionUser) {
       return null;
     }
 
-    const activeUser = resolveCurrentUser(readSessionUserId(), readUsersSnapshot());
-
-    if (!activeUser) {
-      return null;
-    }
-
-    return upsertUser({
-      ...activeUser,
-      hasJoinedGroup: true,
-      joinedGroupId: groupId,
+    const nextProfile = await upsertProfile(sessionUser, {
+      role,
+      has_joined_group: true,
+      joined_group_id: groupId,
+      focus: getDefaultFocus(role),
+      bio: currentUser?.bio?.trim() || getDefaultBio(role),
     });
+    const user = buildAuthUser(sessionUser, nextProfile);
+    setCurrentUser(user);
+    return user;
   }
 
   return (

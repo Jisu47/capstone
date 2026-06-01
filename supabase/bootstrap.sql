@@ -1,9 +1,44 @@
 create table if not exists public.profiles (
   id text primary key,
-  name text not null,
-  role text not null,
-  focus text not null
+  email text,
+  name text not null default '',
+  display_name text not null default '',
+  role text,
+  focus text not null default '',
+  bio text not null default '',
+  avatar_preset text not null default 'sky',
+  has_joined_group boolean not null default false,
+  joined_group_id text
 );
+
+alter table public.profiles
+  add column if not exists email text;
+
+alter table public.profiles
+  add column if not exists display_name text not null default '';
+
+alter table public.profiles
+  add column if not exists bio text not null default '';
+
+alter table public.profiles
+  add column if not exists avatar_preset text not null default 'sky';
+
+alter table public.profiles
+  add column if not exists has_joined_group boolean not null default false;
+
+alter table public.profiles
+  add column if not exists joined_group_id text;
+
+alter table public.profiles
+  alter column role drop not null;
+
+update public.profiles
+set display_name = coalesce(nullif(display_name, ''), nullif(name, ''), id)
+where display_name is null or display_name = '';
+
+update public.profiles
+set bio = coalesce(nullif(bio, ''), nullif(focus, ''), '')
+where bio is null or bio = '';
 
 create table if not exists public.study_groups (
   id text primary key,

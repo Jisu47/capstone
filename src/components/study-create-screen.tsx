@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { useAuth } from "@/components/auth-provider";
 import { AppShell, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
 import { type CreateGroupInput } from "@/lib/mock-data";
@@ -19,7 +18,6 @@ const initialForm: CreateGroupInput = {
 
 export function StudyCreateScreen() {
   const { createGroup, isMutating } = usePrototype();
-  const { markGroupJoined } = useAuth();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState<CreateGroupInput>(initialForm);
@@ -41,7 +39,6 @@ export function StudyCreateScreen() {
 
     try {
       const groupId = await createGroup(form);
-      markGroupJoined(groupId);
 
       startTransition(() => {
         router.push(`/group/${groupId}`);
@@ -155,8 +152,8 @@ export function StudyCreateScreen() {
       <SectionCard title="생성 후 바로 이어지는 흐름">
         <div className="grid gap-3">
           {[
-            "홈에서 새 그룹 카드가 보이고, 바로 그룹 홈으로 들어갈 수 있어요.",
-            "생성 직후 내 계정에 그룹 가입 상태가 반영되어 이후 로그인 시 바로 마이페이지로 이동해요.",
+            "생성 직후 현재 계정이 팀장으로 자동 지정되고 그룹 화면으로 바로 이동해요.",
+            "이후 다시 로그인해도 그룹 가입 상태와 역할이 유지돼서 마이페이지로 이어져요.",
             "그룹 홈, 계획, 자료 화면에서 같은 그룹 기준으로 학습 흐름을 이어갈 수 있어요.",
           ].map((item) => (
             <div
