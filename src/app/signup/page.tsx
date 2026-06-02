@@ -7,11 +7,12 @@ import { useAuth } from "@/components/auth-provider";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { isAuthReady, currentUser, signUp, resolvePostAuthPath } = useAuth();
+  const { isAuthReady, currentUser, signIn, signUp, resolvePostAuthPath } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const passwordMismatch =
     passwordConfirm.trim().length > 0 && password !== passwordConfirm;
@@ -25,6 +26,10 @@ export default function SignupPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (isSubmitting) {
+      return;
+    }
+
     if (!email.trim() || !password || !passwordConfirm) {
       setErrorMessage("모든 항목을 입력해 주세요.");
       return;
@@ -35,18 +40,42 @@ export default function SignupPage() {
       return;
     }
 
-    const result = await signUp({
-      email,
-      password,
-    });
+    setIsSubmitting(true);
 
-    if (!result.ok) {
-      setErrorMessage(result.error);
-      return;
+    try {
+      const result = await signUp({
+        email,
+        password,
+      });
+
+      if (!result.ok) {
+        const alreadyRegistered = result.error.toLowerCase().includes("already registered");
+
+        if (alreadyRegistered) {
+          const signInResult = await signIn({
+            email,
+            password,
+          });
+
+          if (signInResult.ok) {
+            setErrorMessage(null);
+            router.replace(resolvePostAuthPath(signInResult.user));
+            return;
+          }
+
+          setErrorMessage("이미 가입된 이메일입니다. 같은 비밀번호로 로그인해 주세요.");
+          return;
+        }
+
+        setErrorMessage(result.error);
+        return;
+      }
+
+      setErrorMessage(null);
+      router.replace(resolvePostAuthPath(result.user));
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setErrorMessage(null);
-    router.replace("/group-setup");
   }
 
   return (
@@ -135,9 +164,9 @@ export default function SignupPage() {
           <button
             type="submit"
             className="inline-flex w-full items-center justify-center rounded-[18px] bg-[var(--brand)] px-4 py-4 text-base font-semibold text-white shadow-[0_14px_28px_rgba(121,184,149,0.22)] transition hover:brightness-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-[rgba(121,184,149,0.55)] disabled:shadow-none"
-            disabled={passwordMismatch}
+            disabled={passwordMismatch || isSubmitting}
           >
-            회원가입
+            {isSubmitting ? "가입 처리 중..." : "회원가입"}
           </button>
         </form>
 

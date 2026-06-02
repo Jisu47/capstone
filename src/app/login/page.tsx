@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isAuthReady && currentUser) {
@@ -21,18 +22,28 @@ export default function LoginPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const result = await signIn({
-      email,
-      password,
-    });
-
-    if (!result.ok) {
-      setErrorMessage(result.error);
+    if (isSubmitting) {
       return;
     }
 
-    setErrorMessage(null);
-    router.replace(resolvePostAuthPath(result.user));
+    setIsSubmitting(true);
+
+    try {
+      const result = await signIn({
+        email,
+        password,
+      });
+
+      if (!result.ok) {
+        setErrorMessage(result.error);
+        return;
+      }
+
+      setErrorMessage(null);
+      router.replace(resolvePostAuthPath(result.user));
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -93,9 +104,10 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="inline-flex w-full items-center justify-center rounded-[18px] bg-[var(--brand)] px-4 py-4 text-base font-semibold text-white shadow-[0_14px_28px_rgba(121,184,149,0.22)] transition hover:brightness-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2"
+            className="inline-flex w-full items-center justify-center rounded-[18px] bg-[var(--brand)] px-4 py-4 text-base font-semibold text-white shadow-[0_14px_28px_rgba(121,184,149,0.22)] transition hover:brightness-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-[rgba(121,184,149,0.55)] disabled:shadow-none"
+            disabled={isSubmitting}
           >
-            로그인
+            {isSubmitting ? "로그인 중..." : "로그인"}
           </button>
         </form>
 
