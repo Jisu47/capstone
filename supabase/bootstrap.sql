@@ -162,6 +162,18 @@ create table if not exists public.group_roadmap_items (
   sort_order integer not null default 0
 );
 
+create table if not exists public.review_candidates (
+  id text primary key,
+  group_id text not null references public.study_groups(id) on delete cascade,
+  member_id text not null references public.profiles(id) on delete cascade,
+  source_plan_item_id text not null references public.plan_items(id) on delete cascade,
+  title text not null,
+  detail text not null default '',
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  unique (group_id, member_id, source_plan_item_id)
+);
+
 create table if not exists public.personal_plan_items (
   id text primary key,
   group_id text not null references public.study_groups(id) on delete cascade,
@@ -169,8 +181,33 @@ create table if not exists public.personal_plan_items (
   title text not null,
   detail text not null default '',
   completed boolean not null default false,
+  source_plan_item_id text references public.plan_items(id) on delete set null,
   sort_order integer not null default 0,
   created_at timestamptz not null default timezone('utc', now())
+);
+
+alter table public.personal_plan_items
+  add column if not exists source_plan_item_id text references public.plan_items(id) on delete set null;
+
+create table if not exists public.personal_task_library_items (
+  id text primary key,
+  group_id text not null references public.study_groups(id) on delete cascade,
+  member_id text not null references public.profiles(id) on delete cascade,
+  title text not null,
+  detail text not null default '',
+  source_plan_item_id text references public.plan_items(id) on delete set null,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
+create table if not exists public.plan_item_feedbacks (
+  plan_item_id text not null references public.plan_items(id) on delete cascade,
+  member_id text not null references public.profiles(id) on delete cascade,
+  understanding_level text not null check (understanding_level in ('low', 'medium', 'high')),
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  primary key (plan_item_id, member_id)
 );
 
 create index if not exists idx_group_members_group_id
@@ -191,11 +228,36 @@ create index if not exists idx_plan_reference_units_group_id
 create index if not exists idx_group_roadmap_items_group_id
   on public.group_roadmap_items (group_id);
 
+create index if not exists idx_review_candidates_group_id
+  on public.review_candidates (group_id);
+
+create index if not exists idx_review_candidates_member_id
+  on public.review_candidates (member_id);
+
 create index if not exists idx_personal_plan_items_group_id
   on public.personal_plan_items (group_id);
 
+create index if not exists idx_personal_plan_items_source_plan_item_id
+  on public.personal_plan_items (source_plan_item_id);
+
+create index if not exists idx_personal_task_library_items_group_id
+  on public.personal_task_library_items (group_id);
+
+create index if not exists idx_personal_task_library_items_member_id
+  on public.personal_task_library_items (member_id);
+
+create index if not exists idx_personal_task_library_items_source_plan_item_id
+  on public.personal_task_library_items (source_plan_item_id);
+
+create unique index if not exists idx_personal_task_library_items_source_unique
+  on public.personal_task_library_items (group_id, member_id, source_plan_item_id)
+  where source_plan_item_id is not null;
+
 create index if not exists idx_plan_item_completions_member_id
   on public.plan_item_completions (member_id);
+
+create index if not exists idx_plan_item_feedbacks_member_id
+  on public.plan_item_feedbacks (member_id);
 
 create index if not exists idx_chat_messages_group_id
   on public.chat_messages (group_id);
@@ -217,7 +279,10 @@ alter table public.chat_message_sources enable row level security;
 alter table public.plan_reference_uploads enable row level security;
 alter table public.plan_reference_units enable row level security;
 alter table public.group_roadmap_items enable row level security;
+alter table public.review_candidates enable row level security;
 alter table public.personal_plan_items enable row level security;
+alter table public.personal_task_library_items enable row level security;
+alter table public.plan_item_feedbacks enable row level security;
 
 drop policy if exists "profiles_select_all" on public.profiles;
 create policy "profiles_select_all"
@@ -393,6 +458,35 @@ create policy "plan_item_completions_delete_all"
   to anon, authenticated
   using (true);
 
+drop policy if exists "plan_item_feedbacks_select_all" on public.plan_item_feedbacks;
+create policy "plan_item_feedbacks_select_all"
+  on public.plan_item_feedbacks
+  for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "plan_item_feedbacks_insert_all" on public.plan_item_feedbacks;
+create policy "plan_item_feedbacks_insert_all"
+  on public.plan_item_feedbacks
+  for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "plan_item_feedbacks_update_all" on public.plan_item_feedbacks;
+create policy "plan_item_feedbacks_update_all"
+  on public.plan_item_feedbacks
+  for update
+  to anon, authenticated
+  using (true)
+  with check (true);
+
+drop policy if exists "plan_item_feedbacks_delete_all" on public.plan_item_feedbacks;
+create policy "plan_item_feedbacks_delete_all"
+  on public.plan_item_feedbacks
+  for delete
+  to anon, authenticated
+  using (true);
+
 drop policy if exists "chat_messages_select_all" on public.chat_messages;
 create policy "chat_messages_select_all"
   on public.chat_messages
@@ -538,6 +632,35 @@ create policy "group_roadmap_items_delete_all"
   to anon, authenticated
   using (true);
 
+drop policy if exists "review_candidates_select_all" on public.review_candidates;
+create policy "review_candidates_select_all"
+  on public.review_candidates
+  for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "review_candidates_insert_all" on public.review_candidates;
+create policy "review_candidates_insert_all"
+  on public.review_candidates
+  for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "review_candidates_update_all" on public.review_candidates;
+create policy "review_candidates_update_all"
+  on public.review_candidates
+  for update
+  to anon, authenticated
+  using (true)
+  with check (true);
+
+drop policy if exists "review_candidates_delete_all" on public.review_candidates;
+create policy "review_candidates_delete_all"
+  on public.review_candidates
+  for delete
+  to anon, authenticated
+  using (true);
+
 drop policy if exists "personal_plan_items_select_all" on public.personal_plan_items;
 create policy "personal_plan_items_select_all"
   on public.personal_plan_items
@@ -563,6 +686,35 @@ create policy "personal_plan_items_update_all"
 drop policy if exists "personal_plan_items_delete_all" on public.personal_plan_items;
 create policy "personal_plan_items_delete_all"
   on public.personal_plan_items
+  for delete
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "personal_task_library_items_select_all" on public.personal_task_library_items;
+create policy "personal_task_library_items_select_all"
+  on public.personal_task_library_items
+  for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "personal_task_library_items_insert_all" on public.personal_task_library_items;
+create policy "personal_task_library_items_insert_all"
+  on public.personal_task_library_items
+  for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "personal_task_library_items_update_all" on public.personal_task_library_items;
+create policy "personal_task_library_items_update_all"
+  on public.personal_task_library_items
+  for update
+  to anon, authenticated
+  using (true)
+  with check (true);
+
+drop policy if exists "personal_task_library_items_delete_all" on public.personal_task_library_items;
+create policy "personal_task_library_items_delete_all"
+  on public.personal_task_library_items
   for delete
   to anon, authenticated
   using (true);

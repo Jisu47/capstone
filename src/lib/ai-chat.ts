@@ -13,7 +13,6 @@ export type AiChatGroupContext = {
   overallGoal: string;
   description: string;
   recentUpdate: string;
-  reviewDays: string[];
   reviewIntervalLabel: string;
   materials: Array<{
     title: string;

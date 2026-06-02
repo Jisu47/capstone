@@ -123,7 +123,7 @@ export default function MyPage() {
                 router.replace("/");
               });
             }}
-            className="text-sm font-semibold text-sky-700"
+            className="text-sm font-semibold text-[var(--brand)]"
           >
             로그아웃
           </button>
@@ -173,7 +173,7 @@ export default function MyPage() {
                 setFeedback(null);
                 setErrorMessage(null);
               }}
-              className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+              className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[rgba(121,184,149,0.16)]"
             />
           </label>
 
@@ -187,7 +187,7 @@ export default function MyPage() {
                 setFeedback(null);
                 setErrorMessage(null);
               }}
-              className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+              className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[rgba(121,184,149,0.16)]"
             />
           </label>
 
@@ -208,7 +208,7 @@ export default function MyPage() {
                     }}
                     className={`flex items-center gap-3 rounded-[16px] border px-4 py-3 text-left transition ${
                       selected
-                        ? "border-sky-500 bg-sky-50"
+                        ? "border-[var(--brand)] bg-[var(--brand-soft)]"
                         : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
                   >
@@ -242,7 +242,7 @@ export default function MyPage() {
               void handleSaveProfile();
             }}
             disabled={isMutating}
-            className="inline-flex w-full items-center justify-center rounded-[18px] bg-sky-600 px-4 py-4 text-base font-semibold text-white shadow-[0_14px_28px_rgba(2,132,199,0.22)] transition hover:bg-sky-700 disabled:opacity-70"
+            className="inline-flex w-full items-center justify-center rounded-[18px] bg-[var(--brand)] px-4 py-4 text-base font-semibold text-white shadow-[0_14px_28px_rgba(121,184,149,0.22)] transition hover:brightness-[0.98] disabled:opacity-70"
           >
             {isMutating ? "저장 중..." : "프로필 저장"}
           </button>
@@ -266,9 +266,9 @@ export default function MyPage() {
             </div>
 
             {currentUser.role === "leader" ? (
-              <div className="rounded-[18px] border border-slate-200 bg-sky-50 px-4 py-4">
+              <div className="rounded-[18px] border border-slate-200 bg-[var(--brand-soft)] px-4 py-4">
                 <p className="text-sm font-semibold text-slate-900">팀원 초대 코드</p>
-                <p className="mt-2 text-lg font-semibold tracking-[0.08em] text-sky-700">
+                <p className="mt-2 text-lg font-semibold tracking-[0.08em] text-[var(--brand)]">
                   {createGroupJoinCode(joinedGroup.id)}
                 </p>
               </div>
@@ -278,7 +278,7 @@ export default function MyPage() {
               <button
                 type="button"
                 onClick={() => router.push(`/group/${joinedGroup.id}`)}
-                className="inline-flex items-center justify-center rounded-[18px] bg-sky-600 px-4 py-4 text-base font-semibold text-white shadow-[0_14px_28px_rgba(2,132,199,0.22)] transition hover:bg-sky-700"
+                className="inline-flex items-center justify-center rounded-[18px] bg-[var(--brand)] px-4 py-4 text-base font-semibold text-white shadow-[0_14px_28px_rgba(121,184,149,0.22)] transition hover:brightness-[0.98]"
               >
                 그룹 홈으로 이동
               </button>
@@ -298,7 +298,7 @@ export default function MyPage() {
             </p>
             <Link
               href="/group-setup"
-              className="inline-flex items-center justify-center rounded-[18px] bg-sky-600 px-4 py-4 text-base font-semibold text-white shadow-[0_14px_28px_rgba(2,132,199,0.22)] transition hover:bg-sky-700"
+              className="inline-flex items-center justify-center rounded-[18px] bg-[var(--brand)] px-4 py-4 text-base font-semibold text-white shadow-[0_14px_28px_rgba(121,184,149,0.22)] transition hover:brightness-[0.98]"
             >
               그룹 설정으로 이동
             </Link>

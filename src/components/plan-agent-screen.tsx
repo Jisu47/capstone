@@ -52,7 +52,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   }
 
   const activeGroup = group;
-  const leaderMode = isLeader(activeGroup);
+  const leaderMode = isLeader(activeGroup, currentUserId);
   const draft = buildPlanAgentDraft(activeGroup);
   const reviewInterval = activeGroup.reviewIntervals[currentUserId] ?? null;
   const planAgentBusy = isPlanAgentAnswering(activeGroup.id);
@@ -105,15 +105,15 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
         <SectionCard title="현재 설정">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
-              <p className="text-xs font-medium text-slate-500">복습 요일</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">
-                {activeGroup.reviewDays.length > 0 ? activeGroup.reviewDays.join(", ") : "설정 안 함"}
-              </p>
-            </div>
-            <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
               <p className="text-xs font-medium text-slate-500">내 복습 간격</p>
               <p className="mt-2 text-sm font-semibold text-slate-900">
                 {getReviewIntervalLabel(reviewInterval)}
+              </p>
+            </div>
+            <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
+              <p className="text-xs font-medium text-slate-500">복습 기준</p>
+              <p className="mt-2 text-sm font-semibold text-slate-900">
+                이해도 낮음 항목을 간격 기준으로 자동 추가
               </p>
             </div>
           </div>
@@ -127,7 +127,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
         <SectionCard title="빠른 질문">
           <div className="flex flex-wrap gap-2">
             {[
-              "복습 요일을 반영해서 이번 주 계획 다시 짜 줘",
+              "복습 간격을 고려해서 이번 주 계획 다시 짜 줘",
               "진도표 기준으로 전체 계획을 주차별로 정리해 줘",
               "복습 간격을 고려해서 주간 계획을 조정해 줘",
             ].map((question) => (
@@ -177,7 +177,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
               <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
                 <p className="text-sm font-semibold text-slate-900">초안 정리 중</p>
                 <p className="mt-1 text-xs text-[var(--ink-soft)]">
-                  진도표와 복습 설정을 반영하고 있습니다.
+                  진도표와 복습 간격 설정을 반영하고 있습니다.
                 </p>
               </div>
             ) : null}
@@ -190,7 +190,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
               rows={3}
               value={draftQuestion}
               onChange={(event) => setDraftQuestion(event.target.value)}
-              placeholder="예: 이번 주 복습 계획까지 반영해서 다시 짜 줘"
+              placeholder="예: 복습 간격까지 고려해서 이번 주 계획 다시 짜 줘"
               className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
             />
             <button

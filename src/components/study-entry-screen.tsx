@@ -19,15 +19,15 @@ function sortGroupsByExamDate(groups: ReturnType<typeof usePrototype>["groups"])
 
 function SplashLogoMark() {
   return (
-    <div className="relative flex h-44 w-44 items-center justify-center rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] shadow-[0_32px_80px_rgba(13,9,34,0.42)] backdrop-blur-md">
-      <div className="absolute inset-4 rounded-[24px] bg-[radial-gradient(circle_at_top,rgba(174,155,255,0.28),transparent_48%),linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]" />
-      <div className="absolute right-7 top-7 h-3.5 w-3.5 rounded-full bg-emerald-300/80 shadow-[0_0_18px_rgba(134,239,172,0.8)]" />
+    <div className="relative flex h-44 w-44 items-center justify-center rounded-[30px] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(244,250,246,0.92))] shadow-[0_28px_60px_rgba(121,184,149,0.16)] backdrop-blur-md">
+      <div className="absolute inset-4 rounded-[24px] bg-[radial-gradient(circle_at_top,rgba(121,184,149,0.16),transparent_52%),linear-gradient(160deg,rgba(255,255,255,0.78),rgba(248,252,249,0.44))]" />
+      <div className="absolute right-7 top-7 h-3.5 w-3.5 rounded-full bg-[var(--brand)] shadow-[0_0_18px_rgba(121,184,149,0.42)]" />
       <Image
         src="/logo-study.png"
         alt="Study logo"
         width={133}
         height={132}
-        className="relative z-10 h-32 w-32 object-contain drop-shadow-[0_10px_24px_rgba(9,7,24,0.34)]"
+        className="relative z-10 h-32 w-32 object-contain drop-shadow-[0_10px_24px_rgba(121,184,149,0.14)]"
         priority
       />
     </div>
@@ -36,12 +36,12 @@ function SplashLogoMark() {
 
 function SplashScreen() {
   return (
-    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-[#2a2258] text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(138,121,217,0.28),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(86,214,175,0.10),_transparent_30%)]" />
+    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-[var(--background)] text-slate-900">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(121,184,149,0.18),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(230,243,235,0.72),_transparent_34%)]" />
 
       <div className="relative mx-auto flex w-full max-w-[430px] flex-1 flex-col px-6 pb-10 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
-        <div className="flex items-center justify-between text-sm text-white/80">
-          <span className="font-semibold tracking-[0.24em] text-white/70">
+        <div className="flex items-center justify-between text-sm text-slate-500">
+          <span className="font-semibold tracking-[0.24em] text-slate-600">
             STUDY FLOW
           </span>
         </div>
@@ -50,11 +50,11 @@ function SplashScreen() {
           <SplashLogoMark />
 
           <div className="mt-8 text-center">
-            <p className="font-[family:var(--font-study-display)] text-[56px] leading-none tracking-[0.06em] text-white">
+            <p className="font-[family:var(--font-study-display)] text-[56px] leading-none tracking-[0.06em] text-slate-950">
               STUDY
             </p>
-            <p className="mt-3 text-sm tracking-[0.28em] text-white/58">
-              SMART FLOW FOR YOUR TEAM
+            <p className="mt-3 text-sm tracking-[0.18em] text-slate-500">
+              스마트한 스터디 흐름을 바로 시작해 보세요
             </p>
           </div>
         </div>
@@ -62,16 +62,16 @@ function SplashScreen() {
         <div className="space-y-4">
           <Link
             href="/login"
-            className="inline-flex w-full items-center justify-center rounded-full bg-[#2c6f46] px-6 py-4 text-base font-semibold text-white shadow-[0_20px_40px_rgba(17,55,34,0.36)] transition hover:bg-[#347d50] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2a2258]"
+            className="inline-flex w-full items-center justify-center rounded-full bg-[var(--brand)] px-6 py-4 text-base font-semibold text-white shadow-[0_18px_36px_rgba(121,184,149,0.26)] transition hover:brightness-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
           >
             로그인 시작하기
           </Link>
 
-          <div className="flex items-center justify-center gap-3 text-sm text-white/72">
-            <Link href="/signup" className="transition hover:text-white">
+          <div className="flex items-center justify-center gap-3 text-sm text-slate-500">
+            <Link href="/signup" className="font-medium text-[var(--brand)] transition hover:brightness-90">
               계정 만들기
             </Link>
-            <span className="text-white/35">|</span>
+            <span className="text-slate-300">|</span>
             <span>아이디/비밀번호 찾기</span>
           </div>
         </div>
@@ -173,16 +173,18 @@ function AuthenticatedHome() {
 
 export function StudyEntryScreen() {
   const { isAuthReady, sessionName } = useAuth();
+
+  if (!isAuthReady || !sessionName) {
+    return <SplashScreen />;
+  }
+
+  return <AuthenticatedEntry />;
+}
+
+function AuthenticatedEntry() {
   const [showAuthSplash, setShowAuthSplash] = useState(true);
 
   useEffect(() => {
-    if (!isAuthReady || !sessionName) {
-      setShowAuthSplash(true);
-      return;
-    }
-
-    setShowAuthSplash(true);
-
     const timeoutId = window.setTimeout(() => {
       setShowAuthSplash(false);
     }, AUTH_SPLASH_DURATION_MS);
@@ -190,11 +192,7 @@ export function StudyEntryScreen() {
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [isAuthReady, sessionName]);
-
-  if (!isAuthReady || !sessionName) {
-    return <SplashScreen />;
-  }
+  }, []);
 
   return (
     <div className="relative min-h-dvh bg-[var(--surface)]">
