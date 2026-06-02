@@ -85,6 +85,7 @@ type ProfileOverrides = Partial<
 >;
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+const profileSyncTimeoutMs = 8000;
 
 function isAvatarPreset(value: string | null | undefined): value is AvatarPreset {
   return value === "sky" || value === "emerald" || value === "rose" || value === "amber";
@@ -165,6 +166,40 @@ function buildAuthUser(user: User, profile: ProfileRow | null): AuthUser {
   };
 }
 
+function buildFallbackAuthUser(user: User): AuthUser {
+  const email = user.email?.trim() || "";
+
+  return {
+    userId: user.id,
+    email,
+    displayName: deriveDisplayName(email || user.id),
+    bio: getDefaultBio(null),
+    avatarPreset: getAvatarPresetFromSeed(user.id),
+    role: null,
+    hasJoinedGroup: false,
+    joinedGroupId: null,
+  };
+}
+
+async function withTimeout<T>(promise: Promise<T>, label: string) {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race<T>([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error(`${label} timed out.`));
+        }, profileSyncTimeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
 function resolvePostAuthPath(user: AuthUser) {
   return user.hasJoinedGroup ? "/mypage" : "/group-setup";
 }
@@ -241,9 +276,17 @@ export function AuthProvider({
       return;
     }
 
-    const profile = await upsertProfile(nextUser);
     setSessionUser(nextUser);
-    setCurrentUser(buildAuthUser(nextUser, profile));
+
+    try {
+      const profile = await withTimeout(
+        upsertProfile(nextUser),
+        "Profile sync during auth state change",
+      );
+      setCurrentUser(buildAuthUser(nextUser, profile));
+    } catch {
+      setCurrentUser(buildFallbackAuthUser(nextUser));
+    }
   }
 
   useEffect(() => {
@@ -313,9 +356,20 @@ export function AuthProvider({
       };
     }
 
-    const profile = await upsertProfile(data.user, { email: normalizedEmail });
-    const user = buildAuthUser(data.user, profile);
     setSessionUser(data.user);
+
+    let user: AuthUser;
+
+    try {
+      const profile = await withTimeout(
+        upsertProfile(data.user, { email: normalizedEmail }),
+        "Profile sync during sign in",
+      );
+      user = buildAuthUser(data.user, profile);
+    } catch {
+      user = buildFallbackAuthUser(data.user);
+    }
+
     setCurrentUser(user);
 
     return {
@@ -347,13 +401,6 @@ export function AuthProvider({
       };
     }
 
-    const createdProfile = await upsertProfile(signUpResult.data.user, {
-      email: normalizedEmail,
-      role: null,
-      has_joined_group: false,
-      joined_group_id: null,
-    });
-
     let activeUser = signUpResult.data.user;
 
     if (!signUpResult.data.session) {
@@ -374,7 +421,23 @@ export function AuthProvider({
       activeUser = signInResult.data.user;
     }
 
-    const user = buildAuthUser(activeUser, createdProfile);
+    let user: AuthUser;
+
+    try {
+      const createdProfile = await withTimeout(
+        upsertProfile(signUpResult.data.user, {
+          email: normalizedEmail,
+          role: null,
+          has_joined_group: false,
+          joined_group_id: null,
+        }),
+        "Profile sync during sign up",
+      );
+      user = buildAuthUser(activeUser, createdProfile);
+    } catch {
+      user = buildFallbackAuthUser(activeUser);
+    }
+
     setSessionUser(activeUser);
     setCurrentUser(user);
 
