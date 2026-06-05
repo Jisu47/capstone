@@ -545,7 +545,7 @@ export function createGroupFromInput(
   input: CreateGroupInput,
   creator?: Member,
 ): StudyGroup {
-  const members = createInitialMembers(creator);
+  const members = creator ? [creator] : createInitialMembers();
   const memberIds = members.map((member) => member.id);
   const createdAt = new Date().toISOString();
   const trimmedSubject = input.subject.trim();
@@ -575,8 +575,8 @@ export function createGroupFromInput(
       id: `${groupId}-mat-2`,
       title: `${trimmedSubject} 예상문제 정리.pdf`,
       summary: `${trimmedSubject} 시험 대비용 예상문제와 체크 포인트`,
-      uploadedBy: members[1]?.name ?? "팀원",
-      uploadedByMemberId: members[1]?.id,
+      uploadedBy: members[0]?.name ?? "팀장",
+      uploadedByMemberId: members[0]?.id,
       uploadedAt: createdAt,
       format: "PDF",
       locationHint: "문제 1~3",
@@ -586,8 +586,8 @@ export function createGroupFromInput(
       id: `${groupId}-mat-3`,
       title: `${trimmedSubject} 발표 준비 메모.pdf`,
       summary: "발표와 질의응답 대비 포인트를 정리한 보조 자료",
-      uploadedBy: members[2]?.name ?? "팀원",
-      uploadedByMemberId: members[2]?.id,
+      uploadedBy: members[0]?.name ?? "팀장",
+      uploadedByMemberId: members[0]?.id,
       uploadedAt: createdAt,
       format: "PDF",
       locationHint: "질문 포인트",

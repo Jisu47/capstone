@@ -5,10 +5,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell, LoadingState, SectionCard } from "@/components/mobile-shell";
 import { ProfileAvatar } from "@/components/profile-avatar";
-import { useAuth } from "@/components/auth-provider";
+import {
+  type AuthUser,
+  type UpdateProfileInput,
+  useAuth,
+} from "@/components/auth-provider";
 import { usePrototype } from "@/components/prototype-provider";
 import { createGroupJoinCode } from "@/lib/group-join-code";
-import type { AvatarPreset } from "@/lib/mock-data";
+import type { AvatarPreset, Member, StudyGroup } from "@/lib/mock-data";
 
 const avatarOptions: Array<{ value: AvatarPreset; label: string }> = [
   { value: "sky", label: "Sky" },
@@ -16,6 +20,10 @@ const avatarOptions: Array<{ value: AvatarPreset; label: string }> = [
   { value: "rose", label: "Rose" },
   { value: "amber", label: "Amber" },
 ];
+
+type SaveProfileResult =
+  | { ok: true }
+  | { ok: false; error: string };
 
 function getRoleLabel(role: "leader" | "member" | null) {
   if (role === "leader") {
@@ -29,55 +37,58 @@ function getRoleLabel(role: "leader" | "member" | null) {
   return "미정";
 }
 
-export default function MyPage() {
-  const router = useRouter();
-  const { isAuthReady, currentUser, updateProfile, signOut } = useAuth();
-  const { groups, isMutating } = usePrototype();
-  const [displayName, setDisplayName] = useState("");
-  const [bio, setBio] = useState("");
-  const [avatarPreset, setAvatarPreset] = useState<AvatarPreset>("sky");
+function MyPageHeader() {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <Link
+        href="/"
+        aria-label="그룹 선택으로 돌아가기"
+        className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-[0_4px_12px_rgba(15,23,42,0.04)] transition hover:bg-white"
+      >
+        <svg
+          aria-hidden="true"
+          className="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M15 6L9 12L15 18"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.8"
+          />
+        </svg>
+      </Link>
+
+      <div className="flex-1 text-center">
+        <p className="font-[family:var(--font-study-display)] text-[25px] leading-none tracking-[-0.05em] text-slate-950">
+          마이페이지
+        </p>
+      </div>
+
+      <div aria-hidden="true" className="h-10 w-10" />
+    </div>
+  );
+}
+
+function ProfileEditorSection({
+  currentUser,
+  isMutating,
+  onSaveProfile,
+}: Readonly<{
+  currentUser: AuthUser;
+  isMutating: boolean;
+  onSaveProfile: (input: UpdateProfileInput) => Promise<SaveProfileResult>;
+}>) {
+  const [displayName, setDisplayName] = useState(currentUser.displayName);
+  const [bio, setBio] = useState(currentUser.bio);
+  const [avatarPreset, setAvatarPreset] = useState<AvatarPreset>(currentUser.avatarPreset);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isAuthReady && !currentUser) {
-      router.replace("/login");
-      return;
-    }
-
-    if (currentUser && !currentUser.hasJoinedGroup) {
-      router.replace("/group-setup");
-    }
-  }, [currentUser, isAuthReady, router]);
-
-  useEffect(() => {
-    if (!currentUser) {
-      return;
-    }
-
-    setDisplayName(currentUser.displayName);
-    setBio(currentUser.bio);
-    setAvatarPreset(currentUser.avatarPreset);
-  }, [currentUser]);
-
-  const joinedGroup = useMemo(() => {
-    if (!currentUser?.joinedGroupId) {
-      return null;
-    }
-
-    return groups.find((group) => group.id === currentUser.joinedGroupId) ?? null;
-  }, [currentUser?.joinedGroupId, groups]);
-
-  const teammateProfiles = useMemo(() => {
-    if (!joinedGroup || !currentUser) {
-      return [];
-    }
-
-    return joinedGroup.members.filter((member) => member.id !== currentUser.userId);
-  }, [currentUser, joinedGroup]);
-
   async function handleSaveProfile() {
-    const result = await updateProfile({
+    const result = await onSaveProfile({
       displayName,
       bio,
       avatarPreset,
@@ -93,11 +104,154 @@ export default function MyPage() {
     setFeedback("프로필이 저장됐어요.");
   }
 
+  return (
+    <SectionCard title="내 프로필 수정">
+      <div className="space-y-4">
+        <label className="block space-y-2">
+          <span className="text-sm font-semibold text-slate-800">닉네임</span>
+          <input
+            value={displayName}
+            onChange={(event) => {
+              setDisplayName(event.target.value);
+              setFeedback(null);
+              setErrorMessage(null);
+            }}
+            className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[rgba(121,184,149,0.16)]"
+          />
+        </label>
+
+        <label className="block space-y-2">
+          <span className="text-sm font-semibold text-slate-800">자기소개</span>
+          <textarea
+            rows={4}
+            value={bio}
+            onChange={(event) => {
+              setBio(event.target.value);
+              setFeedback(null);
+              setErrorMessage(null);
+            }}
+            className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[rgba(121,184,149,0.16)]"
+          />
+        </label>
+
+        <div className="space-y-2">
+          <span className="text-sm font-semibold text-slate-800">아바타 프리셋</span>
+          <div className="grid grid-cols-2 gap-3">
+            {avatarOptions.map((option) => {
+              const selected = avatarPreset === option.value;
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => {
+                    setAvatarPreset(option.value);
+                    setFeedback(null);
+                    setErrorMessage(null);
+                  }}
+                  className={`flex items-center gap-3 rounded-[16px] border px-4 py-3 text-left transition ${
+                    selected
+                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                      : "border-slate-200 bg-white hover:border-slate-300"
+                  }`}
+                >
+                  <ProfileAvatar
+                    name={displayName || currentUser.displayName}
+                    avatarPreset={option.value}
+                    size="sm"
+                  />
+                  <span className="text-sm font-semibold text-slate-800">{option.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {feedback ? (
+          <p className="rounded-[14px] bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+            {feedback}
+          </p>
+        ) : null}
+
+        {errorMessage ? (
+          <p className="rounded-[14px] bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+            {errorMessage}
+          </p>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={() => {
+            void handleSaveProfile();
+          }}
+          disabled={isMutating}
+          className="inline-flex w-full items-center justify-center rounded-[18px] bg-[var(--brand)] px-4 py-4 text-base font-semibold text-white shadow-[0_14px_28px_rgba(121,184,149,0.22)] transition hover:brightness-[0.98] disabled:opacity-70"
+        >
+          {isMutating ? "저장 중..." : "프로필 저장"}
+        </button>
+      </div>
+    </SectionCard>
+  );
+}
+
+function findJoinedGroup(groups: StudyGroup[], joinedGroupId: string | null) {
+  if (!joinedGroupId) {
+    return null;
+  }
+
+  return groups.find((group) => group.id === joinedGroupId) ?? null;
+}
+
+function findTeammates(joinedGroup: StudyGroup | null, currentUserId: string) {
+  if (!joinedGroup) {
+    return [];
+  }
+
+  return joinedGroup.members.filter((member) => member.id !== currentUserId);
+}
+
+export default function MyPage() {
+  const router = useRouter();
+  const { isAuthReady, currentUser, updateProfile, signOut } = useAuth();
+  const { groups, isMutating } = usePrototype();
+
+  useEffect(() => {
+    if (isAuthReady && !currentUser) {
+      router.replace("/login");
+      return;
+    }
+
+    if (currentUser && !currentUser.hasJoinedGroup) {
+      router.replace("/");
+    }
+  }, [currentUser, isAuthReady, router]);
+
+  const joinedGroup = useMemo(() => {
+    return findJoinedGroup(groups, currentUser?.joinedGroupId ?? null);
+  }, [currentUser, groups]);
+  const teammateProfiles = useMemo(() => {
+    return currentUser ? findTeammates(joinedGroup, currentUser.userId) : [];
+  }, [currentUser, joinedGroup]);
+
+  async function handleSaveProfile(input: UpdateProfileInput): Promise<SaveProfileResult> {
+    const result = await updateProfile(input);
+
+    if (!result.ok) {
+      return {
+        ok: false,
+        error: result.error,
+      };
+    }
+
+    return { ok: true };
+  }
+
   if (!isAuthReady || !currentUser) {
     return (
       <AppShell
         requireAuth={false}
         showNavigation={false}
+        headerContent={<MyPageHeader />}
         title="마이페이지"
         subtitle="사용자 정보를 준비하고 있어요."
       >
@@ -110,6 +264,7 @@ export default function MyPage() {
     <AppShell
       requireAuth={false}
       showNavigation={false}
+      headerContent={<MyPageHeader />}
       title="마이페이지"
       subtitle="역할, 그룹 상태, 내 프로필과 팀원 정보를 한눈에 확인해 보세요."
     >
@@ -132,7 +287,7 @@ export default function MyPage() {
         <div className="flex items-center gap-4 rounded-[18px] border border-slate-200 bg-white px-4 py-4">
           <ProfileAvatar
             name={currentUser.displayName}
-            avatarPreset={avatarPreset}
+            avatarPreset={currentUser.avatarPreset}
             size="lg"
           />
           <div className="min-w-0">
@@ -162,92 +317,12 @@ export default function MyPage() {
         </div>
       </SectionCard>
 
-      <SectionCard title="내 프로필 수정">
-        <div className="space-y-4">
-          <label className="block space-y-2">
-            <span className="text-sm font-semibold text-slate-800">닉네임</span>
-            <input
-              value={displayName}
-              onChange={(event) => {
-                setDisplayName(event.target.value);
-                setFeedback(null);
-                setErrorMessage(null);
-              }}
-              className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[rgba(121,184,149,0.16)]"
-            />
-          </label>
-
-          <label className="block space-y-2">
-            <span className="text-sm font-semibold text-slate-800">자기소개</span>
-            <textarea
-              rows={4}
-              value={bio}
-              onChange={(event) => {
-                setBio(event.target.value);
-                setFeedback(null);
-                setErrorMessage(null);
-              }}
-              className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[rgba(121,184,149,0.16)]"
-            />
-          </label>
-
-          <div className="space-y-2">
-            <span className="text-sm font-semibold text-slate-800">아바타 프리셋</span>
-            <div className="grid grid-cols-2 gap-3">
-              {avatarOptions.map((option) => {
-                const selected = avatarPreset === option.value;
-
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => {
-                      setAvatarPreset(option.value);
-                      setFeedback(null);
-                      setErrorMessage(null);
-                    }}
-                    className={`flex items-center gap-3 rounded-[16px] border px-4 py-3 text-left transition ${
-                      selected
-                        ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                        : "border-slate-200 bg-white hover:border-slate-300"
-                    }`}
-                  >
-                    <ProfileAvatar
-                      name={displayName || currentUser.displayName}
-                      avatarPreset={option.value}
-                      size="sm"
-                    />
-                    <span className="text-sm font-semibold text-slate-800">{option.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {feedback ? (
-            <p className="rounded-[14px] bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-              {feedback}
-            </p>
-          ) : null}
-
-          {errorMessage ? (
-            <p className="rounded-[14px] bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-              {errorMessage}
-            </p>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={() => {
-              void handleSaveProfile();
-            }}
-            disabled={isMutating}
-            className="inline-flex w-full items-center justify-center rounded-[18px] bg-[var(--brand)] px-4 py-4 text-base font-semibold text-white shadow-[0_14px_28px_rgba(121,184,149,0.22)] transition hover:brightness-[0.98] disabled:opacity-70"
-          >
-            {isMutating ? "저장 중..." : "프로필 저장"}
-          </button>
-        </div>
-      </SectionCard>
+      <ProfileEditorSection
+        key={currentUser.userId}
+        currentUser={currentUser}
+        isMutating={isMutating}
+        onSaveProfile={handleSaveProfile}
+      />
 
       <SectionCard title="내 그룹">
         {joinedGroup ? (
@@ -260,7 +335,7 @@ export default function MyPage() {
                 {joinedGroup.name}
               </h2>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                현재 연결된 그룹입니다. 그룹 홈으로 이동하거나 메인 화면에서 다른 스터디 흐름도
+                현재 연결된 그룹입니다. 그룹 홈으로 이동하거나 그룹 선택 화면에서 다른 스터디 흐름도
                 이어볼 수 있어요.
               </p>
             </div>
@@ -286,21 +361,20 @@ export default function MyPage() {
                 href="/"
                 className="inline-flex items-center justify-center rounded-[18px] border border-slate-200 bg-white px-4 py-4 text-base font-semibold text-slate-800 transition hover:border-slate-300"
               >
-                메인 화면 보기
+                그룹 선택으로 이동
               </Link>
             </div>
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-sm leading-6 text-slate-600">
-              연결된 그룹 정보를 아직 찾지 못했어요. 그룹 설정 화면에서 다시 그룹을 만들거나 참여해
-              주세요.
+              연결된 그룹 정보를 아직 찾지 못했어요. 그룹 선택 화면으로 돌아가서 다시 확인해 주세요.
             </p>
             <Link
-              href="/group-setup"
+              href="/"
               className="inline-flex items-center justify-center rounded-[18px] bg-[var(--brand)] px-4 py-4 text-base font-semibold text-white shadow-[0_14px_28px_rgba(121,184,149,0.22)] transition hover:brightness-[0.98]"
             >
-              그룹 설정으로 이동
+              그룹 선택으로 이동
             </Link>
           </div>
         )}
@@ -309,7 +383,7 @@ export default function MyPage() {
       <SectionCard title="우리 팀원 프로필">
         {teammateProfiles.length > 0 ? (
           <div className="space-y-3">
-            {teammateProfiles.map((member) => (
+            {teammateProfiles.map((member: Member) => (
               <article
                 key={member.id}
                 className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]"

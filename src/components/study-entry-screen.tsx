@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,8 +7,6 @@ import { useAuth } from "@/components/auth-provider";
 import { AppShell, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
 import { formatExamDate, getDaysLeft } from "@/lib/mock-data";
-
-const AUTH_SPLASH_DURATION_MS = 1400;
 
 function sortGroupsByExamDate(groups: ReturnType<typeof usePrototype>["groups"]) {
   return [...groups].sort((left, right) => {
@@ -54,7 +51,7 @@ function SplashScreen() {
               STUDY
             </p>
             <p className="mt-3 text-sm tracking-[0.18em] text-slate-500">
-              스마트한 스터디 흐름을 바로 시작해 보세요
+              필요한 스터디 흐름을 바로 시작해 보세요.
             </p>
           </div>
         </div>
@@ -87,9 +84,9 @@ function AuthenticatedHome() {
   const sortedGroups = sortGroupsByExamDate(groups);
 
   return (
-    <AppShell requireAuth={false} showNavigation={false} title="메인 화면">
+    <AppShell requireAuth={false} showNavigation={false} title="그룹 선택">
       <SectionCard
-        title={`${sessionName}님`}
+        title={`${sessionName ?? "사용자"}님`}
         action={
           <button
             type="button"
@@ -110,9 +107,14 @@ function AuthenticatedHome() {
       <SectionCard
         title="내 스터디 그룹"
         action={
-          <Link href="/create" className="text-sm font-semibold text-[var(--brand)]">
-            그룹 만들기
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/group-setup" className="text-sm font-semibold text-slate-600">
+              그룹 참여
+            </Link>
+            <Link href="/create" className="text-sm font-semibold text-[var(--brand)]">
+              그룹 만들기
+            </Link>
+          </div>
         }
       >
         {isLoading && groups.length === 0 ? (
@@ -126,12 +128,20 @@ function AuthenticatedHome() {
             <p className="text-sm leading-6 text-[var(--ink-soft)]">
               아직 참여 중인 스터디 그룹이 없습니다.
             </p>
-            <Link
-              href="/create"
-              className="inline-flex rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
-            >
-              첫 그룹 만들기
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/create"
+                className="inline-flex rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
+              >
+                첫 그룹 만들기
+              </Link>
+              <Link
+                href="/group-setup"
+                className="inline-flex rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+              >
+                참여 코드 입력
+              </Link>
+            </div>
           </div>
         ) : null}
 
@@ -178,42 +188,5 @@ export function StudyEntryScreen() {
     return <SplashScreen />;
   }
 
-  return <AuthenticatedEntry />;
-}
-
-function AuthenticatedEntry() {
-  const [showAuthSplash, setShowAuthSplash] = useState(true);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setShowAuthSplash(false);
-    }, AUTH_SPLASH_DURATION_MS);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, []);
-
-  return (
-    <div className="relative min-h-dvh bg-[var(--surface)]">
-      <div
-        className={`transition-all duration-700 ease-out ${
-          showAuthSplash
-            ? "pointer-events-none translate-y-3 scale-[0.99] opacity-0"
-            : "translate-y-0 scale-100 opacity-100"
-        }`}
-      >
-        <AuthenticatedHome />
-      </div>
-
-      <div
-        aria-hidden={!showAuthSplash}
-        className={`absolute inset-0 z-20 transition-opacity duration-700 ease-out ${
-          showAuthSplash ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
-      >
-        <SplashScreen />
-      </div>
-    </div>
-  );
+  return <AuthenticatedHome />;
 }

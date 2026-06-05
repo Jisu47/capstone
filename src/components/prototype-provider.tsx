@@ -69,6 +69,7 @@ import {
 
 type PrototypeContextValue = {
   groups: StudyGroup[];
+  allGroups: StudyGroup[];
   currentUserId: string;
   error: string | null;
   isLoading: boolean;
@@ -184,22 +185,25 @@ function buildCurrentMember(user: AuthUser, roleOverride?: UserRole | null): Mem
   });
 }
 
-function personalizeGroup(group: StudyGroup, currentMember: Member | null) {
+function syncCurrentMemberGroupState(group: StudyGroup, currentMember: Member | null) {
   if (!currentMember) {
     return group;
   }
 
   const hasCurrentMember = group.members.some((member) => member.id === currentMember.id);
-  const members = hasCurrentMember
-    ? group.members.map((member) =>
-        member.id === currentMember.id
-          ? {
-              ...member,
-              ...currentMember,
-            }
-          : member,
-      )
-    : [...group.members, currentMember];
+
+  if (!hasCurrentMember) {
+    return group;
+  }
+
+  const members = group.members.map((member) =>
+    member.id === currentMember.id
+      ? {
+          ...member,
+          ...currentMember,
+        }
+      : member,
+  );
 
   return {
     ...group,
@@ -224,6 +228,23 @@ function personalizeGroup(group: StudyGroup, currentMember: Member | null) {
         : material,
     ),
   };
+}
+
+function filterVisibleGroups(
+  groups: StudyGroup[],
+  currentUserId: string | null,
+  joinedGroupId: string | null,
+) {
+  if (!currentUserId) {
+    return groups;
+  }
+
+  return groups.filter((group) => {
+    return (
+      group.members.some((member) => member.id === currentUserId) ||
+      group.id === joinedGroupId
+    );
+  });
 }
 
 function findRelatedMaterial(group: StudyGroup, question: string) {
@@ -265,9 +286,16 @@ export function PrototypeProvider({
 
   const resolvedCurrentUserId = currentUser?.userId ?? fallbackCurrentUserId;
   const currentMember = currentUser ? buildCurrentMember(currentUser) : null;
-  const groups = useMemo(() => {
-    return storedGroups.map((group) => personalizeGroup(group, currentMember));
+  const allGroups = useMemo(() => {
+    return storedGroups.map((group) => syncCurrentMemberGroupState(group, currentMember));
   }, [currentMember, storedGroups]);
+  const groups = useMemo(() => {
+    return filterVisibleGroups(
+      allGroups,
+      currentMember?.id ?? null,
+      currentUser?.joinedGroupId ?? null,
+    );
+  }, [allGroups, currentMember?.id, currentUser?.joinedGroupId]);
 
   const applyDueReviewCandidateTodos = useCallback(async (nextGroups: StudyGroup[]) => {
     const hasNewReviewTodos = await addPrototypeDueReviewCandidateTodos(nextGroups);
@@ -816,6 +844,7 @@ export function PrototypeProvider({
 
   const value: PrototypeContextValue = {
     groups,
+    allGroups,
     currentUserId: resolvedCurrentUserId,
     error,
     isLoading,

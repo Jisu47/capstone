@@ -53,7 +53,7 @@ type AuthContextValue = {
   updateProfile: (input: UpdateProfileInput) => Promise<AuthActionResult>;
   signOut: () => Promise<void>;
   markGroupJoined: (groupId: string, role: UserRole) => Promise<AuthUser | null>;
-  resolvePostAuthPath: (user: AuthUser) => "/group-setup" | "/mypage";
+  resolvePostAuthPath: (user: AuthUser) => "/";
 };
 
 type ProfileRow = {
@@ -201,7 +201,8 @@ async function withTimeout<T>(promise: Promise<T>, label: string) {
 }
 
 function resolvePostAuthPath(user: AuthUser) {
-  return user.hasJoinedGroup ? "/mypage" : "/group-setup";
+  void user;
+  return "/";
 }
 
 async function fetchProfile(userId: string) {
