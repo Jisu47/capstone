@@ -200,7 +200,7 @@ async function withTimeout<T>(promise: Promise<T>, label: string) {
   }
 }
 
-function resolvePostAuthPath(user: AuthUser) {
+function resolvePostAuthPath(user: AuthUser): "/" {
   void user;
   return "/";
 }

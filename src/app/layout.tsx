@@ -1,19 +1,7 @@
 import type { Metadata } from "next";
-import { Noto_Sans_KR, Space_Grotesk } from "next/font/google";
 import { AuthProvider } from "@/components/auth-provider";
 import { PrototypeProvider } from "@/components/prototype-provider";
 import "./globals.css";
-
-const notoSansKr = Noto_Sans_KR({
-  variable: "--font-study-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-});
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-study-display",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Study Flow Prototype",
@@ -26,10 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="ko"
-      className={`${notoSansKr.variable} ${spaceGrotesk.variable} h-full antialiased`}
-    >
+    <html lang="ko" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <PrototypeProvider>{children}</PrototypeProvider>

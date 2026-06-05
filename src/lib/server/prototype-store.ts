@@ -161,26 +161,38 @@ function chunkText(fileName: string, text: string) {
   return chunks.slice(0, 8);
 }
 
+function decodePdfLiteralText(value: string) {
+  return value
+    .replace(/\\([()\\])/g, "$1")
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "\r")
+    .replace(/\\t/g, "\t")
+    .replace(/\\b/g, " ")
+    .replace(/\\f/g, " ")
+    .replace(/\\\d{3}/g, " ");
+}
+
+function extractPrintablePdfText(raw: string) {
+  return raw
+    .replace(/\\r/g, "\n")
+    .replace(/\u0000/g, " ")
+    .replace(/[^\x20-\x7E\u00A0-\u00FF\n]+/g, " ")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 async function extractPdfText(buffer: Buffer) {
-  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer) });
-  const pdf = await loadingTask.promise;
-  const pages: string[] = [];
+  const raw = buffer.toString("latin1");
+  const literalSegments = [...raw.matchAll(/\(([^()]*)\)/g)]
+    .map((match) => decodePdfLiteralText(match[1] ?? "").trim())
+    .filter(Boolean);
 
-  for (let index = 1; index <= pdf.numPages; index += 1) {
-    const page = await pdf.getPage(index);
-    const textContent = await page.getTextContent();
-    const pageText = textContent.items
-      .map((item) => ("str" in item ? item.str : ""))
-      .join(" ")
-      .trim();
-
-    if (pageText) {
-      pages.push(pageText);
-    }
+  if (literalSegments.length > 0) {
+    return literalSegments.join("\n");
   }
 
-  return pages.join("\n\n");
+  return extractPrintablePdfText(raw);
 }
 
 async function extractTextFromFile(fileName: string, mimeType: string, buffer: Buffer) {

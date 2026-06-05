@@ -9,6 +9,17 @@
   --brand: #79b895;
   --brand-soft: #e6f3eb;
   --ink-soft: #66786f;
+  --font-study-sans:
+    "Apple SD Gothic Neo",
+    "Malgun Gothic",
+    "Noto Sans KR",
+    "Segoe UI",
+    sans-serif;
+  --font-study-display:
+    "Trebuchet MS",
+    "Aptos",
+    "Segoe UI",
+    sans-serif;
 }
 
 @theme inline {
