@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { GroupHomeTutorial } from "@/components/group-home-tutorial";
 import { AppShell, LoadingState, MissingGroupState } from "@/components/mobile-shell";
 import { GroupPageHeader } from "@/components/group-page-header";
 import { usePrototype } from "@/components/prototype-provider";
 import { createGroupJoinCode } from "@/lib/group-join-code";
+import { clearPendingGroupHomeTour, hasPendingGroupHomeTour } from "@/lib/group-home-tour";
 import {
   formatExamDate,
   getDaysLeft,
@@ -200,6 +202,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   const [postExamModal, setPostExamModal] = useState<PostExamModal>(null);
   const [selectedLeaderId, setSelectedLeaderId] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [, bumpTutorialState] = useState(0);
   const [renewalError, setRenewalError] = useState<string | null>(null);
   const [renewalDraft, setRenewalDraft] = useState({
     examDate: "",
@@ -249,6 +252,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   const currentMember =
     activeGroup.members.find((member) => member.id === currentUserId) ?? null;
   const leaderMode = currentMember?.role === "팀장";
+  const showTutorial = leaderMode && hasPendingGroupHomeTour(currentUserId, activeGroup.id);
   const shouldPromptPostExamDecision =
     leaderMode && activeGroup.status === "active" && isDatePast(activeGroup.examDate);
   const resolvedPostExamModal = postExamModal ?? (shouldPromptPostExamDecision ? "decision" : null);
@@ -278,6 +282,11 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     setActiveModal(null);
     setSelectedLeaderId(null);
     setCopyFeedback(null);
+  }
+
+  function closeTutorial() {
+    clearPendingGroupHomeTour(currentUserId, activeGroup.id);
+    bumpTutorialState((value) => value + 1);
   }
 
   function handleRenewalDraftChange(
@@ -487,6 +496,15 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
           </div>
         </section>
       </div>
+
+      <GroupHomeTutorial
+        key={showTutorial ? `${activeGroup.id}:open` : `${activeGroup.id}:closed`}
+        open={showTutorial}
+        groupId={activeGroup.id}
+        hasMaterials={activeGroup.materials.length > 0}
+        hasPlanReferenceUploads={activeGroup.planReferenceUploads.length > 0}
+        onClose={closeTutorial}
+      />
 
       {resolvedPostExamModal === "decision" ? (
         <GroupActionModalShell

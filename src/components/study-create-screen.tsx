@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { AppShell, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
+import { markGroupHomeTourPending } from "@/lib/group-home-tour";
 import { type CreateGroupInput } from "@/lib/mock-data";
 
 const initialForm: CreateGroupInput = {
@@ -17,7 +18,7 @@ const initialForm: CreateGroupInput = {
 };
 
 export function StudyCreateScreen() {
-  const { createGroup, isMutating } = usePrototype();
+  const { createGroup, currentUserId, isMutating } = usePrototype();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState<CreateGroupInput>(initialForm);
@@ -39,6 +40,7 @@ export function StudyCreateScreen() {
 
     try {
       const groupId = await createGroup(form);
+      markGroupHomeTourPending(currentUserId, groupId);
 
       startTransition(() => {
         router.push(`/group/${groupId}`);
