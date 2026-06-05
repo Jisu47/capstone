@@ -222,44 +222,50 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
           </div>
 
           <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
-            <div className="space-y-2">
-              {group.plan.map((item) => {
-                const checked = item.memberStatus[currentUserId];
+            {group.plan.length === 0 ? (
+              <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+                아직 등록된 공동 계획이 없습니다. 계획 탭에서 할 일을 추가하면 여기에서 바로 체크할 수 있어요.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {group.plan.map((item) => {
+                  const checked = item.memberStatus[currentUserId];
 
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setPendingChecklistId(item.id)}
-                    className={`w-full rounded-[14px] border px-4 py-4 text-left transition ${
-                      checked
-                        ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
-                        : "border-slate-200 bg-white hover:border-slate-300"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600">
-                        {item.day}
-                      </span>
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setPendingChecklistId(item.id)}
+                      className={`w-full rounded-[14px] border px-4 py-4 text-left transition ${
+                        checked
+                          ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600">
+                          {item.day}
+                        </span>
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                            <p className="mt-1 text-xs leading-5 text-slate-500">
-                              {item.detail}
-                            </p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                              <p className="mt-1 text-xs leading-5 text-slate-500">
+                                {item.detail}
+                              </p>
+                            </div>
+                            <CheckIcon active={checked} />
                           </div>
-                          <CheckIcon active={checked} />
-                        </div>
 
-                        <p className="mt-2 text-xs font-medium text-slate-500">{item.duration}</p>
+                          <p className="mt-2 text-xs font-medium text-slate-500">{item.duration}</p>
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">

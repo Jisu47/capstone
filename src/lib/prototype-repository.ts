@@ -20,6 +20,7 @@ import {
   getInitialGroups,
   type CreateGroupInput,
   type GroupDetailsInput,
+  type GroupStatus,
   type Material,
   type Member,
   type PersonalPlanItem,
@@ -61,6 +62,7 @@ type StudyGroupRow = {
   id: string;
   name: string;
   subject: string;
+  status: GroupStatus;
   exam_date: string;
   presentation_date: string | null;
   deadline_date: string | null;
@@ -394,6 +396,7 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
     id: group.id,
     name: group.name,
     subject: group.subject,
+    status: group.status,
     exam_date: group.examDate,
     presentation_date: group.presentationDate,
     deadline_date: group.deadlineDate,
@@ -1010,6 +1013,7 @@ function rowsToGroups({
       id: group.id,
       name: group.name,
       subject: group.subject,
+      status: group.status === "completed" ? "completed" : "active",
       examDate: group.exam_date,
       presentationDate: group.presentation_date ?? null,
       deadlineDate: group.deadline_date ?? null,
@@ -1260,6 +1264,34 @@ function toProfileRow(member: Member) {
   };
 }
 
+function normalizeRenewalInput(input: {
+  examDate: string;
+  weeklyGoal: string;
+  overallGoal: string;
+}) {
+  const examDate = input.examDate;
+  const weeklyGoal = input.weeklyGoal.trim();
+  const overallGoal = input.overallGoal.trim();
+
+  if (!examDate || !weeklyGoal || !overallGoal) {
+    throw new Error("새 시험일과 목표를 모두 입력해 주세요.");
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const nextExamDate = new Date(`${examDate}T00:00:00`);
+
+  if (!Number.isFinite(nextExamDate.getTime()) || nextExamDate.getTime() <= today.getTime()) {
+    throw new Error("새 시험일은 오늘 이후 날짜로 지정해 주세요.");
+  }
+
+  return {
+    examDate,
+    weeklyGoal,
+    overallGoal,
+  };
+}
+
 async function listGroupPlanItemIds(groupId: string) {
   const client = getSupabaseBrowserClient();
   const rows = unwrapData(
@@ -1343,6 +1375,55 @@ export async function updatePrototypeGroupDetails(groupId: string, updates: Grou
         overall_goal: normalized.overallGoal,
         description: buildGroupDescription(normalized.subject, normalized.overallGoal),
         recent_update: buildRecentUpdateFromGoal(normalized.weeklyGoal),
+      })
+      .eq("id", groupId),
+  );
+}
+
+export async function completePrototypeGroup(groupId: string) {
+  const client = getSupabaseBrowserClient();
+
+  ensureSuccess(
+    "Failed to mark study group as completed",
+    await client.from("study_groups").update({ status: "completed" }).eq("id", groupId),
+  );
+}
+
+export async function renewPrototypeGroupCycle(
+  groupId: string,
+  input: {
+    examDate: string;
+    weeklyGoal: string;
+    overallGoal: string;
+  },
+) {
+  const client = getSupabaseBrowserClient();
+  const normalized = normalizeRenewalInput(input);
+
+  const existingGroup = unwrapNullableData(
+    "Failed to inspect study group before renewal",
+    await client
+      .from("study_groups")
+      .select("subject")
+      .eq("id", groupId)
+      .maybeSingle(),
+  ) as { subject: string } | null;
+
+  if (!existingGroup) {
+    throw new Error("갱신할 그룹 정보를 찾지 못했어요.");
+  }
+
+  ensureSuccess(
+    "Failed to renew study group cycle",
+    await client
+      .from("study_groups")
+      .update({
+        status: "active",
+        exam_date: normalized.examDate,
+        weekly_goal: normalized.weeklyGoal,
+        overall_goal: normalized.overallGoal,
+        description: buildGroupDescription(existingGroup.subject, normalized.overallGoal),
+        recent_update: "새 시험 일정과 목표로 다음 스터디 주기를 시작했어요.",
       })
       .eq("id", groupId),
   );

@@ -130,6 +130,7 @@ export type StoredGroup = {
   id: string;
   name: string;
   subject: string;
+  status?: "active" | "completed";
   examDate: string;
   presentationDate?: string | null;
   deadlineDate?: string | null;

@@ -11,6 +11,7 @@ import {
   getDaysLeft,
   getGroupProgress,
   getMemberProgress,
+  isDatePast,
   type Member,
   type StudyGroup,
 } from "@/lib/mock-data";
@@ -35,6 +36,7 @@ const memberAccents = [
 ];
 
 type GroupActionModal = "invite" | "leave" | "delete" | "transfer" | null;
+type PostExamModal = "decision" | "renew" | null;
 
 function getGroupById(groups: StudyGroup[], groupId: string) {
   return groups.find((group) => group.id === groupId);
@@ -183,6 +185,8 @@ function GroupActionModalShell({
 export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   const router = useRouter();
   const {
+    completeGroup,
+    renewGroupCycle,
     groups,
     currentUserId,
     deleteGroup,
@@ -193,8 +197,15 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   } = usePrototype();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<GroupActionModal>(null);
+  const [postExamModal, setPostExamModal] = useState<PostExamModal>(null);
   const [selectedLeaderId, setSelectedLeaderId] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [renewalError, setRenewalError] = useState<string | null>(null);
+  const [renewalDraft, setRenewalDraft] = useState({
+    examDate: "",
+    weeklyGoal: "",
+    overallGoal: "",
+  });
   const menuRef = useRef<HTMLDivElement | null>(null);
   const group = getGroupById(groups, groupId);
 
@@ -238,6 +249,9 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   const currentMember =
     activeGroup.members.find((member) => member.id === currentUserId) ?? null;
   const leaderMode = currentMember?.role === "팀장";
+  const shouldPromptPostExamDecision =
+    leaderMode && activeGroup.status === "active" && isDatePast(activeGroup.examDate);
+  const resolvedPostExamModal = postExamModal ?? (shouldPromptPostExamDecision ? "decision" : null);
   const transferableMembers = activeGroup.members.filter((member) => member.id !== currentUserId);
   const daysLeft = getDaysLeft(activeGroup.examDate);
   const groupProgress = getGroupProgress(activeGroup);
@@ -264,6 +278,27 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     setActiveModal(null);
     setSelectedLeaderId(null);
     setCopyFeedback(null);
+  }
+
+  function handleRenewalDraftChange(
+    key: "examDate" | "weeklyGoal" | "overallGoal",
+    value: string,
+  ) {
+    setRenewalDraft((previous) => ({
+      ...previous,
+      [key]: value,
+    }));
+    setRenewalError(null);
+  }
+
+  function openRenewGroupCycleModal() {
+    setRenewalDraft({
+      examDate: activeGroup.examDate,
+      weeklyGoal: activeGroup.weeklyGoal,
+      overallGoal: activeGroup.overallGoal,
+    });
+    setRenewalError(null);
+    setPostExamModal("renew");
   }
 
   async function handleCopyInviteCode() {
@@ -303,6 +338,27 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
       closeModal();
     } catch {
       // AppShell error banner handles the message.
+    }
+  }
+
+  async function handleCompleteGroup() {
+    try {
+      await completeGroup(activeGroup.id);
+      router.replace("/");
+    } catch {
+      // AppShell error banner handles the message.
+    }
+  }
+
+  async function handleRenewGroupCycle() {
+    try {
+      await renewGroupCycle(activeGroup.id, renewalDraft);
+      setPostExamModal(null);
+      setRenewalError(null);
+    } catch (error) {
+      setRenewalError(
+        error instanceof Error ? error.message : "새 시험 일정과 목표를 저장하지 못했어요.",
+      );
     }
   }
 
@@ -392,7 +448,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
             <SummaryItem label="시험일" value={formatExamDate(activeGroup.examDate)} />
             <SummaryItem
               label="시험까지"
-              value={daysLeft === 0 ? "D-day" : `D-${daysLeft}`}
+              value={shouldPromptPostExamDecision ? "일정 지남" : daysLeft === 0 ? "D-day" : `D-${daysLeft}`}
             />
           </div>
         </section>
@@ -431,6 +487,99 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
           </div>
         </section>
       </div>
+
+      {resolvedPostExamModal === "decision" ? (
+        <GroupActionModalShell
+          title="스터디 일정이 끝났어요"
+          description={`${formatExamDate(activeGroup.examDate)} 기준 일정이 지났습니다. 이 스터디를 수료할지, 새로운 날짜와 목표로 이어갈지 결정해 주세요.`}
+          onClose={() => {}}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleCompleteGroup();
+                }}
+                disabled={isMutating}
+                className="flex-1 rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:opacity-70"
+              >
+                스터디 수료
+              </button>
+              <button
+                type="button"
+                onClick={openRenewGroupCycleModal}
+                className="flex-1 rounded-[16px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
+              >
+                새 날짜와 목표 설정
+              </button>
+            </>
+          }
+        />
+      ) : null}
+
+      {resolvedPostExamModal === "renew" ? (
+        <GroupActionModalShell
+          title="새 시험 일정과 목표 설정"
+          description="다음 스터디 주기를 위해 새로운 D-day와 목표를 저장해 주세요."
+          onClose={() => setPostExamModal("decision")}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setPostExamModal("decision")}
+                className="flex-1 rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+              >
+                이전으로
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleRenewGroupCycle();
+                }}
+                disabled={isMutating}
+                className="flex-1 rounded-[16px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-70"
+              >
+                저장하기
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <label className="block space-y-2">
+              <span className="text-sm font-semibold text-slate-800">새 D-day</span>
+              <input
+                type="date"
+                value={renewalDraft.examDate}
+                onChange={(event) => handleRenewalDraftChange("examDate", event.target.value)}
+                className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[rgba(121,184,149,0.16)]"
+              />
+            </label>
+            <label className="block space-y-2">
+              <span className="text-sm font-semibold text-slate-800">새 이번 목표</span>
+              <textarea
+                rows={3}
+                value={renewalDraft.weeklyGoal}
+                onChange={(event) => handleRenewalDraftChange("weeklyGoal", event.target.value)}
+                className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[rgba(121,184,149,0.16)]"
+              />
+            </label>
+            <label className="block space-y-2">
+              <span className="text-sm font-semibold text-slate-800">전체 목표</span>
+              <textarea
+                rows={3}
+                value={renewalDraft.overallGoal}
+                onChange={(event) => handleRenewalDraftChange("overallGoal", event.target.value)}
+                className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[rgba(121,184,149,0.16)]"
+              />
+            </label>
+            {renewalError ? (
+              <p className="rounded-[14px] bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                {renewalError}
+              </p>
+            ) : null}
+          </div>
+        </GroupActionModalShell>
+      ) : null}
 
       {activeModal === "invite" ? (
         <GroupActionModalShell

@@ -664,6 +664,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   const activeGroup = group;
   const materials = sortMaterials(activeGroup);
+  const hasMaterials = materials.length > 0;
   const weaknessInsights = getWeaknessInsights(activeGroup.id);
   const recommendedQuestions = [
     `${activeGroup.subject} 핵심 개념만 정리해 줘`,
@@ -754,34 +755,40 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
       </SectionCard>
 
       <SectionCard title="자료 목록">
-        {materials.map((material) => (
-          <div
-            key={material.id}
-            className="rounded-[16px] border border-slate-200 bg-white p-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]"
-          >
-            <div className="mb-2 flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">{material.title}</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {material.uploadedBy} · {formatUploadDate(material.uploadedAt)} · {material.format}
-                </p>
+        {hasMaterials ? (
+          materials.map((material) => (
+            <div
+              key={material.id}
+              className="rounded-[16px] border border-slate-200 bg-white p-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]"
+            >
+              <div className="mb-2 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">{material.title}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {material.uploadedBy} · {formatUploadDate(material.uploadedAt)} · {material.format}
+                  </p>
+                </div>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600">
+                  {material.locationHint}
+                </span>
               </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600">
-                {material.locationHint}
-              </span>
+              <p className="text-sm leading-6 text-[var(--ink-soft)]">{material.summary}</p>
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleRecordMaterial(material)}
+                  className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white"
+                >
+                  읽기 기록 남기기
+                </button>
+              </div>
             </div>
-            <p className="text-sm leading-6 text-[var(--ink-soft)]">{material.summary}</p>
-            <div className="mt-4 flex justify-end">
-              <button
-                type="button"
-                onClick={() => handleRecordMaterial(material)}
-                className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white"
-              >
-                읽기 기록 남기기
-              </button>
-            </div>
+          ))
+        ) : (
+          <div className="rounded-[16px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+            아직 등록된 공용 자료가 없습니다. 자료를 올리면 팀원 모두가 같은 자료를 기준으로 질문할 수 있어요.
           </div>
-        ))}
+        )}
       </SectionCard>
 
       <SectionCard title="팀원별 취약 포인트">
@@ -839,60 +846,72 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
       </SectionCard>
 
       <SectionCard title="자료 질문">
-        <div className="flex flex-wrap gap-2">
-          {recommendedQuestions.map((question) => (
-            <button
-              key={question}
-              type="button"
-              onClick={() => {
-                void sendQuestion(activeGroup.id, question);
-              }}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)]"
-            >
-              {question}
-            </button>
-          ))}
-        </div>
+        {hasMaterials ? (
+          <div className="flex flex-wrap gap-2">
+            {recommendedQuestions.map((question) => (
+              <button
+                key={question}
+                type="button"
+                onClick={() => {
+                  void sendQuestion(activeGroup.id, question);
+                }}
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)]"
+              >
+                {question}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[16px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+            자료를 먼저 등록하면 자료 기반 질문을 시작할 수 있어요.
+          </div>
+        )}
 
         <div className="space-y-3">
-          {activeGroup.chat.map((message) => (
-            <div
-              key={message.id}
-              className={`rounded-[16px] p-4 ${
-                message.role === "assistant"
-                  ? "border border-slate-200 bg-white"
-                  : "ml-auto max-w-[82%] bg-[var(--brand)] text-white"
-              }`}
-            >
-              <p className="whitespace-pre-line text-sm leading-6">{message.text}</p>
-              <p
-                className={`mt-2 text-[11px] font-medium ${
-                  message.role === "assistant" ? "text-slate-400" : "text-blue-100"
+          {activeGroup.chat.length > 0 ? (
+            activeGroup.chat.map((message) => (
+              <div
+                key={message.id}
+                className={`rounded-[16px] p-4 ${
+                  message.role === "assistant"
+                    ? "border border-slate-200 bg-white"
+                    : "ml-auto max-w-[82%] bg-[var(--brand)] text-white"
                 }`}
               >
-                {message.createdAt}
-              </p>
+                <p className="whitespace-pre-line text-sm leading-6">{message.text}</p>
+                <p
+                  className={`mt-2 text-[11px] font-medium ${
+                    message.role === "assistant" ? "text-slate-400" : "text-blue-100"
+                  }`}
+                >
+                  {message.createdAt}
+                </p>
 
-              {message.role === "assistant" && message.sources && message.sources.length > 0 ? (
-                <div className="mt-3 space-y-2">
-                  {message.sources.map((source) => (
-                    <div
-                      key={source.id}
-                      className="rounded-[14px] border border-slate-200 bg-white p-3"
-                    >
-                      <p className="text-sm font-semibold text-slate-900">{source.title}</p>
-                      <p className="mt-1 text-xs font-medium text-[var(--brand)]">
-                        {source.locationHint}
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-[var(--ink-soft)]">
-                        {source.summary}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
+                {message.role === "assistant" && message.sources && message.sources.length > 0 ? (
+                  <div className="mt-3 space-y-2">
+                    {message.sources.map((source) => (
+                      <div
+                        key={source.id}
+                        className="rounded-[14px] border border-slate-200 bg-white p-3"
+                      >
+                        <p className="text-sm font-semibold text-slate-900">{source.title}</p>
+                        <p className="mt-1 text-xs font-medium text-[var(--brand)]">
+                          {source.locationHint}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-[var(--ink-soft)]">
+                          {source.summary}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ))
+          ) : (
+            <div className="rounded-[16px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+              아직 자료 질문 기록이 없습니다. 자료를 올린 뒤 궁금한 점을 바로 물어보세요.
             </div>
-          ))}
+          )}
 
           {isAnswering(activeGroup.id) ? (
             <div className="rounded-[16px] border border-slate-200 bg-white p-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
@@ -910,10 +929,12 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             placeholder={`${activeGroup.subject} 자료에서 궁금한 점을 적어 주세요`}
+            disabled={!hasMaterials}
             className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
           />
           <button
             type="submit"
+            disabled={!hasMaterials}
             className="w-full rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
           >
             질문 보내기

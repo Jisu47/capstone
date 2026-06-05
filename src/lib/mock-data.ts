@@ -1,5 +1,6 @@
 export type MemberRole = "팀장" | "팀원";
 export type AvatarPreset = "sky" | "emerald" | "rose" | "amber";
+export type GroupStatus = "active" | "completed";
 
 export type Member = {
   id: string;
@@ -124,6 +125,7 @@ export type StudyGroup = {
   id: string;
   name: string;
   subject: string;
+  status: GroupStatus;
   examDate: string;
   presentationDate: string | null;
   deadlineDate: string | null;
@@ -458,6 +460,7 @@ function createInitialGroups(): StudyGroup[] {
       id: "group-os",
       name: "운영체제 중간 대비",
       subject: "운영체제",
+      status: "active",
       examDate: "2026-04-18",
       presentationDate: "2026-04-11",
       deadlineDate: "2026-04-15",
@@ -516,6 +519,7 @@ function createInitialGroups(): StudyGroup[] {
       id: "group-network",
       name: "데이터통신 범위 정리",
       subject: "데이터통신",
+      status: "active",
       examDate: "2026-05-02",
       presentationDate: "2026-04-26",
       deadlineDate: "2026-04-29",
@@ -547,69 +551,32 @@ export function createGroupFromInput(
 ): StudyGroup {
   const members = creator ? [creator] : createInitialMembers();
   const memberIds = members.map((member) => member.id);
-  const createdAt = new Date().toISOString();
   const trimmedSubject = input.subject.trim();
   const trimmedName = input.name.trim();
   const trimmedWeeklyGoal = input.weeklyGoal.trim();
   const trimmedOverallGoal = input.overallGoal.trim();
-  const goals = parseGoals(trimmedWeeklyGoal);
   const groupId = `group-${Date.now().toString(36)}`;
 
   if (!trimmedName || !trimmedSubject || !input.examDate || !trimmedWeeklyGoal || !trimmedOverallGoal) {
     throw new Error("스터디 생성에 필요한 기본 정보가 비어 있습니다.");
   }
 
-  const materials: Material[] = [
-    {
-      id: `${groupId}-mat-1`,
-      title: `${trimmedSubject} 공용 요약본.pdf`,
-      summary: `${trimmedSubject} 범위를 빠르게 훑을 수 있는 기본 정리 자료`,
-      uploadedBy: members[0]?.name ?? "팀장",
-      uploadedByMemberId: members[0]?.id,
-      uploadedAt: createdAt,
-      format: "PDF",
-      locationHint: "요약 1장",
-      processingStatus: "ready",
-    },
-    {
-      id: `${groupId}-mat-2`,
-      title: `${trimmedSubject} 예상문제 정리.pdf`,
-      summary: `${trimmedSubject} 시험 대비용 예상문제와 체크 포인트`,
-      uploadedBy: members[0]?.name ?? "팀장",
-      uploadedByMemberId: members[0]?.id,
-      uploadedAt: createdAt,
-      format: "PDF",
-      locationHint: "문제 1~3",
-      processingStatus: "ready",
-    },
-    {
-      id: `${groupId}-mat-3`,
-      title: `${trimmedSubject} 발표 준비 메모.pdf`,
-      summary: "발표와 질의응답 대비 포인트를 정리한 보조 자료",
-      uploadedBy: members[0]?.name ?? "팀장",
-      uploadedByMemberId: members[0]?.id,
-      uploadedAt: createdAt,
-      format: "PDF",
-      locationHint: "질문 포인트",
-      processingStatus: "ready",
-    },
-  ];
-
   return {
     id: groupId,
     name: trimmedName,
     subject: trimmedSubject,
+    status: "active",
     examDate: input.examDate,
     presentationDate: normalizeOptionalDate(input.presentationDate),
     deadlineDate: normalizeOptionalDate(input.deadlineDate),
     weeklyGoal: trimmedWeeklyGoal,
     overallGoal: trimmedOverallGoal,
     description: buildGroupDescription(trimmedSubject, trimmedOverallGoal),
-    recentUpdate: `${goals[0] ?? "핵심 개념 정리"} 기준으로 자동 계획이 생성됨`,
+    recentUpdate: "아직 등록된 자료와 계획이 없습니다.",
     members,
-    materials,
-    plan: createAutoPlan(trimmedSubject, trimmedWeeklyGoal, memberIds, `${groupId}-plan`),
-    chat: createWelcomeChat(trimmedSubject, materials),
+    materials: [],
+    plan: [],
+    chat: [],
     uploadDraftCount: 0,
     ...createPlanFlowDefaults(memberIds),
   };
@@ -619,6 +586,13 @@ export function buildMockAnswer(group: StudyGroup, question: string) {
   const primary = group.materials[0];
   const secondary = group.materials[1] ?? group.materials[0];
   const normalized = question.replace(/\s+/g, "");
+
+  if (!primary) {
+    return {
+      text: `${group.subject} 그룹에는 아직 등록된 자료가 없습니다.\n먼저 공용 자료를 업로드한 뒤 질문하면 자료를 근거로 더 정확하게 답변할 수 있어요.`,
+      sources: [],
+    };
+  }
 
   if (normalized.includes("핵심개념")) {
     return {
@@ -637,7 +611,7 @@ export function buildMockAnswer(group: StudyGroup, question: string) {
 
   if (normalized.includes("시험범위") || normalized.includes("중요")) {
     return {
-      text: `시험 범위에서는 "${group.plan[0]?.title}"와 "${group.plan[2]?.title}"를 우선 보세요.\n개념 설명과 비교형 문제가 같이 나올 가능성이 높아서 정의, 차이점, 예시까지 한 번에 정리하는 편이 좋습니다.`,
+      text: `시험 범위에서는 "${group.plan[0]?.title ?? "핵심 개념 정리"}"와 "${group.plan[2]?.title ?? "예상문제 대비"}"를 우선 보세요.\n개념 설명과 비교형 문제가 같이 나올 가능성이 높아서 정의, 차이점, 예시까지 한 번에 정리하는 편이 좋습니다.`,
       sources: [
         {
           id: `${primary.id}-answer-2`,
@@ -692,6 +666,14 @@ export function getDaysLeft(dateString: string) {
   today.setHours(0, 0, 0, 0);
 
   return Math.max(0, Math.ceil((target.getTime() - today.getTime()) / 86_400_000));
+}
+
+export function isDatePast(dateString: string) {
+  const target = new Date(`${dateString}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return today.getTime() > target.getTime();
 }
 
 export function formatExamDate(dateString: string) {

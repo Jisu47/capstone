@@ -11,6 +11,7 @@ export default function GroupSetupPage() {
   const router = useRouter();
   const { isAuthReady, currentUser } = useAuth();
   const { allGroups, isLoading, isMutating, joinGroup } = usePrototype();
+  const activeGroups = allGroups.filter((group) => group.status === "active");
   const [joinCode, setJoinCode] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -34,7 +35,7 @@ export default function GroupSetupPage() {
       return;
     }
 
-    const matchedGroup = findGroupByJoinCode(allGroups, trimmedCode);
+    const matchedGroup = findGroupByJoinCode(activeGroups, trimmedCode);
 
     if (!matchedGroup) {
       setErrorMessage("일치하는 그룹 참여 코드를 찾지 못했어요.");

@@ -51,6 +51,7 @@ import {
   bootstrapPrototypeGroups,
   clearPrototypePlanItemCompletion,
   completePrototypePlanItemWithFeedback,
+  completePrototypeGroup,
   createPrototypeGroup,
   deletePrototypeGroup,
   savePrototypePersonalTaskLibraryItem,
@@ -67,6 +68,7 @@ import {
   updatePrototypePlanItem,
   updatePrototypeReviewDays,
   updatePrototypeReviewInterval,
+  renewPrototypeGroupCycle,
   type PlanItemDraft,
 } from "@/lib/prototype-repository";
 
@@ -82,6 +84,11 @@ type PrototypeContextValue = {
   leaveGroup: (groupId: string) => Promise<void>;
   deleteGroup: (groupId: string) => Promise<void>;
   transferGroupLeadership: (groupId: string, nextLeaderId: string) => Promise<void>;
+  completeGroup: (groupId: string) => Promise<void>;
+  renewGroupCycle: (
+    groupId: string,
+    input: { examDate: string; weeklyGoal: string; overallGoal: string },
+  ) => Promise<void>;
   syncCurrentUserProfile: () => Promise<void>;
   updateGroupDetails: (groupId: string, updates: GroupDetailsInput) => Promise<void>;
   togglePlanItem: (groupId: string, itemId: string) => Promise<void>;
@@ -241,11 +248,13 @@ function filterVisibleGroups(
   currentUserId: string | null,
   joinedGroupId: string | null,
 ) {
+  const activeGroups = groups.filter((group) => group.status === "active");
+
   if (!currentUserId) {
-    return groups;
+    return activeGroups;
   }
 
-  return groups.filter((group) => {
+  return activeGroups.filter((group) => {
     return (
       group.members.some((member) => member.id === currentUserId) ||
       group.id === joinedGroupId
@@ -387,6 +396,14 @@ export function PrototypeProvider({
     const storedGroup = storedGroups.find((group) => group.id === currentUser.joinedGroupId);
 
     if (!storedGroup) {
+      syncingMembershipKeyRef.current = null;
+      void setJoinedGroupState(null, null);
+      return;
+    }
+
+    if (storedGroup.status === "completed") {
+      syncingMembershipKeyRef.current = null;
+      void setJoinedGroupState(null, null);
       return;
     }
 
@@ -409,7 +426,14 @@ export function PrototypeProvider({
     }).finally(() => {
       syncingMembershipKeyRef.current = null;
     });
-  }, [currentMember, currentUser?.joinedGroupId, isLoading, refreshGroups, storedGroups]);
+  }, [
+    currentMember,
+    currentUser?.joinedGroupId,
+    isLoading,
+    refreshGroups,
+    setJoinedGroupState,
+    storedGroups,
+  ]);
 
   async function createGroup(input: CreateGroupInput) {
     return runMutation(async () => {
@@ -423,6 +447,12 @@ export function PrototypeProvider({
 
   async function joinGroup(groupId: string) {
     await runMutation(async () => {
+      const targetGroup = allGroups.find((group) => group.id === groupId);
+
+      if (targetGroup?.status === "completed") {
+        throw new Error("수료된 그룹에는 더 이상 참여할 수 없어요.");
+      }
+
       const joiningMember = currentUser ? buildCurrentMember(currentUser, "member") : null;
 
       if (joiningMember) {
@@ -440,6 +470,7 @@ export function PrototypeProvider({
     }
 
     const remainingGroups = nextGroups.filter((group) =>
+      group.status === "active" &&
       group.members.some((member) => member.id === resolvedCurrentUserId),
     );
     const fallbackGroup = remainingGroups[0] ?? null;
@@ -476,6 +507,24 @@ export function PrototypeProvider({
     await runMutation(async () => {
       await transferPrototypeGroupLeadership(groupId, currentUser.userId, nextLeaderId);
       await markGroupJoined(groupId, "member");
+      await refreshGroups();
+    });
+  }
+
+  async function completeGroup(groupId: string) {
+    await runMutation(async () => {
+      await completePrototypeGroup(groupId);
+      const nextGroups = await refreshGroups();
+      await syncJoinedGroupAfterRemoval(groupId, nextGroups);
+    });
+  }
+
+  async function renewGroupCycle(
+    groupId: string,
+    input: { examDate: string; weeklyGoal: string; overallGoal: string },
+  ) {
+    await runMutation(async () => {
+      await renewPrototypeGroupCycle(groupId, input);
       await refreshGroups();
     });
   }
@@ -907,6 +956,8 @@ export function PrototypeProvider({
     leaveGroup,
     deleteGroup,
     transferGroupLeadership,
+    completeGroup,
+    renewGroupCycle,
     syncCurrentUserProfile,
     updateGroupDetails,
     togglePlanItem,

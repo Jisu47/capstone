@@ -44,6 +44,7 @@ create table if not exists public.study_groups (
   id text primary key,
   name text not null,
   subject text not null,
+  status text not null default 'active',
   exam_date date not null,
   presentation_date date,
   deadline_date date,
@@ -55,6 +56,9 @@ create table if not exists public.study_groups (
 );
 
 alter table public.study_groups
+  add column if not exists status text not null default 'active';
+
+alter table public.study_groups
   add column if not exists presentation_date date;
 
 alter table public.study_groups
@@ -62,6 +66,10 @@ alter table public.study_groups
 
 alter table public.study_groups
   add column if not exists overall_goal text not null default '';
+
+update public.study_groups
+set status = 'active'
+where status is null or status = '';
 
 create table if not exists public.group_members (
   group_id text not null references public.study_groups(id) on delete cascade,
