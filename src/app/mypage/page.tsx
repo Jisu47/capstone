@@ -202,10 +202,31 @@ function findJoinedGroup(groups: StudyGroup[], joinedGroupId: string | null) {
   return groups.find((group) => group.id === joinedGroupId) ?? null;
 }
 
+function findMemberGroups(groups: StudyGroup[], userId: string | null) {
+  if (!userId) {
+    return [];
+  }
+
+  return groups.filter((group) => group.members.some((member) => member.id === userId));
+}
+
 export default function MyPage() {
   const router = useRouter();
   const { isAuthReady, currentUser, updateProfile, signOut } = useAuth();
-  const { groups, isMutating } = usePrototype();
+  const { groups, isLoading, isMutating } = usePrototype();
+
+  const memberGroups = useMemo(() => {
+    return findMemberGroups(groups, currentUser?.userId ?? null);
+  }, [currentUser?.userId, groups]);
+
+  const joinedGroup = useMemo(() => {
+    return (
+      findJoinedGroup(groups, currentUser?.joinedGroupId ?? null) ??
+      memberGroups[0] ??
+      null
+    );
+  }, [currentUser?.joinedGroupId, groups, memberGroups]);
+  const hasResolvedGroupMembership = Boolean(joinedGroup) || memberGroups.length > 0;
 
   useEffect(() => {
     if (isAuthReady && !currentUser) {
@@ -213,14 +234,10 @@ export default function MyPage() {
       return;
     }
 
-    if (currentUser && !currentUser.hasJoinedGroup) {
+    if (currentUser && !isLoading && !currentUser.hasJoinedGroup && !hasResolvedGroupMembership) {
       router.replace("/");
     }
-  }, [currentUser, isAuthReady, router]);
-
-  const joinedGroup = useMemo(() => {
-    return findJoinedGroup(groups, currentUser?.joinedGroupId ?? null);
-  }, [currentUser, groups]);
+  }, [currentUser, hasResolvedGroupMembership, isAuthReady, isLoading, router]);
 
   async function handleSaveProfile(input: UpdateProfileInput): Promise<SaveProfileResult> {
     const result = await updateProfile(input);

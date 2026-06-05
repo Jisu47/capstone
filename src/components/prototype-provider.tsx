@@ -262,6 +262,28 @@ function filterVisibleGroups(
   });
 }
 
+function findActiveMembershipGroups(groups: StudyGroup[], memberId: string | null) {
+  if (!memberId) {
+    return [];
+  }
+
+  return groups.filter(
+    (group) =>
+      group.status === "active" &&
+      group.members.some((member) => member.id === memberId),
+  );
+}
+
+function getMemberAuthRole(group: StudyGroup, memberId: string): UserRole | null {
+  const currentMember = group.members.find((member) => member.id === memberId);
+
+  if (!currentMember) {
+    return null;
+  }
+
+  return currentMember.role === "팀장" ? "leader" : "member";
+}
+
 function findRelatedMaterial(group: StudyGroup, question: string) {
   const normalizedQuestion = question.trim().toLowerCase();
 
@@ -388,31 +410,77 @@ export function PrototypeProvider({
   }, [applyDueReviewCandidateTodos]);
 
   useEffect(() => {
-    if (!currentUser?.joinedGroupId || !currentMember || isLoading) {
+    if (!currentUser || !currentMember || isLoading) {
       syncingMembershipKeyRef.current = null;
       return;
     }
 
-    const storedGroup = storedGroups.find((group) => group.id === currentUser.joinedGroupId);
+    const storedGroup = currentUser.joinedGroupId
+      ? storedGroups.find((group) => group.id === currentUser.joinedGroupId) ?? null
+      : null;
 
-    if (!storedGroup) {
-      syncingMembershipKeyRef.current = null;
-      void setJoinedGroupState(null, null);
+    if (
+      storedGroup &&
+      storedGroup.status === "active" &&
+      !storedGroup.members.some((member) => member.id === currentMember.id)
+    ) {
+      const syncKey = `${currentMember.id}:${storedGroup.id}:membership`;
+
+      if (syncingMembershipKeyRef.current === syncKey) {
+        return;
+      }
+
+      syncingMembershipKeyRef.current = syncKey;
+
+      void runMutation(async () => {
+        await ensurePrototypeGroupMembership(storedGroup.id, currentMember);
+        await refreshGroups();
+      }).finally(() => {
+        syncingMembershipKeyRef.current = null;
+      });
+
       return;
     }
 
-    if (storedGroup.status === "completed") {
-      syncingMembershipKeyRef.current = null;
-      void setJoinedGroupState(null, null);
+    const activeMembershipGroups = findActiveMembershipGroups(storedGroups, currentMember.id);
+
+    if (activeMembershipGroups.length === 0) {
+      if (!currentUser.hasJoinedGroup && !currentUser.joinedGroupId) {
+        syncingMembershipKeyRef.current = null;
+        return;
+      }
+
+      const syncKey = `${currentMember.id}:clear`;
+
+      if (syncingMembershipKeyRef.current === syncKey) {
+        return;
+      }
+
+      syncingMembershipKeyRef.current = syncKey;
+
+      void setJoinedGroupState(null, null).finally(() => {
+        syncingMembershipKeyRef.current = null;
+      });
+
       return;
     }
 
-    if (storedGroup.members.some((member) => member.id === currentMember.id)) {
+    const preferredGroup =
+      activeMembershipGroups.find((group) => group.id === currentUser.joinedGroupId) ??
+      activeMembershipGroups[0];
+    const preferredRole =
+      getMemberAuthRole(preferredGroup, currentMember.id) ?? currentUser.role ?? "member";
+    const needsAuthSync =
+      !currentUser.hasJoinedGroup ||
+      currentUser.joinedGroupId !== preferredGroup.id ||
+      currentUser.role !== preferredRole;
+
+    if (!needsAuthSync) {
       syncingMembershipKeyRef.current = null;
       return;
     }
 
-    const syncKey = `${currentMember.id}:${storedGroup.id}`;
+    const syncKey = `${currentMember.id}:${preferredGroup.id}:${preferredRole}`;
 
     if (syncingMembershipKeyRef.current === syncKey) {
       return;
@@ -420,14 +488,12 @@ export function PrototypeProvider({
 
     syncingMembershipKeyRef.current = syncKey;
 
-    void runMutation(async () => {
-      await ensurePrototypeGroupMembership(storedGroup.id, currentMember);
-      await refreshGroups();
-    }).finally(() => {
+    void setJoinedGroupState(preferredGroup.id, preferredRole).finally(() => {
       syncingMembershipKeyRef.current = null;
     });
   }, [
     currentMember,
+    currentUser,
     currentUser?.joinedGroupId,
     isLoading,
     refreshGroups,
