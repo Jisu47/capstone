@@ -29,6 +29,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
     currentUserId,
     sendPlanAgentMessage,
     isPlanAgentAnswering,
+    getPlanAgentStatus,
     applyPlanAgentDraft,
     isMutating,
   } = usePrototype();
@@ -56,6 +57,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   const draft = buildPlanAgentDraft(activeGroup);
   const reviewInterval = activeGroup.reviewIntervals[currentUserId] ?? null;
   const planAgentBusy = isPlanAgentAnswering(activeGroup.id);
+  const planAgentStatus = getPlanAgentStatus(activeGroup.id);
   const quickQuestions = [
     "진도표 기준으로 전체 계획 주차별 정리",
     "진도표 1주차 기준으로 이번주 계획 생성",
@@ -155,6 +157,10 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
               ))}
             </div>
 
+            <p className="min-h-[20px] text-xs leading-5 text-slate-400">
+              {planAgentStatus ?? ""}
+            </p>
+
             {activeGroup.planAgentChat.length > 0 ? (
               activeGroup.planAgentChat.map((message) => (
                 <div
@@ -184,15 +190,6 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                 빠른 질문을 누르거나 직접 입력해서 계획 초안을 시작해 보세요.
               </div>
             )}
-
-            {planAgentBusy ? (
-              <div className="max-w-[88%] rounded-[18px] rounded-bl-[6px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
-                <p className="text-sm font-semibold text-slate-900">답변 준비 중</p>
-                <p className="mt-1 text-xs text-[var(--ink-soft)]">
-                  진도표와 복습 간격 설정을 반영해 계획을 정리하고 있습니다.
-                </p>
-              </div>
-            ) : null}
           </div>
 
           <form

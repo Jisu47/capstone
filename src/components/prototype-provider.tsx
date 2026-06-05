@@ -134,6 +134,7 @@ type PrototypeContextValue = {
   applyPlanAgentDraft: (groupId: string, draft: PlanAgentDraft) => Promise<void>;
   isAnswering: (groupId: string) => boolean;
   isPlanAgentAnswering: (groupId: string) => boolean;
+  getPlanAgentStatus: (groupId: string) => string | null;
 };
 
 const PrototypeContext = createContext<PrototypeContextValue | null>(null);
@@ -145,6 +146,11 @@ function getGroupById(groups: StudyGroup[], groupId: string) {
 function getPendingAnswerKey(groupId: string, scope: "materials" | "plan-agent") {
   return `${scope}:${groupId}`;
 }
+
+type PlanAgentStatusSequence = {
+  intervalId: number | null;
+  timeoutIds: number[];
+};
 
 function toErrorMessage(error: unknown) {
   if (error instanceof Error) {
@@ -318,7 +324,9 @@ export function PrototypeProvider({
   const [isLoading, setIsLoading] = useState(true);
   const [mutationCount, setMutationCount] = useState(0);
   const [pendingAnswers, setPendingAnswers] = useState<Record<string, boolean>>({});
+  const [planAgentStatuses, setPlanAgentStatuses] = useState<Record<string, string>>({});
   const timeoutIds = useRef<number[]>([]);
+  const planAgentStatusSequences = useRef<Record<string, PlanAgentStatusSequence>>({});
   const syncingMembershipKeyRef = useRef<string | null>(null);
 
   const resolvedCurrentUserId = currentUser?.userId ?? fallbackCurrentUserId;
@@ -350,6 +358,101 @@ export function PrototypeProvider({
     return nextGroups;
   }, [applyDueReviewCandidateTodos]);
 
+  const setPlanAgentStatus = useCallback((groupId: string, status: string | null) => {
+    setPlanAgentStatuses((previous) => {
+      if (!status) {
+        if (!(groupId in previous)) {
+          return previous;
+        }
+
+        const next = { ...previous };
+        delete next[groupId];
+        return next;
+      }
+
+      if (previous[groupId] === status) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        [groupId]: status,
+      };
+    });
+  }, []);
+
+  const clearPlanAgentStatusSequence = useCallback((groupId: string) => {
+    const sequence = planAgentStatusSequences.current[groupId];
+
+    if (!sequence) {
+      return;
+    }
+
+    if (sequence.intervalId !== null) {
+      window.clearInterval(sequence.intervalId);
+    }
+
+    sequence.timeoutIds.forEach((timeoutId) => {
+      window.clearTimeout(timeoutId);
+    });
+
+    delete planAgentStatusSequences.current[groupId];
+  }, []);
+
+  const startPlanAgentStatusSequence = useCallback(
+    (group: StudyGroup) => {
+      clearPlanAgentStatusSequence(group.id);
+
+      const uploadNames = group.planReferenceUploads
+        .map((upload) => upload.fileName.trim())
+        .filter(Boolean);
+
+      setPlanAgentStatus(group.id, "답변 생성 중입니다.");
+
+      const sequence: PlanAgentStatusSequence = {
+        intervalId: null,
+        timeoutIds: [],
+      };
+
+      if (uploadNames.length > 0) {
+        let currentIndex = 0;
+
+        sequence.timeoutIds.push(
+          window.setTimeout(() => {
+            setPlanAgentStatus(group.id, `${uploadNames[0]}을 읽는 중입니다.`);
+          }, 350),
+        );
+
+        if (uploadNames.length > 1) {
+          sequence.intervalId = window.setInterval(() => {
+            currentIndex = (currentIndex + 1) % uploadNames.length;
+            setPlanAgentStatus(group.id, `${uploadNames[currentIndex]}을 읽는 중입니다.`);
+          }, 1200);
+        }
+
+        sequence.timeoutIds.push(
+          window.setTimeout(() => {
+            if (sequence.intervalId !== null) {
+              window.clearInterval(sequence.intervalId);
+              sequence.intervalId = null;
+            }
+
+            setPlanAgentStatus(group.id, "진도표를 바탕으로 답변을 정리하는 중입니다.");
+          }, 1800 + Math.max(0, uploadNames.length - 1) * 1200),
+        );
+      } else {
+        sequence.timeoutIds.push(
+          window.setTimeout(() => {
+            setPlanAgentStatus(group.id, "현재 계획과 복습 설정을 바탕으로 답변을 정리하는 중입니다.");
+          }, 700),
+        );
+      }
+
+      planAgentStatusSequences.current[group.id] = sequence;
+    },
+    [clearPlanAgentStatusSequence, setPlanAgentStatus],
+  );
+
   async function runMutation<T>(action: () => Promise<T>) {
     setMutationCount((count) => count + 1);
 
@@ -377,6 +480,7 @@ export function PrototypeProvider({
   useEffect(() => {
     let cancelled = false;
     const timeouts = timeoutIds.current;
+    const statusSequences = planAgentStatusSequences.current;
 
     async function bootstrap() {
       try {
@@ -406,6 +510,15 @@ export function PrototypeProvider({
     return () => {
       cancelled = true;
       timeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      Object.values(statusSequences).forEach((sequence) => {
+        if (sequence.intervalId !== null) {
+          window.clearInterval(sequence.intervalId);
+        }
+
+        sequence.timeoutIds.forEach((timeoutId) => {
+          window.clearTimeout(timeoutId);
+        });
+      });
     };
   }, [applyDueReviewCandidateTodos]);
 
@@ -972,12 +1085,27 @@ export function PrototypeProvider({
       [pendingKey]: true,
     }));
 
+    if (scope === "plan-agent") {
+      startPlanAgentStatusSequence(group);
+    }
+
     const timeoutId = window.setTimeout(() => {
       void runMutation(async () => {
         try {
           const answerText = await requestAiAnswer(group, trimmedQuestion, scope);
           await addPrototypeAssistantAnswer(group, trimmedQuestion, scope, answerText);
           await refreshGroups();
+          if (scope === "plan-agent") {
+            clearPlanAgentStatusSequence(groupId);
+            setPlanAgentStatus(groupId, "답변 완료");
+          }
+        } catch (caughtError) {
+          if (scope === "plan-agent") {
+            clearPlanAgentStatusSequence(groupId);
+            setPlanAgentStatus(groupId, "답변 생성에 실패했어요. 다시 시도해 주세요.");
+          }
+
+          throw caughtError;
         } finally {
           setPendingAnswers((previous) => ({
             ...previous,
@@ -985,6 +1113,10 @@ export function PrototypeProvider({
           }));
         }
       }).catch(() => {
+        if (scope === "plan-agent") {
+          clearPlanAgentStatusSequence(groupId);
+        }
+
         setPendingAnswers((previous) => ({
           ...previous,
           [pendingKey]: false,
@@ -1052,6 +1184,7 @@ export function PrototypeProvider({
       Boolean(pendingAnswers[getPendingAnswerKey(groupId, "materials")]),
     isPlanAgentAnswering: (groupId: string) =>
       Boolean(pendingAnswers[getPendingAnswerKey(groupId, "plan-agent")]),
+    getPlanAgentStatus: (groupId: string) => planAgentStatuses[groupId] ?? null,
   };
 
   return <PrototypeContext.Provider value={value}>{children}</PrototypeContext.Provider>;
