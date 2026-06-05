@@ -401,7 +401,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                         setActiveModal("invite");
                       }}
                     >
-                      <span>초대코드 확인 및 복사</span>
+                      <span>초대코드 확인</span>
                     </MenuActionButton>
 
                     {leaderMode ? (
