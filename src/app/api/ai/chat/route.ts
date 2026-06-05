@@ -1,6 +1,10 @@
 import type { NextRequest } from "next/server";
 import type { AiChatRequest, AiChatResponse } from "@/lib/ai-chat";
-import { generateGeminiAnswer, getGeminiModel } from "@/lib/gemini";
+import {
+  GeminiRequestError,
+  generateGeminiAnswer,
+  getGeminiModel,
+} from "@/lib/gemini";
 
 export const runtime = "nodejs";
 
@@ -37,8 +41,31 @@ export async function POST(request: NextRequest) {
 
     return Response.json(response);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to generate Gemini response.";
+    if (error instanceof GeminiRequestError) {
+      if (error.status === 503 || error.status === 429) {
+        return Response.json(
+          {
+            error:
+              "현재 AI 응답 요청이 많아 답변이 잠시 지연되고 있어요. 잠시 후 다시 시도해 주세요.",
+          },
+          { status: error.status },
+        );
+      }
+
+      if (error.status >= 500) {
+        return Response.json(
+          {
+            error:
+              "AI 응답을 준비하는 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.",
+          },
+          { status: error.status },
+        );
+      }
+
+      return Response.json({ error: error.message }, { status: error.status });
+    }
+
+    const message = error instanceof Error ? error.message : "Failed to generate Gemini response.";
 
     return Response.json({ error: message }, { status: 500 });
   }

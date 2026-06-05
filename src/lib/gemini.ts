@@ -26,6 +26,34 @@ type GeminiResponse = {
 };
 
 const defaultGeminiModel = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+const retriableStatusCodes = new Set([429, 500, 502, 503, 504]);
+const maxGeminiAttempts = 3;
+
+export class GeminiRequestError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "GeminiRequestError";
+    this.status = status;
+  }
+}
+
+function delay(milliseconds: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
+}
+
+function getRetryDelayMilliseconds(attempt: number, retryAfterHeader: string | null) {
+  const retryAfterSeconds = Number.parseInt(retryAfterHeader ?? "", 10);
+
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+    return retryAfterSeconds * 1000;
+  }
+
+  return 800 * 2 ** Math.max(0, attempt - 1);
+}
 
 function trimHistory(history: AiChatHistoryEntry[]) {
   return history
@@ -174,41 +202,46 @@ export async function generateGeminiAnswer({
     throw new Error("Gemini API key is missing. Set GEMINI_API_KEY in .env.local.");
   }
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${defaultGeminiModel}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
+  for (let attempt = 1; attempt <= maxGeminiAttempts; attempt += 1) {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${defaultGeminiModel}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: buildSystemInstruction(scope) }],
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: buildGroupContext(scope, group) }],
+            },
+            ...trimHistory(history),
+            {
+              role: "user",
+              parts: [{ text: question.trim() }],
+            },
+          ],
+          generationConfig: {
+            temperature: scope === "materials" ? 0.45 : 0.65,
+            topP: 0.95,
+            maxOutputTokens: scope === "materials" ? 384 : 512,
+            responseMimeType: "text/plain",
+          },
+        }),
+        cache: "no-store",
       },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: buildSystemInstruction(scope) }],
-        },
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: buildGroupContext(scope, group) }],
-          },
-          ...trimHistory(history),
-          {
-            role: "user",
-            parts: [{ text: question.trim() }],
-          },
-        ],
-        generationConfig: {
-          temperature: scope === "materials" ? 0.45 : 0.65,
-          topP: 0.95,
-          maxOutputTokens: scope === "materials" ? 384 : 512,
-          responseMimeType: "text/plain",
-        },
-      }),
-      cache: "no-store",
-    },
-  );
+    );
 
-  if (!response.ok) {
+    if (response.ok) {
+      const payload = (await response.json()) as GeminiResponse;
+      return extractText(payload);
+    }
+
     let detail = response.statusText;
 
     try {
@@ -218,9 +251,21 @@ export async function generateGeminiAnswer({
       detail = await response.text();
     }
 
-    throw new Error(`Gemini API request failed (${response.status}): ${detail}`);
+    if (retriableStatusCodes.has(response.status) && attempt < maxGeminiAttempts) {
+      await delay(
+        getRetryDelayMilliseconds(attempt, response.headers.get("retry-after")),
+      );
+      continue;
+    }
+
+    throw new GeminiRequestError(
+      response.status,
+      `Gemini API request failed (${response.status}): ${detail}`,
+    );
   }
 
-  const payload = (await response.json()) as GeminiResponse;
-  return extractText(payload);
+  throw new GeminiRequestError(
+    503,
+    "Gemini API request failed (503): The service remained unavailable after retries.",
+  );
 }
