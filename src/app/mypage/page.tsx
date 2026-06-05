@@ -12,7 +12,7 @@ import {
 } from "@/components/auth-provider";
 import { usePrototype } from "@/components/prototype-provider";
 import { createGroupJoinCode } from "@/lib/group-join-code";
-import type { AvatarPreset, Member, StudyGroup } from "@/lib/mock-data";
+import type { AvatarPreset, StudyGroup } from "@/lib/mock-data";
 
 const avatarOptions: Array<{ value: AvatarPreset; label: string }> = [
   { value: "sky", label: "Sky" },
@@ -202,14 +202,6 @@ function findJoinedGroup(groups: StudyGroup[], joinedGroupId: string | null) {
   return groups.find((group) => group.id === joinedGroupId) ?? null;
 }
 
-function findTeammates(joinedGroup: StudyGroup | null, currentUserId: string) {
-  if (!joinedGroup) {
-    return [];
-  }
-
-  return joinedGroup.members.filter((member) => member.id !== currentUserId);
-}
-
 export default function MyPage() {
   const router = useRouter();
   const { isAuthReady, currentUser, updateProfile, signOut } = useAuth();
@@ -229,9 +221,6 @@ export default function MyPage() {
   const joinedGroup = useMemo(() => {
     return findJoinedGroup(groups, currentUser?.joinedGroupId ?? null);
   }, [currentUser, groups]);
-  const teammateProfiles = useMemo(() => {
-    return currentUser ? findTeammates(joinedGroup, currentUser.userId) : [];
-  }, [currentUser, joinedGroup]);
 
   async function handleSaveProfile(input: UpdateProfileInput): Promise<SaveProfileResult> {
     const result = await updateProfile(input);
@@ -266,7 +255,7 @@ export default function MyPage() {
       showNavigation={false}
       headerContent={<MyPageHeader />}
       title="마이페이지"
-      subtitle="역할, 그룹 상태, 내 프로필과 팀원 정보를 한눈에 확인해 보세요."
+      subtitle="역할, 그룹 상태와 내 프로필을 한눈에 확인해 보세요."
     >
       <SectionCard
         title={`${currentUser.displayName}님`}
@@ -377,41 +366,6 @@ export default function MyPage() {
               그룹 선택으로 이동
             </Link>
           </div>
-        )}
-      </SectionCard>
-
-      <SectionCard title="우리 팀원 프로필">
-        {teammateProfiles.length > 0 ? (
-          <div className="space-y-3">
-            {teammateProfiles.map((member: Member) => (
-              <article
-                key={member.id}
-                className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]"
-              >
-                <div className="flex items-start gap-4">
-                  <ProfileAvatar
-                    name={member.name}
-                    avatarPreset={member.avatarPreset}
-                    size="md"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-base font-semibold text-slate-950">{member.name}</p>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                        {member.role}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm font-medium text-slate-600">{member.focus}</p>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{member.bio}</p>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm leading-6 text-slate-600">
-            같은 그룹의 팀원 프로필이 아직 없어요.
-          </p>
         )}
       </SectionCard>
     </AppShell>
