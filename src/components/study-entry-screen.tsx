@@ -6,12 +6,37 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { AppShell, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
-import { formatExamDate, getDaysLeft } from "@/lib/mock-data";
+import { formatExamDate, getDaysLeft, type StudyGroup } from "@/lib/mock-data";
 
-function sortGroupsByExamDate(groups: ReturnType<typeof usePrototype>["groups"]) {
+function findUserGroups(groups: StudyGroup[], userId: string | null) {
+  if (!userId) {
+    return [];
+  }
+
+  return groups.filter((group) => group.members.some((member) => member.id === userId));
+}
+
+function sortGroupsByStatusAndExamDate(groups: StudyGroup[]) {
   return [...groups].sort((left, right) => {
+    if (left.status !== right.status) {
+      return left.status === "active" ? -1 : 1;
+    }
+
+    if (left.status === "completed" && right.status === "completed") {
+      return right.examDate.localeCompare(left.examDate);
+    }
+
     return getDaysLeft(left.examDate) - getDaysLeft(right.examDate);
   });
+}
+
+function getGroupStatusLabel(group: StudyGroup) {
+  if (group.status === "completed") {
+    return "수료함";
+  }
+
+  const daysLeft = getDaysLeft(group.examDate);
+  return daysLeft === 0 ? "D-day" : `D-${daysLeft}`;
 }
 
 function SplashLogoMark() {
@@ -65,11 +90,14 @@ function SplashScreen() {
           </Link>
 
           <div className="flex items-center justify-center gap-3 text-sm text-slate-500">
-            <Link href="/signup" className="font-medium text-[var(--brand)] transition hover:brightness-90">
+            <Link
+              href="/signup"
+              className="font-medium text-[var(--brand)] transition hover:brightness-90"
+            >
               계정 만들기
             </Link>
             <span className="text-slate-300">|</span>
-            <span>아이디/비밀번호 찾기</span>
+            <span>이메일 비밀번호 찾기</span>
           </div>
         </div>
       </div>
@@ -78,10 +106,12 @@ function SplashScreen() {
 }
 
 function AuthenticatedHome() {
-  const { groups, isLoading } = usePrototype();
-  const { sessionName, signOut } = useAuth();
+  const { allGroups, isLoading } = usePrototype();
+  const { currentUser, sessionName, signOut } = useAuth();
   const router = useRouter();
-  const sortedGroups = sortGroupsByExamDate(groups);
+  const sortedGroups = sortGroupsByStatusAndExamDate(
+    findUserGroups(allGroups, currentUser?.userId ?? null),
+  );
 
   return (
     <AppShell requireAuth={false} showNavigation={false} title="그룹 선택">
@@ -117,13 +147,13 @@ function AuthenticatedHome() {
           </div>
         }
       >
-        {isLoading && groups.length === 0 ? (
+        {isLoading && sortedGroups.length === 0 ? (
           <p className="text-sm leading-6 text-[var(--ink-soft)]">
             그룹 목록을 불러오는 중입니다.
           </p>
         ) : null}
 
-        {!isLoading && groups.length === 0 ? (
+        {!isLoading && sortedGroups.length === 0 ? (
           <div className="space-y-3">
             <p className="text-sm leading-6 text-[var(--ink-soft)]">
               아직 참여 중인 스터디 그룹이 없습니다.
@@ -145,37 +175,65 @@ function AuthenticatedHome() {
           </div>
         ) : null}
 
-        {sortedGroups.map((group) => (
-          <button
-            key={group.id}
-            type="button"
-            onClick={() => {
-              router.push(`/group/${group.id}`);
-            }}
-            className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-4 text-left transition hover:border-slate-300"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  {group.subject}
-                </p>
-                <p className="mt-1 text-base font-semibold text-slate-950">
-                  {group.name}
-                </p>
-              </div>
-              <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[var(--brand)]">
-                {getDaysLeft(group.examDate) === 0
-                  ? "D-day"
-                  : `D-${getDaysLeft(group.examDate)}`}
-              </span>
-            </div>
+        {sortedGroups.map((group) => {
+          if (group.status === "completed") {
+            return (
+              <div
+                key={group.id}
+                className="w-full rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-4 text-left"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      {group.subject}
+                    </p>
+                    <p className="mt-1 text-base font-semibold text-slate-900">
+                      {group.name}
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                    {getGroupStatusLabel(group)}
+                  </span>
+                </div>
 
-            <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-              <span>시험 {formatExamDate(group.examDate)}</span>
-              <span>{group.members.length}명</span>
-            </div>
-          </button>
-        ))}
+                <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+                  <span>시험 {formatExamDate(group.examDate)}</span>
+                  <span>{group.members.length}명</span>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <button
+              key={group.id}
+              type="button"
+              onClick={() => {
+                router.push(`/group/${group.id}`);
+              }}
+              className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-4 text-left transition hover:border-slate-300"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    {group.subject}
+                  </p>
+                  <p className="mt-1 text-base font-semibold text-slate-950">
+                    {group.name}
+                  </p>
+                </div>
+                <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[var(--brand)]">
+                  {getGroupStatusLabel(group)}
+                </span>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+                <span>시험 {formatExamDate(group.examDate)}</span>
+                <span>{group.members.length}명</span>
+              </div>
+            </button>
+          );
+        })}
       </SectionCard>
     </AppShell>
   );
