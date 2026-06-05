@@ -52,12 +52,15 @@ import {
   clearPrototypePlanItemCompletion,
   completePrototypePlanItemWithFeedback,
   createPrototypeGroup,
+  deletePrototypeGroup,
   savePrototypePersonalTaskLibraryItem,
   ensurePrototypeGroupMembership,
+  leavePrototypeGroup,
   listPrototypeGroups,
   syncPrototypeProfile,
   togglePrototypePersonalPlanItem,
   togglePrototypePlanItem,
+  transferPrototypeGroupLeadership,
   updatePrototypeGroupDetails,
   updatePrototypePersonalPlanItem,
   updatePrototypePersonalTaskLibraryItem,
@@ -76,6 +79,9 @@ type PrototypeContextValue = {
   isMutating: boolean;
   createGroup: (input: CreateGroupInput) => Promise<string>;
   joinGroup: (groupId: string) => Promise<void>;
+  leaveGroup: (groupId: string) => Promise<void>;
+  deleteGroup: (groupId: string) => Promise<void>;
+  transferGroupLeadership: (groupId: string, nextLeaderId: string) => Promise<void>;
   syncCurrentUserProfile: () => Promise<void>;
   updateGroupDetails: (groupId: string, updates: GroupDetailsInput) => Promise<void>;
   togglePlanItem: (groupId: string, itemId: string) => Promise<void>;
@@ -275,7 +281,7 @@ export function PrototypeProvider({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { currentUser, markGroupJoined } = useAuth();
+  const { currentUser, markGroupJoined, setJoinedGroupState } = useAuth();
   const [storedGroups, setStoredGroups] = useState<StudyGroup[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -310,6 +316,7 @@ export function PrototypeProvider({
   const refreshGroups = useCallback(async () => {
     const nextGroups = await applyDueReviewCandidateTodos(await listPrototypeGroups());
     setStoredGroups(nextGroups);
+    return nextGroups;
   }, [applyDueReviewCandidateTodos]);
 
   async function runMutation<T>(action: () => Promise<T>) {
@@ -422,6 +429,52 @@ export function PrototypeProvider({
         await ensurePrototypeGroupMembership(groupId, joiningMember);
       }
 
+      await markGroupJoined(groupId, "member");
+      await refreshGroups();
+    });
+  }
+
+  async function syncJoinedGroupAfterRemoval(removedGroupId: string, nextGroups: StudyGroup[]) {
+    if (!currentUser || currentUser.joinedGroupId !== removedGroupId) {
+      return;
+    }
+
+    const remainingGroups = nextGroups.filter((group) =>
+      group.members.some((member) => member.id === resolvedCurrentUserId),
+    );
+    const fallbackGroup = remainingGroups[0] ?? null;
+
+    if (!fallbackGroup) {
+      await setJoinedGroupState(null, null);
+      return;
+    }
+
+    await markGroupJoined(fallbackGroup.id, currentUser.role ?? "member");
+  }
+
+  async function leaveGroup(groupId: string) {
+    await runMutation(async () => {
+      await leavePrototypeGroup(groupId, resolvedCurrentUserId);
+      const nextGroups = await refreshGroups();
+      await syncJoinedGroupAfterRemoval(groupId, nextGroups);
+    });
+  }
+
+  async function deleteGroup(groupId: string) {
+    await runMutation(async () => {
+      await deletePrototypeGroup(groupId);
+      const nextGroups = await refreshGroups();
+      await syncJoinedGroupAfterRemoval(groupId, nextGroups);
+    });
+  }
+
+  async function transferGroupLeadership(groupId: string, nextLeaderId: string) {
+    if (!currentUser) {
+      return;
+    }
+
+    await runMutation(async () => {
+      await transferPrototypeGroupLeadership(groupId, currentUser.userId, nextLeaderId);
       await markGroupJoined(groupId, "member");
       await refreshGroups();
     });
@@ -851,6 +904,9 @@ export function PrototypeProvider({
     isMutating: mutationCount > 0,
     createGroup,
     joinGroup,
+    leaveGroup,
+    deleteGroup,
+    transferGroupLeadership,
     syncCurrentUserProfile,
     updateGroupDetails,
     togglePlanItem,

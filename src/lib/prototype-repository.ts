@@ -1260,6 +1260,16 @@ function toProfileRow(member: Member) {
   };
 }
 
+async function listGroupPlanItemIds(groupId: string) {
+  const client = getSupabaseBrowserClient();
+  const rows = unwrapData(
+    "Failed to inspect group plan items",
+    await client.from("plan_items").select("id").eq("group_id", groupId),
+  ) as Array<{ id: string }>;
+
+  return rows.map((row) => row.id);
+}
+
 export async function createPrototypeGroup(input: CreateGroupInput, creator?: Member) {
   const group = createGroupFromInput(input, creator);
   await persistGroup(group);
@@ -1335,6 +1345,123 @@ export async function updatePrototypeGroupDetails(groupId: string, updates: Grou
         recent_update: buildRecentUpdateFromGoal(normalized.weeklyGoal),
       })
       .eq("id", groupId),
+  );
+}
+
+export async function leavePrototypeGroup(groupId: string, memberId: string) {
+  const client = getSupabaseBrowserClient();
+  const planItemIds = await listGroupPlanItemIds(groupId);
+
+  if (planItemIds.length > 0) {
+    ensureSuccess(
+      "Failed to remove plan completions for leaving member",
+      await client
+        .from("plan_item_completions")
+        .delete()
+        .eq("member_id", memberId)
+        .in("plan_item_id", planItemIds),
+    );
+
+    ensureSuccess(
+      "Failed to remove plan item feedback for leaving member",
+      await client
+        .from("plan_item_feedbacks")
+        .delete()
+        .eq("member_id", memberId)
+        .in("plan_item_id", planItemIds),
+    );
+  }
+
+  ensureSuccess(
+    "Failed to remove review candidates for leaving member",
+    await client
+      .from("review_candidates")
+      .delete()
+      .eq("group_id", groupId)
+      .eq("member_id", memberId),
+  );
+
+  ensureSuccess(
+    "Failed to remove personal plan items for leaving member",
+    await client
+      .from("personal_plan_items")
+      .delete()
+      .eq("group_id", groupId)
+      .eq("member_id", memberId),
+  );
+
+  ensureSuccess(
+    "Failed to remove saved personal task items for leaving member",
+    await client
+      .from("personal_task_library_items")
+      .delete()
+      .eq("group_id", groupId)
+      .eq("member_id", memberId),
+  );
+
+  ensureSuccess(
+    "Failed to remove group membership",
+    await client
+      .from("group_members")
+      .delete()
+      .eq("group_id", groupId)
+      .eq("member_id", memberId),
+  );
+}
+
+export async function deletePrototypeGroup(groupId: string) {
+  const client = getSupabaseBrowserClient();
+
+  ensureSuccess(
+    "Failed to delete study group",
+    await client.from("study_groups").delete().eq("id", groupId),
+  );
+}
+
+export async function transferPrototypeGroupLeadership(
+  groupId: string,
+  currentLeaderId: string,
+  nextLeaderId: string,
+) {
+  if (currentLeaderId === nextLeaderId) {
+    return;
+  }
+
+  const client = getSupabaseBrowserClient();
+  const membership = unwrapNullableData(
+    "Failed to inspect next leader membership",
+    await client
+      .from("group_members")
+      .select("group_id")
+      .eq("group_id", groupId)
+      .eq("member_id", nextLeaderId)
+      .maybeSingle(),
+  );
+
+  if (!membership) {
+    throw new Error("다음 팀장은 현재 그룹에 속한 팀원이어야 해요.");
+  }
+
+  ensureSuccess(
+    "Failed to update next leader profile",
+    await client
+      .from("profiles")
+      .update({
+        role: "leader",
+        has_joined_group: true,
+        joined_group_id: groupId,
+      })
+      .eq("id", nextLeaderId),
+  );
+
+  ensureSuccess(
+    "Failed to update previous leader profile",
+    await client
+      .from("profiles")
+      .update({
+        role: "member",
+      })
+      .eq("id", currentLeaderId),
   );
 }
 

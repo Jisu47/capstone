@@ -53,6 +53,10 @@ type AuthContextValue = {
   updateProfile: (input: UpdateProfileInput) => Promise<AuthActionResult>;
   signOut: () => Promise<void>;
   markGroupJoined: (groupId: string, role: UserRole) => Promise<AuthUser | null>;
+  setJoinedGroupState: (
+    groupId: string | null,
+    role: UserRole | null,
+  ) => Promise<AuthUser | null>;
   resolvePostAuthPath: (user: AuthUser) => "/";
 };
 
@@ -497,9 +501,17 @@ export function AuthProvider({
       return null;
     }
 
+    return setJoinedGroupState(groupId, role);
+  }
+
+  async function setJoinedGroupState(groupId: string | null, role: UserRole | null) {
+    if (!sessionUser) {
+      return null;
+    }
+
     const nextProfile = await upsertProfile(sessionUser, {
       role,
-      has_joined_group: true,
+      has_joined_group: Boolean(groupId),
       joined_group_id: groupId,
       focus: getDefaultFocus(role),
       bio: currentUser?.bio?.trim() || getDefaultBio(role),
@@ -520,6 +532,7 @@ export function AuthProvider({
         updateProfile,
         signOut,
         markGroupJoined,
+        setJoinedGroupState,
         resolvePostAuthPath,
       }}
     >
