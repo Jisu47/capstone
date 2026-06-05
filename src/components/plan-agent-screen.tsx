@@ -56,15 +56,24 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   const draft = buildPlanAgentDraft(activeGroup);
   const reviewInterval = activeGroup.reviewIntervals[currentUserId] ?? null;
   const planAgentBusy = isPlanAgentAnswering(activeGroup.id);
+  const quickQuestions = [
+    "진도표 기준으로 전체 계획 주차별 정리",
+    "진도표 1주차 기준으로 이번주 계획 생성",
+    "저번주 미완료 계획 바탕으로 주간 계획 재조정",
+  ] as const;
+  const conversationSubject = activeGroup.subject.trim() || activeGroup.name.trim();
+  const introMessage = `안녕하세요! ${conversationSubject} 학습 계획을 세워볼까요? 질문을 선택해 빠른 대화를 시작할 수 있고 직접 대화를 입력하실 수 있어요.`;
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!draftQuestion.trim()) {
+    const question = draftQuestion.trim();
+
+    if (!question) {
       return;
     }
 
-    void sendPlanAgentMessage(activeGroup.id, draftQuestion);
+    void sendPlanAgentMessage(activeGroup.id, question);
     setDraftQuestion("");
   }
 
@@ -124,81 +133,88 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
           </div>
         </SectionCard>
 
-        <SectionCard title="빠른 질문">
-          <div className="flex flex-wrap gap-2">
-            {[
-              "복습 간격을 고려해서 이번 주 계획 다시 짜 줘",
-              "진도표 기준으로 전체 계획을 주차별로 정리해 줘",
-              "복습 간격을 고려해서 주간 계획을 조정해 줘",
-            ].map((question) => (
-              <button
-                key={question}
-                type="button"
-                onClick={() => {
-                  void sendPlanAgentMessage(activeGroup.id, question);
-                }}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)]"
-              >
-                {question}
-              </button>
-            ))}
-          </div>
-        </SectionCard>
-
-        <SectionCard title="대화">
+        <SectionCard title="채팅">
           <div className="space-y-3">
-            {activeGroup.planAgentChat.length === 0 ? (
-              <div className="rounded-[16px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
-                원하는 방향을 한 줄로 보내면 계획 초안을 만들어 드립니다.
-              </div>
-            ) : (
+            <div className="max-w-[88%] rounded-[18px] rounded-bl-[6px] border border-slate-200 bg-slate-50 px-4 py-4">
+              <p className="whitespace-pre-line text-sm leading-6 text-slate-800">{introMessage}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {quickQuestions.map((question) => (
+                <button
+                  key={question}
+                  type="button"
+                  disabled={planAgentBusy}
+                  onClick={() => {
+                    void sendPlanAgentMessage(activeGroup.id, question);
+                  }}
+                  className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)] transition hover:border-[var(--brand)] hover:text-[var(--brand)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
+
+            {activeGroup.planAgentChat.length > 0 ? (
               activeGroup.planAgentChat.map((message) => (
                 <div
                   key={message.id}
-                  className={`rounded-[16px] px-4 py-4 ${
-                    message.role === "assistant"
-                      ? "border border-slate-200 bg-white"
-                      : "ml-auto max-w-[82%] border border-[var(--brand)] bg-white text-slate-900"
-                  }`}
+                  className={`flex ${message.role === "assistant" ? "justify-start" : "justify-end"}`}
                 >
-                  <p className="whitespace-pre-line text-sm leading-6">{message.text}</p>
-                  <p
-                    className={`mt-2 text-[11px] font-medium ${
-                      message.role === "assistant" ? "text-slate-400" : "text-[var(--brand)]"
+                  <div
+                    className={`max-w-[88%] rounded-[18px] px-4 py-4 ${
+                      message.role === "assistant"
+                        ? "rounded-bl-[6px] border border-slate-200 bg-white"
+                        : "rounded-br-[6px] border border-[var(--brand)] bg-[var(--brand-soft)] text-slate-900"
                     }`}
                   >
-                    {message.createdAt}
-                  </p>
+                    <p className="whitespace-pre-line text-sm leading-6">{message.text}</p>
+                    <p
+                      className={`mt-2 text-[11px] font-medium ${
+                        message.role === "assistant" ? "text-slate-400" : "text-[var(--brand)]"
+                      }`}
+                    >
+                      {message.createdAt}
+                    </p>
+                  </div>
                 </div>
               ))
+            ) : (
+              <div className="rounded-[16px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+                빠른 질문을 누르거나 직접 입력해서 계획 초안을 시작해 보세요.
+              </div>
             )}
 
             {planAgentBusy ? (
-              <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
-                <p className="text-sm font-semibold text-slate-900">초안 정리 중</p>
+              <div className="max-w-[88%] rounded-[18px] rounded-bl-[6px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
+                <p className="text-sm font-semibold text-slate-900">답변 준비 중</p>
                 <p className="mt-1 text-xs text-[var(--ink-soft)]">
-                  진도표와 복습 간격 설정을 반영하고 있습니다.
+                  진도표와 복습 간격 설정을 반영해 계획을 정리하고 있습니다.
                 </p>
               </div>
             ) : null}
           </div>
-        </SectionCard>
 
-        <SectionCard title="질문 보내기">
-          <form className="space-y-3" onSubmit={handleSubmit}>
-            <textarea
-              rows={3}
-              value={draftQuestion}
-              onChange={(event) => setDraftQuestion(event.target.value)}
-              placeholder="예: 복습 간격까지 고려해서 이번 주 계획 다시 짜 줘"
-              className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
-            />
-            <button
-              type="submit"
-              className="w-full rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
-            >
-              질문 보내기
-            </button>
+          <form
+            className="rounded-[18px] border border-slate-200 bg-slate-50/80 p-3"
+            onSubmit={handleSubmit}
+          >
+            <div className="flex items-end gap-3">
+              <textarea
+                rows={2}
+                value={draftQuestion}
+                onChange={(event) => setDraftQuestion(event.target.value)}
+                placeholder="질문을 입력하면 계획 에이전트가 바로 이어서 답변합니다."
+                className="min-h-[76px] flex-1 resize-none rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+              />
+              <button
+                type="submit"
+                disabled={!draftQuestion.trim() || planAgentBusy}
+                className="inline-flex h-[76px] shrink-0 items-center justify-center rounded-[14px] bg-[var(--brand)] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                보내기
+              </button>
+            </div>
           </form>
         </SectionCard>
 
