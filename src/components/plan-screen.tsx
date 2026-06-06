@@ -47,6 +47,80 @@ function Chevron({ open }: Readonly<{ open: boolean }>) {
   );
 }
 
+function BookIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6">
+      <path
+        d="M4.75 6.75A2.75 2.75 0 0 1 7.5 4h11.75v13.25H7.5a2.75 2.75 0 0 0-2.75 2.75V6.75Z"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M7.5 4v16M9.75 7.5h6.5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function VideoIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6">
+      <path
+        d="M4.75 6.75A2.75 2.75 0 0 1 7.5 4h9A2.75 2.75 0 0 1 19.25 6.75v10.5A2.75 2.75 0 0 1 16.5 20h-9a2.75 2.75 0 0 1-2.75-2.75V6.75Z"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+      <path
+        d="m10 9.25 4.5 2.75L10 14.75v-5.5Z"
+        fill="none"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M4.75 8.75h14.5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6">
+      <path
+        d="m4.75 16.5 8.8-8.8a2.3 2.3 0 1 1 3.25 3.25L8 19.75l-3.25.75.75-4Z"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+      <path
+        d="m12.75 8.5 3.25 3.25"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
 function ExpandableSection({
   title,
   subtitle,
@@ -108,6 +182,149 @@ function readFileAsDataUrl(file: File) {
 
 function formatReviewDate(date: Date) {
   return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function parseDurationMinutes(duration: string) {
+  const matched = duration.match(/(\d+)/);
+  const parsed = matched ? Number.parseInt(matched[1], 10) : NaN;
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 60;
+  }
+
+  return parsed;
+}
+
+function formatClock(totalMinutes: number) {
+  const hours = Math.floor(totalMinutes / 60)
+    .toString()
+    .padStart(2, "0");
+  const minutes = (totalMinutes % 60).toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+function buildTimeRangeLabel(duration: string, index: number) {
+  const startMinutes = 9 * 60 + index * 120;
+  const endMinutes = startMinutes + parseDurationMinutes(duration);
+  return `${formatClock(startMinutes)} - ${formatClock(endMinutes)}`;
+}
+
+function getPlanVisualType(title: string, detail: string) {
+  const normalized = `${title} ${detail}`.toLowerCase();
+
+  if (/강의|시청|영상|비디오|lecture|video/.test(normalized)) {
+    return "video";
+  }
+
+  if (/문제|풀이|연습|필기|발표|질문|실습|코딩|작성|정리/.test(normalized)) {
+    return "pencil";
+  }
+
+  return "book";
+}
+
+function PlanTypeIcon({ type }: Readonly<{ type: "book" | "video" | "pencil" }>) {
+  return (
+    <span className="inline-flex h-12 w-12 items-center justify-center rounded-[16px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] text-slate-900 shadow-[0_8px_18px_rgba(15,23,42,0.05)]">
+      {type === "video" ? <VideoIcon /> : type === "pencil" ? <PencilIcon /> : <BookIcon />}
+    </span>
+  );
+}
+
+function WeeklyPlanTabs({
+  group,
+  currentUserId,
+  onTogglePlanItem,
+}: Readonly<{
+  group: StudyGroup;
+  currentUserId: string;
+  onTogglePlanItem: (itemId: string) => void;
+}>) {
+  const [activeDay, setActiveDay] = useState(orderedWeekdays[0]);
+  const plansByDay = orderedWeekdays.map((day) => ({
+    day,
+    items: group.plan.filter((item) => item.day === day),
+  }));
+  const activeDayItems =
+    plansByDay.find((entry) => entry.day === activeDay)?.items ?? [];
+
+  return (
+    <div className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+      <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fcfdfc_100%)]">
+        <div className="grid grid-cols-5">
+          {plansByDay.map(({ day, items }) => {
+            const active = day === activeDay;
+            const count = items.length;
+            const countClass =
+              count === 0
+                ? "bg-slate-100 text-slate-500"
+                : active
+                  ? "bg-[var(--brand)] text-white"
+                  : "bg-[rgba(121,184,149,0.18)] text-[var(--brand)]";
+
+            return (
+              <button
+                key={day}
+                type="button"
+                onClick={() => setActiveDay(day)}
+                className={`relative flex flex-col items-center gap-2 px-2 pb-4 pt-4 text-sm transition ${
+                  active ? "font-semibold text-slate-950" : "font-medium text-slate-500"
+                }`}
+                aria-pressed={active}
+              >
+                <span className="flex items-center gap-1.5">
+                  <span>{day}</span>
+                  <span
+                    className={`inline-flex min-w-8 items-center justify-center rounded-full px-2 py-1 text-xs font-semibold ${countClass}`}
+                  >
+                    {count}
+                  </span>
+                </span>
+                {active ? (
+                  <span className="absolute inset-x-3 bottom-0 h-[3px] rounded-full bg-[var(--brand)]" />
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-3 px-4 py-4">
+        {activeDayItems.length === 0 ? (
+          <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50/70 px-4 py-8 text-center text-sm text-slate-400">
+            선택한 요일에 등록된 계획이 없습니다.
+          </div>
+        ) : (
+          activeDayItems.map((item, index) => {
+            const checked = item.memberStatus[currentUserId];
+            const timeRangeLabel = buildTimeRangeLabel(item.duration, index);
+            const visualType = getPlanVisualType(item.title, item.detail);
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onTogglePlanItem(item.id)}
+                className={`flex w-full items-center gap-4 rounded-[18px] border px-4 py-4 text-left transition ${
+                  checked
+                    ? "border-[var(--brand)] bg-[linear-gradient(180deg,#ffffff_0%,#f8fdf9_100%)] shadow-[0_10px_22px_rgba(121,184,149,0.10)]"
+                    : "border-slate-200 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.04)] hover:border-slate-300"
+                }`}
+              >
+                <PlanTypeIcon type={visualType} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[19px] font-semibold tracking-[-0.03em] text-slate-950">
+                    {item.title}
+                  </p>
+                  <p className="mt-1 text-[15px] font-medium text-slate-600">{timeRangeLabel}</p>
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
 }
 
 function SummaryChip({
@@ -474,64 +691,13 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
         </ExpandableSection>
 
         <ExpandableSection title="이번 주 계획">
-          <div className="space-y-4">
-            {orderedWeekdays.map((day) => {
-              const dayPlanItems = activeGroup.plan.filter((item) => item.day === day);
-
-              return (
-                <section
-                  key={day}
-                  className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]"
-                >
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-slate-900">{day}</p>
-                    <span className="text-xs text-slate-500">{dayPlanItems.length}개</span>
-                  </div>
-
-                  <div className="space-y-2">
-                    {dayPlanItems.map((item) => {
-                      const checked = item.memberStatus[currentUserId];
-
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => {
-                            void togglePlanItem(activeGroup.id, item.id);
-                          }}
-                          className={`w-full rounded-[14px] border px-4 py-4 text-left transition ${
-                            checked
-                              ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
-                              : "border-slate-200 bg-white hover:border-slate-300"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-slate-900">
-                                {item.title}
-                              </p>
-                              <p className="mt-1 text-xs leading-5 text-[var(--ink-soft)]">
-                                {item.detail}
-                              </p>
-                            </div>
-                            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
-                              {item.duration}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-
-                    {dayPlanItems.length === 0 ? (
-                      <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm text-slate-400">
-                        등록된 계획이 없습니다.
-                      </div>
-                    ) : null}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
+          <WeeklyPlanTabs
+            group={activeGroup}
+            currentUserId={currentUserId}
+            onTogglePlanItem={(itemId) => {
+              void togglePlanItem(activeGroup.id, itemId);
+            }}
+          />
         </ExpandableSection>
 
         <ExpandableSection
