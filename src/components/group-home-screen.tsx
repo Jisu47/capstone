@@ -10,6 +10,7 @@ import { usePrototype } from "@/components/prototype-provider";
 import { createGroupJoinCode } from "@/lib/group-join-code";
 import { clearPendingGroupHomeTour, hasPendingGroupHomeTour } from "@/lib/group-home-tour";
 import { getGroupMembership } from "@/lib/group-membership";
+import type { PersonalPlanItemDraft } from "@/lib/plan-flow";
 import {
   formatExamDate,
   getDaysLeft,
@@ -235,9 +236,12 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     renewGroupCycle,
     groups,
     currentUserId,
+    addPersonalPlanItem,
     deleteGroup,
+    deletePersonalPlanItem,
     leaveGroup,
     togglePlanItem,
+    togglePersonalPlanItem,
     transferGroupLeadership,
     isLoading,
     isMutating,
@@ -249,6 +253,12 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   const [selectedLeaderId, setSelectedLeaderId] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [, bumpTutorialState] = useState(0);
+  const [isAddTodoOpen, setIsAddTodoOpen] = useState(false);
+  const [personalTaskError, setPersonalTaskError] = useState<string | null>(null);
+  const [personalTaskDraft, setPersonalTaskDraft] = useState<PersonalPlanItemDraft>({
+    title: "",
+    detail: "",
+  });
   const [renewalError, setRenewalError] = useState<string | null>(null);
   const [renewalDraft, setRenewalDraft] = useState({
     examDate: "",
@@ -317,14 +327,18 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     accent: memberAccents[index % memberAccents.length],
   }));
   const todayTasks = getTodayFocusTasks(activeGroup, currentUserId);
+  const personalTasks = activeGroup.personalPlanItems.filter((item) => item.memberId === currentUserId);
   const completedTodayTasks = todayTasks.filter((item) => item.memberStatus[currentUserId]).length;
-  const todayProgress = todayTasks.length
-    ? Math.round((completedTodayTasks / todayTasks.length) * 100)
+  const completedPersonalTasks = personalTasks.filter((item) => item.completed).length;
+  const totalTaskCount = todayTasks.length + personalTasks.length;
+  const completedTaskCount = completedTodayTasks + completedPersonalTasks;
+  const todayProgress = totalTaskCount
+    ? Math.round((completedTaskCount / totalTaskCount) * 100)
     : 0;
   const todayProgressCopy = getTodayProgressCopy(
     todayProgress,
-    todayTasks.length,
-    completedTodayTasks,
+    totalTaskCount,
+    completedTaskCount,
   );
   const greetingName = currentUser?.displayName ?? currentMember?.name ?? "스터디 메이트";
 
@@ -354,6 +368,28 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     });
     setRenewalError(null);
     setPostExamModal("renew");
+  }
+
+  function openAddTodoModal() {
+    setPersonalTaskDraft({
+      title: "",
+      detail: "",
+    });
+    setPersonalTaskError(null);
+    setIsAddTodoOpen(true);
+  }
+
+  function closeAddTodoModal() {
+    setIsAddTodoOpen(false);
+    setPersonalTaskError(null);
+  }
+
+  function handlePersonalTaskDraftChange(key: keyof PersonalPlanItemDraft, value: string) {
+    setPersonalTaskDraft((previous) => ({
+      ...previous,
+      [key]: value,
+    }));
+    setPersonalTaskError(null);
   }
 
   async function handleCopyInviteCode() {
@@ -416,6 +452,42 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
           ? error.message
           : "다음 시험 일정과 목표를 저장하지 못했어요.",
       );
+    }
+  }
+
+  async function handleAddPersonalTask() {
+    const normalizedTitle = personalTaskDraft.title.trim();
+    const normalizedDetail = personalTaskDraft.detail.trim();
+
+    if (!normalizedTitle) {
+      setPersonalTaskError("할 일 제목을 먼저 적어주세요.");
+      return;
+    }
+
+    try {
+      await addPersonalPlanItem(activeGroup.id, {
+        title: normalizedTitle,
+        detail: normalizedDetail,
+      });
+      closeAddTodoModal();
+    } catch (error) {
+      setPersonalTaskError(
+        error instanceof Error ? error.message : "새 할 일을 추가하지 못했어요.",
+      );
+    }
+  }
+
+  async function handleDeletePersonalTask(itemId: string) {
+    const shouldDelete = window.confirm("이 할 일을 삭제할까요?");
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      await deletePersonalPlanItem(itemId);
+    } catch {
+      // AppShell error banner handles the message.
     }
   }
 
@@ -574,12 +646,22 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
         <section className="rounded-[24px] bg-white p-5 shadow-[0_4px_20px_rgba(15,23,42,0.06)]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-[18px] font-semibold tracking-[-0.03em] text-slate-950">오늘 할 일</h2>
-            <span className="text-xs font-medium text-slate-400">
-              {completedTodayTasks}/{todayTasks.length || 0}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-400">
+                {completedTaskCount}/{totalTaskCount || 0}
+              </span>
+              <button
+                type="button"
+                onClick={openAddTodoModal}
+                className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-[0_6px_18px_rgba(15,23,42,0.08)]"
+              >
+                <span className="text-base leading-none text-slate-500">+</span>
+                <span>추가</span>
+              </button>
+            </div>
           </div>
 
-          {todayTasks.length === 0 ? (
+          {totalTaskCount === 0 ? (
             <div className="rounded-[20px] bg-[#F7FAF8] px-4 py-5 text-sm leading-6 text-slate-500">
               오늘 표시할 할 일이 없어요. 계획 탭에서 새 일정을 추가해보세요.
             </div>
@@ -628,6 +710,68 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                   </button>
                 );
               })}
+
+              {personalTasks.map((item) => (
+                <div
+                  key={item.id}
+                  className={`flex items-center gap-3 rounded-[18px] px-3 py-3 transition ${
+                    item.completed
+                      ? "bg-[#F3FAF5]"
+                      : "bg-[#FAFCFA] hover:bg-[#F5FBF7]"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void togglePersonalPlanItem(item.id, !item.completed);
+                    }}
+                    className="shrink-0"
+                  >
+                    <CheckIcon active={item.completed} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void togglePersonalPlanItem(item.id, !item.completed);
+                    }}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <p
+                      className={`truncate text-[15px] font-medium ${
+                        item.completed ? "text-slate-400 line-through" : "text-slate-900"
+                      }`}
+                    >
+                      {item.title}
+                    </p>
+                    {item.detail ? (
+                      <p
+                        className={`mt-1 truncate text-xs ${
+                          item.completed ? "text-slate-300" : "text-slate-400"
+                        }`}
+                      >
+                        {item.detail}
+                      </p>
+                    ) : null}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="할 일 삭제"
+                    onClick={() => {
+                      void handleDeletePersonalTask(item.id);
+                    }}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-300 transition hover:bg-white hover:text-slate-500"
+                  >
+                    <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <path
+                        d="M7 7L17 17M17 7L7 17"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeWidth="1.8"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </section>
@@ -720,6 +864,63 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
             {renewalError ? (
               <p className="rounded-[14px] bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
                 {renewalError}
+              </p>
+            ) : null}
+          </div>
+        </GroupActionModalShell>
+      ) : null}
+
+      {isAddTodoOpen ? (
+        <GroupActionModalShell
+          title="오늘 할 일 추가"
+          description="홈 화면에서 바로 체크할 개인 할 일을 추가해보세요."
+          onClose={closeAddTodoModal}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={closeAddTodoModal}
+                className="flex-1 rounded-[16px] bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.26)]"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleAddPersonalTask();
+                }}
+                disabled={isMutating}
+                className="flex-1 rounded-[16px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-70"
+              >
+                추가하기
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <label className="block space-y-2">
+              <span className="text-sm font-semibold text-slate-800">할 일 제목</span>
+              <input
+                type="text"
+                value={personalTaskDraft.title}
+                onChange={(event) => handlePersonalTaskDraftChange("title", event.target.value)}
+                placeholder="예: 스택과 큐 복습하기"
+                className="w-full rounded-[16px] bg-white px-4 py-3 text-sm text-slate-900 outline-none shadow-[inset_0_0_0_1px_rgba(148,163,184,0.20)] transition focus:ring-4 focus:ring-[rgba(76,175,122,0.16)]"
+              />
+            </label>
+            <label className="block space-y-2">
+              <span className="text-sm font-semibold text-slate-800">메모</span>
+              <textarea
+                rows={3}
+                value={personalTaskDraft.detail}
+                onChange={(event) => handlePersonalTaskDraftChange("detail", event.target.value)}
+                placeholder="필요하면 간단한 메모를 남겨주세요."
+                className="w-full rounded-[16px] bg-white px-4 py-3 text-sm text-slate-900 outline-none shadow-[inset_0_0_0_1px_rgba(148,163,184,0.20)] transition focus:ring-4 focus:ring-[rgba(76,175,122,0.16)]"
+              />
+            </label>
+            {personalTaskError ? (
+              <p className="rounded-[14px] bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                {personalTaskError}
               </p>
             ) : null}
           </div>

@@ -2296,6 +2296,15 @@ export async function togglePrototypePersonalPlanItem(itemId: string, completed:
   );
 }
 
+export async function deletePrototypePersonalPlanItem(itemId: string) {
+  const client = getSupabaseBrowserClient();
+
+  ensureSuccess(
+    "Failed to delete personal plan item",
+    await client.from("personal_plan_items").delete().eq("id", itemId),
+  );
+}
+
 export async function applyPrototypePlanAgentDraft(groupId: string, draft: PlanAgentDraft) {
   const client = getSupabaseBrowserClient();
 

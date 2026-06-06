@@ -49,6 +49,7 @@ import {
   addPrototypeUpload,
   addPrototypeUserQuestion,
   deletePrototypePlanReferenceUpload,
+  deletePrototypePersonalPlanItem,
   deletePrototypePersonalTaskLibraryItem,
   applyPrototypePlanAgentDraft,
   bootstrapPrototypeGroups,
@@ -134,6 +135,7 @@ type PrototypeContextValue = {
   addPersonalPlanItem: (groupId: string, item: PersonalPlanItemDraft) => Promise<void>;
   updatePersonalPlanItem: (itemId: string, item: PersonalPlanItemDraft) => Promise<void>;
   togglePersonalPlanItem: (itemId: string, completed: boolean) => Promise<void>;
+  deletePersonalPlanItem: (itemId: string) => Promise<void>;
   savePersonalTaskLibraryItem: (groupId: string, item: SavedPersonalTaskDraft) => Promise<void>;
   updatePersonalTaskLibraryItem: (
     itemId: string,
@@ -1043,6 +1045,13 @@ export function PrototypeProvider({
     });
   }
 
+  async function deletePersonalPlanItem(itemId: string) {
+    await runMutation(async () => {
+      await deletePrototypePersonalPlanItem(itemId);
+      await refreshGroups();
+    });
+  }
+
   async function requestAiAnswer(
     group: StudyGroup,
     question: string,
@@ -1259,6 +1268,7 @@ export function PrototypeProvider({
     addPersonalPlanItem,
     updatePersonalPlanItem,
     togglePersonalPlanItem,
+    deletePersonalPlanItem,
     savePersonalTaskLibraryItem,
     updatePersonalTaskLibraryItem,
     deletePersonalTaskLibraryItem,
