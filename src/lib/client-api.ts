@@ -18,8 +18,26 @@ async function parseResponse<T>(response: Response): Promise<T> {
     return (await response.json()) as T;
   }
 
-  const payload = (await response.json().catch(() => null)) as AppErrorResponse | null;
-  throw new Error(payload?.error ?? "요청을 처리하지 못했습니다.");
+  const contentType = response.headers.get("content-type") ?? "";
+  const raw = await response.text().catch(() => "");
+  let payload: AppErrorResponse | null = null;
+
+  if (contentType.includes("application/json") && raw) {
+    try {
+      payload = JSON.parse(raw) as AppErrorResponse;
+    } catch {
+      payload = null;
+    }
+  }
+
+  const plainText = !contentType.includes("text/html") ? raw.trim() : "";
+  const statusLabel = response.status
+    ? ` (${response.status}${response.statusText ? ` ${response.statusText}` : ""})`
+    : "";
+
+  throw new Error(
+    payload?.error || plainText || `요청을 처리하지 못했습니다.${statusLabel}`,
+  );
 }
 
 export async function fetchGroups() {
@@ -63,12 +81,15 @@ export async function fetchMaterials(groupId: string) {
   return parseResponse<MaterialListResponse>(response);
 }
 
-export async function uploadMaterial(groupId: string, file: File) {
+export async function uploadMaterial(groupId: string, file: File, accessToken: string) {
   const formData = new FormData();
   formData.append("file", file);
 
   const response = await fetch(`/api/groups/${groupId}/materials`, {
     method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: formData,
   });
 

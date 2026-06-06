@@ -994,7 +994,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.ppt,.pptx"
+                accept=".pdf,.txt,.md,.markdown,.csv,.json,text/plain,text/markdown,text/csv,application/json"
                 onChange={handleFileChange}
                 className="hidden"
               />
@@ -1003,7 +1003,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
                 <div className="rounded-[22px] border border-dashed border-[rgba(76,175,122,0.32)] bg-[#F8FDF9] p-4">
                   <p className="text-sm font-semibold text-slate-900">공용 자료를 더 추가해볼까요?</p>
                   <p className="mt-2 text-sm leading-6 text-slate-500">
-                    PDF, 문서, 이미지 자료를 올리면 팀원 모두가 같은 자료를 기준으로 질문할 수 있어요.
+                    PDF, TXT, MD, CSV, JSON 같은 텍스트 기반 자료를 올리면 팀원 모두가 같은 기준으로 질문할 수 있어요.
                   </p>
                   <div className="mt-4 flex gap-2">
                     <button

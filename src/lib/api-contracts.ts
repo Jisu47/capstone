@@ -18,6 +18,8 @@ export type MaterialDto = {
   format: Material["format"];
   locationHint: string;
   processingStatus: NonNullable<Material["processingStatus"]>;
+  storagePath: string;
+  mimeType: string;
 };
 
 export type SourceCardDto = {

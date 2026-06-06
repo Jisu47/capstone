@@ -21,6 +21,8 @@ export type Material = {
   uploadedBy: string;
   uploadedByMemberId?: string;
   uploadedAt: string;
+  storagePath: string;
+  mimeType: string;
   format: MaterialFormat;
   locationHint: string;
   processingStatus?: MaterialProcessingStatus;
@@ -396,6 +398,8 @@ function createInitialGroups(): StudyGroup[] {
       summary: "프로세스, 스레드, 컨텍스트 스위치 핵심 정리",
       uploadedBy: "도윤",
       uploadedAt: makeIsoDate("2026-03-23"),
+      storagePath: "",
+      mimeType: "application/pdf",
       format: "PDF",
       locationHint: "p.12",
       processingStatus: "ready",
@@ -406,6 +410,8 @@ function createInitialGroups(): StudyGroup[] {
       summary: "교수님 수업 흐름과 중간 대비 포인트 정리",
       uploadedBy: "지윤",
       uploadedAt: makeIsoDate("2026-03-22"),
+      storagePath: "",
+      mimeType: "application/pdf",
       format: "PDF",
       locationHint: "핵심 개념 요약",
       processingStatus: "ready",
@@ -416,6 +422,8 @@ function createInitialGroups(): StudyGroup[] {
       summary: "자주 나오는 서술형 포인트와 체크 질문",
       uploadedBy: "민수",
       uploadedAt: makeIsoDate("2026-03-21"),
+      storagePath: "",
+      mimeType: "application/msword",
       format: "DOC",
       locationHint: "빈출 파트",
       processingStatus: "ready",
@@ -429,6 +437,8 @@ function createInitialGroups(): StudyGroup[] {
       summary: "계층 구조, 오류 제어, 흐름 제어 범위 요약",
       uploadedBy: "서연",
       uploadedAt: makeIsoDate("2026-03-24"),
+      storagePath: "",
+      mimeType: "application/pdf",
       format: "PDF",
       locationHint: "p.8",
       processingStatus: "ready",
@@ -439,6 +449,8 @@ function createInitialGroups(): StudyGroup[] {
       summary: "거리 벡터와 링크 상태 라우팅 비교",
       uploadedBy: "지윤",
       uploadedAt: makeIsoDate("2026-03-23"),
+      storagePath: "",
+      mimeType: "application/pdf",
       format: "PDF",
       locationHint: "요약 노트",
       processingStatus: "ready",
@@ -449,6 +461,8 @@ function createInitialGroups(): StudyGroup[] {
       summary: "후속 발표에 필요한 슬라이드 구조 초안",
       uploadedBy: "도윤",
       uploadedAt: makeIsoDate("2026-03-20"),
+      storagePath: "",
+      mimeType: "application/pdf",
       format: "PDF",
       locationHint: "슬라이드 4",
       processingStatus: "ready",

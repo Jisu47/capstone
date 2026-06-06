@@ -111,9 +111,37 @@ create table if not exists public.materials (
   summary text not null,
   uploaded_by_member_id text not null references public.profiles(id) on delete cascade,
   uploaded_at timestamptz not null default timezone('utc', now()),
+  storage_path text not null default '',
+  mime_type text not null default 'application/octet-stream',
   format text not null,
   location_hint text not null
 );
+
+alter table public.materials
+  add column if not exists storage_path text not null default '';
+
+alter table public.materials
+  add column if not exists mime_type text not null default 'application/octet-stream';
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'study-materials',
+  'study-materials',
+  false,
+  52428800,
+  array[
+    'application/pdf',
+    'text/plain',
+    'text/markdown',
+    'text/csv',
+    'application/json'
+  ]
+)
+on conflict (id) do update
+set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
 
 create table if not exists public.plan_items (
   id text primary key,

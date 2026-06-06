@@ -90,6 +90,8 @@ type MaterialRow = {
   summary: string;
   uploaded_by_member_id: string;
   uploaded_at: string;
+  storage_path?: string | null;
+  mime_type?: string | null;
   format: Material["format"];
   location_hint: string;
 };
@@ -240,6 +242,20 @@ type FetchRows = {
   personalTaskLibraryItems: PersonalTaskLibraryItemRow[];
   planItemFeedbacks: PlanItemFeedbackRow[];
 };
+
+function inferMaterialMimeTypeFromFormat(format: Material["format"]) {
+  switch (format) {
+    case "PDF":
+      return "application/pdf";
+    case "MD":
+      return "text/markdown";
+    case "TXT":
+      return "text/plain";
+    case "DOC":
+    default:
+      return "application/octet-stream";
+  }
+}
 
 function unwrapData<T>(
   label: string,
@@ -437,6 +453,8 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
       uploaded_at: isValidTimestamp(material.uploadedAt)
         ? material.uploadedAt
         : groupCreatedAt,
+      storage_path: material.storagePath,
+      mime_type: material.mimeType,
       format: material.format,
       location_hint: material.locationHint,
     };
@@ -890,6 +908,9 @@ function rowsToGroups({
       ),
       uploadedByMemberId: material.uploaded_by_member_id,
       uploadedAt: material.uploaded_at,
+      storagePath: material.storage_path ?? "",
+      mimeType:
+        material.mime_type ?? inferMaterialMimeTypeFromFormat(material.format),
       format: material.format,
       locationHint: material.location_hint,
       processingStatus: "ready" as const,
@@ -1808,7 +1829,14 @@ export async function addPrototypeUploadedMaterial(
   groupId: string,
   material: Pick<
     Material,
-    "id" | "title" | "summary" | "uploadedAt" | "format" | "locationHint"
+    | "id"
+    | "title"
+    | "summary"
+    | "uploadedAt"
+    | "storagePath"
+    | "mimeType"
+    | "format"
+    | "locationHint"
   >,
   memberId: string,
 ) {
@@ -1823,6 +1851,8 @@ export async function addPrototypeUploadedMaterial(
       summary: material.summary,
       uploaded_by_member_id: memberId,
       uploaded_at: material.uploadedAt,
+      storage_path: material.storagePath,
+      mime_type: material.mimeType,
       format: material.format,
       location_hint: material.locationHint,
     }),

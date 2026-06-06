@@ -43,7 +43,6 @@ import {
   addPrototypePlanItem,
   addPrototypePlanReferenceUpload,
   addPrototypeUpload,
-  addPrototypeUploadedMaterial,
   addPrototypeUserQuestion,
   deletePrototypePlanReferenceUpload,
   deletePrototypePersonalTaskLibraryItem,
@@ -72,6 +71,7 @@ import {
   renewPrototypeGroupCycle,
   type PlanItemDraft,
 } from "@/lib/prototype-repository";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type PrototypeContextValue = {
   groups: StudyGroup[];
@@ -478,15 +478,6 @@ export function PrototypeProvider({
     }
   }
 
-  async function ensureCurrentMember(groupId: string) {
-    if (!currentMember) {
-      return null;
-    }
-
-    await ensurePrototypeGroupMembership(groupId, currentMember);
-    return currentMember;
-  }
-
   useEffect(() => {
     let cancelled = false;
     const timeouts = timeoutIds.current;
@@ -816,21 +807,14 @@ export function PrototypeProvider({
 
   async function uploadMaterialFile(groupId: string, file: File) {
     await runMutation(async () => {
-      const member = await ensureCurrentMember(groupId);
-      const uploaded = await uploadMaterial(groupId, file);
+      const sessionResult = await getSupabaseBrowserClient().auth.getSession();
+      const accessToken = sessionResult.data.session?.access_token;
 
-      await addPrototypeUploadedMaterial(
-        groupId,
-        {
-          id: uploaded.id,
-          title: uploaded.title,
-          summary: uploaded.summary,
-          uploadedAt: uploaded.uploadedAt,
-          format: uploaded.format,
-          locationHint: uploaded.locationHint,
-        },
-        member?.id ?? resolvedCurrentUserId,
-      );
+      if (!accessToken) {
+        throw new Error("로그인 상태를 다시 확인해 주세요.");
+      }
+
+      await uploadMaterial(groupId, file, accessToken);
 
       await refreshGroups();
     });
