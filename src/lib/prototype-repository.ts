@@ -1877,6 +1877,113 @@ export async function addPrototypePlanReferenceUpload(
   );
 }
 
+export async function replacePrototypePlanReferenceUpload(
+  group: StudyGroup,
+  uploadId: string,
+  upload: PlanReferenceUploadDraft,
+  memberId = currentUserId,
+) {
+  const client = getSupabaseBrowserClient();
+  const existingUpload = unwrapNullableData(
+    "Failed to inspect plan reference upload",
+    await client
+      .from("plan_reference_uploads")
+      .select("id")
+      .eq("group_id", group.id)
+      .eq("id", uploadId)
+      .maybeSingle(),
+  );
+
+  if (!existingUpload) {
+    throw new Error("바꿀 진도표 이미지를 찾지 못했어요.");
+  }
+
+  const fileName = upload.fileName.trim() || `${group.subject}-plan-reference.png`;
+  const units = buildMockPlanReferenceUnits({
+    group,
+    upload: { id: uploadId, fileName },
+  });
+  const summary =
+    units.length > 0
+      ? `${units[0]?.label}부터 ${units[units.length - 1]?.label}까지 ${units.length}개 진도 단위를 만들었습니다.`
+      : "진도 단위를 아직 만들지 못했습니다.";
+
+  ensureSuccess(
+    "Failed to remove previous plan reference units",
+    await client.from("plan_reference_units").delete().eq("upload_id", uploadId),
+  );
+
+  ensureSuccess(
+    "Failed to update plan reference upload",
+    await client
+      .from("plan_reference_uploads")
+      .update({
+        uploaded_by_member_id: memberId,
+        file_name: fileName,
+        mime_type: upload.mimeType,
+        image_data_url: upload.imageDataUrl,
+        summary,
+      })
+      .eq("id", uploadId)
+      .eq("group_id", group.id),
+  );
+
+  if (units.length > 0) {
+    ensureSuccess(
+      "Failed to save replaced plan reference units",
+      await client.from("plan_reference_units").insert(
+        units.map((unit, index) => ({
+          id: unit.id,
+          group_id: group.id,
+          upload_id: uploadId,
+          sequence_number: unit.sequence,
+          label: unit.label,
+          detail: unit.detail,
+          sort_order: index,
+        })),
+      ),
+    );
+  }
+
+  ensureSuccess(
+    "Failed to update group activity",
+    await client
+      .from("study_groups")
+      .update({
+        recent_update: `${fileName} 진도표로 이미지가 변경되었습니다.`,
+      })
+      .eq("id", group.id),
+  );
+}
+
+export async function deletePrototypePlanReferenceUpload(groupId: string, uploadId: string) {
+  const client = getSupabaseBrowserClient();
+
+  ensureSuccess(
+    "Failed to remove plan reference units",
+    await client.from("plan_reference_units").delete().eq("upload_id", uploadId),
+  );
+
+  ensureSuccess(
+    "Failed to remove plan reference upload",
+    await client
+      .from("plan_reference_uploads")
+      .delete()
+      .eq("group_id", groupId)
+      .eq("id", uploadId),
+  );
+
+  ensureSuccess(
+    "Failed to update group activity",
+    await client
+      .from("study_groups")
+      .update({
+        recent_update: "진도표 이미지가 삭제되었습니다.",
+      })
+      .eq("id", groupId),
+  );
+}
+
 export async function updatePrototypeReviewDays(groupId: string, reviewDays: Weekday[]) {
   const client = getSupabaseBrowserClient();
 

@@ -46,6 +46,7 @@ import {
   addPrototypeUpload,
   addPrototypeUploadedMaterial,
   addPrototypeUserQuestion,
+  deletePrototypePlanReferenceUpload,
   deletePrototypePersonalTaskLibraryItem,
   applyPrototypePlanAgentDraft,
   bootstrapPrototypeGroups,
@@ -58,6 +59,7 @@ import {
   ensurePrototypeGroupMembership,
   leavePrototypeGroup,
   listPrototypeGroups,
+  replacePrototypePlanReferenceUpload,
   syncPrototypeProfile,
   togglePrototypePersonalPlanItem,
   togglePrototypePlanItem,
@@ -114,6 +116,12 @@ type PrototypeContextValue = {
     groupId: string,
     upload: PlanReferenceUploadDraft,
   ) => Promise<void>;
+  replacePlanReferenceUpload: (
+    groupId: string,
+    uploadId: string,
+    upload: PlanReferenceUploadDraft,
+  ) => Promise<void>;
+  deletePlanReferenceUpload: (groupId: string, uploadId: string) => Promise<void>;
   updateReviewDays: (groupId: string, reviewDays: Weekday[]) => Promise<void>;
   updateReviewInterval: (
     groupId: string,
@@ -869,6 +877,35 @@ export function PrototypeProvider({
     });
   }
 
+  async function replacePlanReferenceUpload(
+    groupId: string,
+    uploadId: string,
+    upload: PlanReferenceUploadDraft,
+  ) {
+    const group = getGroupById(groups, groupId);
+
+    if (!group) {
+      return;
+    }
+
+    await runMutation(async () => {
+      await replacePrototypePlanReferenceUpload(
+        group,
+        uploadId,
+        upload,
+        resolvedCurrentUserId,
+      );
+      await refreshGroups();
+    });
+  }
+
+  async function deletePlanReferenceUpload(groupId: string, uploadId: string) {
+    await runMutation(async () => {
+      await deletePrototypePlanReferenceUpload(groupId, uploadId);
+      await refreshGroups();
+    });
+  }
+
   async function updateReviewDays(groupId: string, reviewDays: Weekday[]) {
     await runMutation(async () => {
       await updatePrototypeReviewDays(groupId, reviewDays);
@@ -1188,6 +1225,8 @@ export function PrototypeProvider({
     recordMaterialView,
     getWeaknessInsights,
     uploadPlanReference,
+    replacePlanReferenceUpload,
+    deletePlanReferenceUpload,
     updateReviewDays,
     updateReviewInterval,
     addPersonalPlanItem,
