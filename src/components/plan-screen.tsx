@@ -700,6 +700,233 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
           />
         </ExpandableSection>
 
+        <SectionCard title="나의 학습 관리">
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <p className="text-[17px] font-semibold tracking-[-0.03em] text-slate-950">
+                복습 설정
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                {reviewIntervalOptions.map((option) => {
+                  const active = reviewInterval === option.days;
+
+                  return (
+                    <button
+                      key={option.days}
+                      type="button"
+                      onClick={() => {
+                        void updateReviewInterval(activeGroup.id, active ? null : option.days);
+                      }}
+                      className={`rounded-full border px-5 py-2.5 text-sm font-semibold transition ${
+                        active
+                          ? "border-[var(--brand)] bg-[var(--brand)] text-white shadow-[0_8px_18px_rgba(121,184,149,0.18)]"
+                          : "border-slate-200 bg-white text-slate-600"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#f3f4f6_100%)]">
+                <div className="space-y-2 px-4 py-4 text-sm font-semibold text-slate-800">
+                  <p>현재 설정: {getReviewIntervalLabel(reviewInterval)}</p>
+                  <p>다음 예정일: {nextPendingReviewLabel}</p>
+                  <p>예정 항목 수: {pendingReviewCandidates.length}개</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsReviewScheduleOpen(true)}
+                  className="flex w-full items-center justify-center border-t border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  예정 항목 보기
+                  <span className="ml-1 text-base">→</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="h-px bg-slate-200" />
+
+            <div className="space-y-4">
+              <p className="text-[17px] font-semibold tracking-[-0.03em] text-slate-950">
+                개인 할 일 추가
+              </p>
+
+              <div className="space-y-3">
+                <label className="relative block">
+                  <input
+                    value={newPersonalDraft.title}
+                    onChange={(event) =>
+                      setNewPersonalDraft((previous) => ({
+                        ...previous,
+                        title: event.target.value,
+                      }))
+                    }
+                    placeholder="추가할 할 일 제목"
+                    className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 pr-12 text-sm outline-none placeholder:text-slate-400"
+                  />
+                  <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">
+                    <PencilIcon />
+                  </span>
+                </label>
+
+                <label className="relative block">
+                  <textarea
+                    rows={3}
+                    value={newPersonalDraft.detail}
+                    onChange={(event) =>
+                      setNewPersonalDraft((previous) => ({
+                        ...previous,
+                        detail: event.target.value,
+                      }))
+                    }
+                    placeholder="메모"
+                    className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 pr-12 text-sm outline-none placeholder:text-slate-400"
+                  />
+                  <span className="pointer-events-none absolute right-4 top-3 text-slate-400">
+                    <BookIcon />
+                  </span>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleAddPersonalItem();
+                  }}
+                  disabled={isMutating || !newPersonalDraft.title.trim()}
+                  className="w-full rounded-[16px] bg-[var(--brand)] px-4 py-3.5 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(121,184,149,0.18)] disabled:opacity-70"
+                >
+                  개인 할 일 추가
+                </button>
+              </div>
+
+              {personalPlanItems.length === 0 ? (
+                <div className="px-2 py-1 text-center text-sm text-[var(--ink-soft)]">
+                  아직 추가된 할 일이 없습니다...
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {personalPlanItems.map((item) => {
+                    const editing = editingPersonalItemId === item.id;
+                    const isReviewTask =
+                      item.title.startsWith("[복습]") || Boolean(item.sourcePlanItemId);
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="rounded-[16px] border border-slate-200 bg-white px-4 py-4"
+                      >
+                        {editing ? (
+                          <div className="space-y-3">
+                            <input
+                              value={editingPersonalDraft.title}
+                              onChange={(event) =>
+                                setEditingPersonalDraft((previous) => ({
+                                  ...previous,
+                                  title: event.target.value,
+                                }))
+                              }
+                              className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                            />
+                            <textarea
+                              rows={3}
+                              value={editingPersonalDraft.detail}
+                              onChange={(event) =>
+                                setEditingPersonalDraft((previous) => ({
+                                  ...previous,
+                                  detail: event.target.value,
+                                }))
+                              }
+                              className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void handleSavePersonalItem();
+                                }}
+                                className="rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
+                              >
+                                저장
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingPersonalItemId(null);
+                                  setEditingPersonalDraft({ title: "", detail: "" });
+                                }}
+                                className="rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600"
+                              >
+                                취소
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                                  {isReviewTask ? (
+                                    <span className="rounded-full bg-[var(--brand-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--brand)]">
+                                      복습
+                                    </span>
+                                  ) : (
+                                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                                      직접 추가
+                                    </span>
+                                  )}
+                                </div>
+                                {item.detail ? (
+                                  <p className="mt-1 text-xs leading-5 text-[var(--ink-soft)]">
+                                    {item.detail}
+                                  </p>
+                                ) : null}
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingPersonalItemId(item.id);
+                                    setEditingPersonalDraft({
+                                      title: item.title,
+                                      detail: item.detail,
+                                    });
+                                  }}
+                                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600"
+                                >
+                                  수정
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    void togglePersonalPlanItem(item.id, !item.completed);
+                                  }}
+                                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                    item.completed
+                                      ? "border border-[var(--brand)] bg-white text-[var(--brand)]"
+                                      : "bg-slate-950 text-white"
+                                  }`}
+                                >
+                                  {item.completed ? "완료" : "체크"}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </SectionCard>
+
+        <div className="hidden">
+
         <ExpandableSection
           title="개인 추가 할 일"
           subtitle="직접 추가한 할 일과 복습 시점이 된 [복습] 할 일만 여기 표시합니다."
@@ -932,6 +1159,8 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
             </div>
           </div>
         </ExpandableSection>
+
+        </div>
 
         {leaderMode ? (
           <Link
