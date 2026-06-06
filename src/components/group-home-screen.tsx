@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
@@ -129,14 +130,15 @@ function CheckIcon({ active }: Readonly<{ active: boolean }>) {
 
 function HeroIllustration() {
   return (
-    <div className="relative h-[132px] w-[126px] shrink-0">
-      <div className="absolute inset-x-3 top-4 h-[92px] rounded-[28px] bg-white/12 blur-[1px]" />
-      <div className="absolute bottom-2 right-1 h-[88px] w-[102px] rounded-[28px] bg-white/95 shadow-[0_18px_36px_rgba(28,62,43,0.18)]" />
-      <div className="absolute right-7 top-[34px] h-[42px] w-[42px] rounded-full bg-[#314536]" />
-      <div className="absolute right-[18px] top-[46px] h-[36px] w-[36px] rounded-full bg-[#556B59]" />
-      <div className="absolute right-[52px] top-[20px] h-[56px] w-[56px] rounded-[20px] bg-white/16" />
-      <div className="absolute bottom-[28px] right-[24px] h-[8px] w-[44px] rounded-full bg-[#9CAC9E]" />
-      <div className="absolute bottom-[21px] right-[18px] h-[4px] w-[58px] rotate-[22deg] rounded-full bg-[#8B9A8E]" />
+    <div className="relative flex h-[148px] w-[140px] shrink-0 items-end justify-end">
+      <Image
+        src="/hero-study-illustration.svg"
+        alt=""
+        aria-hidden="true"
+        width={132}
+        height={144}
+        className="h-[144px] w-[132px] object-contain drop-shadow-[0_18px_30px_rgba(35,73,51,0.18)]"
+      />
     </div>
   );
 }
