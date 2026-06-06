@@ -9,6 +9,11 @@ type GeminiPart = {
   text?: string;
 };
 
+type GeminiContent = {
+  role: "user" | "model";
+  parts: GeminiPart[];
+};
+
 type GeminiCandidate = {
   content?: {
     parts?: GeminiPart[];
@@ -37,6 +42,9 @@ export type GeminiAnswerResult = {
 const defaultGeminiModel = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
 const retriableStatusCodes = new Set([429, 500, 502, 503, 504]);
 const maxGeminiAttempts = 3;
+const planAgentMaxOutputTokens = 1536;
+const materialsMaxOutputTokens = 384;
+const maxPlanAgentContinuationTurns = 2;
 
 export class GeminiRequestError extends Error {
   status: number;
@@ -64,14 +72,33 @@ function getRetryDelayMilliseconds(attempt: number, retryAfterHeader: string | n
   return 800 * 2 ** Math.max(0, attempt - 1);
 }
 
-function trimHistory(history: AiChatHistoryEntry[]) {
+function trimHistory(history: AiChatHistoryEntry[]): GeminiContent[] {
   return history
     .slice(-8)
     .filter((entry) => entry.text.trim().length > 0)
     .map((entry) => ({
-      role: entry.role === "assistant" ? "model" : "user",
+      role: entry.role === "assistant" ? ("model" as const) : ("user" as const),
       parts: [{ text: entry.text.trim() }],
     }));
+}
+
+function buildGeminiContents(
+  scope: AiChatScope,
+  group: AiChatGroupContext,
+  history: AiChatHistoryEntry[],
+  question: string,
+): GeminiContent[] {
+  return [
+    {
+      role: "user",
+      parts: [{ text: buildGroupContext(scope, group) }],
+    },
+    ...trimHistory(history),
+    {
+      role: "user",
+      parts: [{ text: question.trim() }],
+    },
+  ];
 }
 
 function buildGroupContext(scope: AiChatScope, group: AiChatGroupContext) {
@@ -203,22 +230,39 @@ function extractApiError(payload: unknown) {
   return maybePayload.error?.message ?? null;
 }
 
-export function getGeminiModel() {
-  return defaultGeminiModel;
+function getMaxOutputTokens(scope: AiChatScope) {
+  return scope === "materials" ? materialsMaxOutputTokens : planAgentMaxOutputTokens;
 }
 
-export async function generateGeminiAnswer({
-  scope,
-  question,
-  history,
-  group,
-}: AiChatRequest) {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
+function buildContinuationPrompt() {
+  return [
+    "방금 답변이 길어서 중간에 끊겼습니다.",
+    "직전 문장 다음부터 바로 이어서 작성해 주세요.",
+    "이미 작성한 내용은 반복하지 말고 남은 답변만 계속 작성해 주세요.",
+  ].join(" ");
+}
 
-  if (!apiKey) {
-    throw new Error("Gemini API key is missing. Set GEMINI_API_KEY in .env.local.");
+function mergeAnswerText(previous: string, next: string) {
+  if (!previous) {
+    return next;
   }
 
+  if (!next) {
+    return previous;
+  }
+
+  if (previous.endsWith("\n") || next.startsWith("\n")) {
+    return `${previous}${next}`;
+  }
+
+  return `${previous}\n${next}`;
+}
+
+async function requestGeminiContent(
+  apiKey: string,
+  scope: AiChatScope,
+  contents: GeminiContent[],
+) {
   for (let attempt = 1; attempt <= maxGeminiAttempts; attempt += 1) {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${defaultGeminiModel}:generateContent`,
@@ -232,21 +276,11 @@ export async function generateGeminiAnswer({
           systemInstruction: {
             parts: [{ text: buildSystemInstruction(scope) }],
           },
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: buildGroupContext(scope, group) }],
-            },
-            ...trimHistory(history),
-            {
-              role: "user",
-              parts: [{ text: question.trim() }],
-            },
-          ],
+          contents,
           generationConfig: {
             temperature: scope === "materials" ? 0.45 : 0.65,
             topP: 0.95,
-            maxOutputTokens: scope === "materials" ? 384 : 512,
+            maxOutputTokens: getMaxOutputTokens(scope),
             responseMimeType: "text/plain",
           },
         }),
@@ -285,4 +319,60 @@ export async function generateGeminiAnswer({
     503,
     "Gemini API request failed (503): The service remained unavailable after retries.",
   );
+}
+
+export function getGeminiModel() {
+  return defaultGeminiModel;
+}
+
+export async function generateGeminiAnswer({
+  scope,
+  question,
+  history,
+  group,
+}: AiChatRequest) {
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
+
+  if (!apiKey) {
+    throw new Error("Gemini API key is missing. Set GEMINI_API_KEY in .env.local.");
+  }
+
+  let contents = buildGeminiContents(scope, group, history, question);
+  let combinedText = "";
+  let lastResult: GeminiAnswerResult | null = null;
+  const maxContinuationTurns = scope === "plan-agent" ? maxPlanAgentContinuationTurns : 0;
+
+  for (let continuationTurn = 0; continuationTurn <= maxContinuationTurns; continuationTurn += 1) {
+    const result = await requestGeminiContent(apiKey, scope, contents);
+    const normalizedText = result.text.trim();
+
+    combinedText = mergeAnswerText(combinedText, normalizedText);
+    lastResult = result;
+
+    if (scope !== "plan-agent" || result.finishReason !== "MAX_TOKENS") {
+      break;
+    }
+
+    contents = [
+      ...contents,
+      {
+        role: "model",
+        parts: [{ text: normalizedText }],
+      },
+      {
+        role: "user",
+        parts: [{ text: buildContinuationPrompt() }],
+      },
+    ];
+  }
+
+  if (!lastResult) {
+    throw new Error("Gemini API returned an empty response.");
+  }
+
+  return {
+    ...lastResult,
+    text: combinedText,
+    isComplete: lastResult.finishReason === null || lastResult.finishReason === "STOP",
+  };
 }
