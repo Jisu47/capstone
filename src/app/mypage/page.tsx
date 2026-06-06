@@ -260,14 +260,16 @@ function MetricInfoCard({
   value: string;
 }>) {
   return (
-    <div className="rounded-[22px] bg-white px-4 py-4 shadow-[0_12px_28px_rgba(15,23,42,0.06)]">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-[16px] bg-[#F4FBF6] text-[#4CAF7A]">
+    <div className="min-w-0 rounded-[20px] bg-white px-3.5 py-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] bg-[#F4FBF6] text-[#4CAF7A]">
           {icon}
         </div>
-        <div>
-          <p className="text-[12px] font-medium text-slate-500">{label}</p>
-          <p className="mt-1 text-lg font-semibold tracking-[-0.03em] text-slate-950">{value}</p>
+        <div className="min-w-0">
+          <p className="truncate text-[12px] font-medium text-slate-500">{label}</p>
+          <p className="mt-1 truncate text-[18px] font-semibold tracking-[-0.03em] text-slate-950">
+            {value}
+          </p>
         </div>
       </div>
     </div>
@@ -284,27 +286,28 @@ function GroupInfoItem({
   value: string;
 }>) {
   return (
-    <div className="flex items-start gap-3 rounded-[18px] bg-[#FBFDFC] px-3 py-3">
-      <div className="mt-0.5 text-[#69B68A]">{icon}</div>
-      <div>
-        <p className="text-[12px] font-medium text-slate-500">{label}</p>
-        <p className="mt-1 text-[15px] font-semibold text-slate-950">{value}</p>
+    <div className="min-w-0 rounded-[18px] bg-[#FBFDFC] px-3 py-3 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.04)]">
+      <div className="flex min-w-0 items-center gap-2 text-[12px] font-medium text-slate-500">
+        <div className="shrink-0 text-[#69B68A]">{icon}</div>
+        <p className="truncate">{label}</p>
       </div>
+      <p className="mt-2 min-w-0 whitespace-normal text-[15px] font-semibold text-slate-950">
+        {value}
+      </p>
     </div>
   );
 }
 
 function HeroIllustration() {
   return (
-    <div className="relative flex h-[190px] items-end justify-end">
-      <div className="absolute inset-0 rounded-[28px] bg-white/10 blur-xl" />
+    <div className="mx-auto flex h-[132px] w-[132px] max-w-[140px] items-center justify-center rounded-[24px] bg-white/65 shadow-[0_10px_24px_rgba(76,175,122,0.08)]">
       <Image
         src="/hero-study-illustration.svg"
         alt=""
         aria-hidden="true"
-        width={168}
-        height={184}
-        className="relative h-[184px] w-[168px] object-contain drop-shadow-[0_20px_30px_rgba(35,73,51,0.12)]"
+        width={132}
+        height={132}
+        className="h-[132px] w-[132px] object-contain"
       />
     </div>
   );
@@ -459,18 +462,13 @@ export default function MyPage() {
   }
 
   const headerContent = (
-    <div className="flex items-start justify-between gap-4">
-      <div className="space-y-4">
-        <Link
-          href="/"
-          className="inline-flex rounded-full border border-[rgba(121,184,149,0.16)] bg-white px-4 py-2 text-[11px] font-semibold tracking-[0.06em] text-slate-700 shadow-[0_6px_16px_rgba(121,184,149,0.08)]"
-        >
-          STUDY FLOW
-        </Link>
-        <h1 className="font-[family:var(--font-study-display)] text-[32px] leading-none tracking-[-0.05em] text-slate-950">
-          마이페이지
-        </h1>
-      </div>
+    <div className="flex min-w-0 items-center justify-between gap-3 px-1 py-1">
+      <Link
+        href="/"
+        className="inline-flex h-10 items-center rounded-full bg-[linear-gradient(180deg,#F4FBF6_0%,#EBF6EE_100%)] px-4 text-[12px] font-semibold tracking-[0.08em] text-[#2D6B46] shadow-[0_8px_20px_rgba(76,175,122,0.08)]"
+      >
+        STUDY FLOW
+      </Link>
 
       <div ref={menuRef} className="relative shrink-0">
         <button
@@ -478,7 +476,7 @@ export default function MyPage() {
           aria-expanded={isMenuOpen}
           aria-haspopup="menu"
           onClick={() => setIsMenuOpen((previous) => !previous)}
-          className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_10px_26px_rgba(15,23,42,0.10)] transition hover:translate-y-[-1px]"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition hover:translate-y-[-1px]"
         >
           <span className="sr-only">계정 메뉴 열기</span>
           <NotificationBellIcon />
@@ -549,12 +547,16 @@ export default function MyPage() {
         headerContent={headerContent}
       >
         <div className="space-y-5">
-          <section className="overflow-hidden rounded-[32px] bg-[linear-gradient(135deg,#F6FBF7_0%,#ECF7EF_45%,#F8FCF9_100%)] px-5 pb-5 pt-5 shadow-[0_20px_50px_rgba(76,175,122,0.12)]">
-            <div className="grid grid-cols-[1fr_152px] items-start gap-4">
-              <div className="min-w-0">
-                <div className="flex items-start gap-4">
-                  <div className="rounded-[28px] bg-[linear-gradient(135deg,#7FCB95_0%,#4CAF7A_100%)] p-[3px] shadow-[0_16px_28px_rgba(76,175,122,0.18)]">
-                    <div className="rounded-[25px] bg-white/12 p-1">
+          <section className="space-y-6">
+            <h1 className="mt-6 mb-6 min-w-0 whitespace-normal text-[32px] font-[family:var(--font-study-display)] font-extrabold leading-[1.2] tracking-[-0.05em] text-slate-950">
+              마이페이지
+            </h1>
+
+            <section className="rounded-[28px] bg-[linear-gradient(135deg,#F6FBF7_0%,#ECF7EF_45%,#F8FCF9_100%)] px-6 py-6 shadow-[0_12px_34px_rgba(76,175,122,0.10)]">
+              <div className="space-y-5">
+                <div className="flex min-w-0 items-start gap-4">
+                  <div className="rounded-[24px] bg-[linear-gradient(135deg,#7FCB95_0%,#4CAF7A_100%)] p-[3px] shadow-[0_12px_24px_rgba(76,175,122,0.16)]">
+                    <div className="rounded-[21px] bg-white/12 p-1">
                       <ProfileAvatar
                         name={currentUser.displayName}
                         avatarPreset={currentUser.avatarPreset}
@@ -564,47 +566,47 @@ export default function MyPage() {
                   </div>
 
                   <div className="min-w-0 flex-1 pt-1">
-                    <h2 className="truncate text-[20px] font-semibold tracking-[-0.04em] text-slate-950">
+                    <h2 className="truncate text-[24px] font-extrabold tracking-[-0.04em] text-slate-950">
                       {currentUser.displayName}
                     </h2>
-                    <p className="mt-1 truncate text-sm text-slate-500">{currentUser.email}</p>
-                    <p className="mt-3 text-[15px] leading-7 text-slate-700">{currentUser.bio}</p>
+                    <p className="mt-1 truncate text-[14px] text-slate-500">{currentUser.email}</p>
+                    <p className="mt-3 line-clamp-2 text-[15px] leading-[1.5] text-slate-700">
+                      {currentUser.bio}
+                    </p>
                   </div>
                 </div>
 
-                <div className="mt-5 grid grid-cols-2 gap-3">
+                <HeroIllustration />
+
+                <div className="grid min-w-0 grid-cols-2 gap-3">
                   <MetricInfoCard
                     icon={<MembersIcon />}
-                    label="참여 그룹"
+                    label="참여 그룹 수"
                     value={`${sortedGroups.length}개`}
                   />
                   <MetricInfoCard
                     icon={<FolderIcon />}
-                    label="최근 사용"
+                    label="최근 사용 그룹"
                     value={recentGroup ? recentGroup.name : "아직 없음"}
                   />
                 </div>
               </div>
+            </section>
 
-              <div className="flex justify-end pt-1">
-                <HeroIllustration />
-              </div>
-            </div>
-
-            <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <Link
                 href="/group-setup"
-                className="inline-flex items-center justify-center gap-2 rounded-[20px] bg-white px-4 py-4 text-[17px] font-semibold text-slate-900 shadow-[0_12px_28px_rgba(15,23,42,0.06)] transition hover:translate-y-[-1px]"
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-[18px] bg-white px-4 text-[16px] font-bold text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.05)] transition hover:translate-y-[-1px]"
               >
                 <PlusIcon />
-                <span>그룹 추가하기</span>
+                <span className="whitespace-nowrap">그룹 추가하기</span>
               </Link>
               <Link
                 href={recentGroup ? `/group/${recentGroup.id}` : "/create"}
-                className="inline-flex items-center justify-center gap-2 rounded-[20px] bg-[linear-gradient(135deg,#67B884_0%,#4CAF7A_100%)] px-4 py-4 text-[17px] font-semibold text-white shadow-[0_18px_34px_rgba(76,175,122,0.22)] transition hover:brightness-[0.98]"
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-[18px] bg-[linear-gradient(135deg,#67B884_0%,#4CAF7A_100%)] px-4 text-[16px] font-bold text-white shadow-[0_16px_30px_rgba(76,175,122,0.18)] transition hover:brightness-[0.98]"
               >
                 <FolderIcon />
-                <span>최근 그룹 열기</span>
+                <span className="whitespace-nowrap">최근 그룹 열기</span>
               </Link>
             </div>
           </section>
@@ -622,8 +624,8 @@ export default function MyPage() {
           ) : null}
 
           <section className="space-y-4">
-            <div className="flex items-center justify-between gap-3 px-1">
-              <h2 className="text-[24px] font-semibold tracking-[-0.04em] text-slate-950">내 그룹</h2>
+            <div className="mt-8 flex items-center justify-between gap-3 px-1">
+              <h2 className="text-[22px] font-semibold tracking-[-0.04em] text-slate-950">내 그룹</h2>
               <button
                 type="button"
                 className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-[0_8px_22px_rgba(15,23,42,0.06)]"
@@ -679,98 +681,102 @@ export default function MyPage() {
               return (
                 <article
                   key={group.id}
-                  className="rounded-[30px] bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,0.06)]"
+                  className="rounded-[28px] bg-white p-[22px] shadow-[0_10px_28px_rgba(15,23,42,0.06)]"
                 >
-                  <div className="flex items-start gap-4">
-                    <div
-                      className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] ${
-                        isCompleted
-                          ? "bg-[linear-gradient(135deg,#FFD36A_0%,#FFB536_100%)] text-white"
-                          : "bg-[linear-gradient(135deg,#D9D7FF_0%,#B6BBFF_100%)] text-white"
-                      }`}
-                    >
-                      {isCompleted ? <TrophyGroupIcon /> : <BookGroupIcon />}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[12px] font-semibold tracking-[0.08em] text-slate-400">
-                        {group.subject}
-                      </p>
-
-                      <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <h3 className="text-[20px] font-semibold tracking-[-0.04em] text-slate-950">
-                          {group.name}
-                        </h3>
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                            isCompleted
-                              ? "bg-slate-100 text-slate-600"
-                              : "bg-[rgba(76,175,122,0.14)] text-[#4CAF7A]"
-                          }`}
-                        >
-                          {getGroupBadge(group)}
-                        </span>
-                      </div>
-                    </div>
-
-                    <Link
-                      href={`/group/${group.id}`}
-                      className="inline-flex shrink-0 items-center gap-2 rounded-[18px] bg-white px-4 py-3 text-sm font-semibold text-[#4CAF7A] shadow-[inset_0_0_0_1px_rgba(76,175,122,0.22)] transition hover:bg-[#F7FBF8]"
-                    >
-                      <span>{isCompleted ? "그룹 기록 보기" : "그룹 바로가기"}</span>
-                      <ArrowRightIcon />
-                    </Link>
-                  </div>
-
-                  <div className="mt-5 grid grid-cols-2 gap-3">
-                    <GroupInfoItem
-                      icon={<CalendarIcon />}
-                      label="목표 날짜"
-                      value={formatExamDate(group.examDate)}
-                    />
-                    <GroupInfoItem
-                      icon={<MembersIcon />}
-                      label="멤버 수"
-                      value={`${group.members.length}명`}
-                    />
-                    <GroupInfoItem
-                      icon={<CrownIcon />}
-                      label="내 역할"
-                      value={membership.role}
-                    />
-                    <GroupInfoItem
-                      icon={<StatusIcon />}
-                      label="가입 상태"
-                      value={getMembershipStatus(group, isRecentGroup)}
-                    />
-                  </div>
-
-                  {showJoinCode ? (
-                    <div className="mt-4 flex items-center justify-between gap-3 rounded-[18px] bg-[#F7FAF8] px-4 py-3">
-                      <div className="min-w-0">
-                        <p className="text-[12px] font-medium text-slate-500">참여 코드</p>
-                        <p className="mt-1 truncate text-[18px] font-semibold tracking-[-0.03em] text-[#3E9A65]">
-                          {joinCode}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void handleCopyJoinCode(joinCode);
-                        }}
-                        className="inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.06)]"
+                  <div className="flex min-w-0 flex-col gap-4">
+                    <div className="flex min-w-0 items-start gap-4">
+                      <div
+                        className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] ${
+                          isCompleted
+                            ? "bg-[linear-gradient(135deg,#FFD36A_0%,#FFB536_100%)] text-white"
+                            : "bg-[linear-gradient(135deg,#D9D7FF_0%,#B6BBFF_100%)] text-white"
+                        }`}
                       >
-                        <CopyIcon />
-                        <span>복사</span>
-                      </button>
-                    </div>
-                  ) : null}
+                        {isCompleted ? <TrophyGroupIcon /> : <BookGroupIcon />}
+                      </div>
 
-                  {group.overallGoal.trim() ? (
-                    <div className="mt-4 rounded-[20px] bg-[linear-gradient(135deg,#F4F9FF_0%,#F1F9F4_100%)] px-4 py-4 text-sm leading-7 text-slate-700">
-                      {group.overallGoal}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12px] font-semibold tracking-[0.08em] text-slate-400">
+                          {group.subject}
+                        </p>
+
+                        <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
+                          <h3 className="min-w-0 whitespace-normal text-[20px] font-semibold tracking-[-0.04em] text-slate-950">
+                            {group.name}
+                          </h3>
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                              isCompleted
+                                ? "bg-slate-100 text-slate-600"
+                                : "bg-[rgba(76,175,122,0.14)] text-[#4CAF7A]"
+                            }`}
+                          >
+                            {getGroupBadge(group)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  ) : null}
+
+                    <div className="flex flex-col gap-3 min-[390px]:flex-row min-[390px]:items-center min-[390px]:justify-between">
+                      <Link
+                        href={`/group/${group.id}`}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-[16px] bg-white px-4 text-sm font-semibold text-[#4CAF7A] shadow-[inset_0_0_0_1px_rgba(76,175,122,0.22)] transition hover:bg-[#F7FBF8] min-[390px]:self-start"
+                      >
+                        <span>{isCompleted ? "그룹 기록 보기" : "그룹 바로가기"}</span>
+                        <ArrowRightIcon />
+                      </Link>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <GroupInfoItem
+                        icon={<CalendarIcon />}
+                        label="목표 날짜"
+                        value={formatExamDate(group.examDate)}
+                      />
+                      <GroupInfoItem
+                        icon={<MembersIcon />}
+                        label="멤버 수"
+                        value={`${group.members.length}명`}
+                      />
+                      <GroupInfoItem
+                        icon={<CrownIcon />}
+                        label="내 역할"
+                        value={membership.role}
+                      />
+                      <GroupInfoItem
+                        icon={<StatusIcon />}
+                        label="가입 상태"
+                        value={getMembershipStatus(group, isRecentGroup)}
+                      />
+                    </div>
+
+                    {showJoinCode ? (
+                      <div className="flex h-14 items-center justify-between gap-3 rounded-[18px] bg-[#F7FAF8] px-4">
+                        <div className="min-w-0">
+                          <p className="text-[12px] font-medium text-slate-500">참여 코드</p>
+                          <p className="mt-0.5 truncate text-[16px] font-semibold tracking-[-0.03em] text-[#3E9A65]">
+                            {joinCode}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void handleCopyJoinCode(joinCode);
+                          }}
+                          className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-white px-3 text-sm font-semibold text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.06)]"
+                        >
+                          <CopyIcon />
+                          <span>복사</span>
+                        </button>
+                      </div>
+                    ) : null}
+
+                    {group.overallGoal.trim() ? (
+                      <div className="rounded-[18px] bg-[linear-gradient(135deg,#F4F9FF_0%,#F1F9F4_100%)] px-4 py-4 text-sm leading-[1.5] text-slate-700">
+                        {group.overallGoal}
+                      </div>
+                    ) : null}
+                  </div>
                 </article>
               );
             })}
