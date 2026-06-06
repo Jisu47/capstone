@@ -1272,15 +1272,13 @@ function toProfileRow(member: Member) {
 
 function normalizeRenewalInput(input: {
   examDate: string;
-  weeklyGoal: string;
   overallGoal: string;
 }) {
   const examDate = input.examDate;
-  const weeklyGoal = input.weeklyGoal.trim();
   const overallGoal = input.overallGoal.trim();
 
-  if (!examDate || !weeklyGoal || !overallGoal) {
-    throw new Error("새 시험일과 목표를 모두 입력해 주세요.");
+  if (!examDate || !overallGoal) {
+    throw new Error("새 시험일과 전체 목표를 모두 입력해 주세요.");
   }
 
   const today = new Date();
@@ -1293,7 +1291,6 @@ function normalizeRenewalInput(input: {
 
   return {
     examDate,
-    weeklyGoal,
     overallGoal,
   };
 }
@@ -1400,7 +1397,6 @@ export async function renewPrototypeGroupCycle(
   groupId: string,
   input: {
     examDate: string;
-    weeklyGoal: string;
     overallGoal: string;
   },
 ) {
@@ -1411,10 +1407,10 @@ export async function renewPrototypeGroupCycle(
     "Failed to inspect study group before renewal",
     await client
       .from("study_groups")
-      .select("subject")
+      .select("subject, weekly_goal")
       .eq("id", groupId)
       .maybeSingle(),
-  ) as { subject: string } | null;
+  ) as { subject: string; weekly_goal: string } | null;
 
   if (!existingGroup) {
     throw new Error("갱신할 그룹 정보를 찾지 못했어요.");
@@ -1427,7 +1423,7 @@ export async function renewPrototypeGroupCycle(
       .update({
         status: "active",
         exam_date: normalized.examDate,
-        weekly_goal: normalized.weeklyGoal,
+        weekly_goal: existingGroup.weekly_goal,
         overall_goal: normalized.overallGoal,
         description: buildGroupDescription(existingGroup.subject, normalized.overallGoal),
         recent_update: "새 시험 일정과 목표로 다음 스터디 주기를 시작했어요.",

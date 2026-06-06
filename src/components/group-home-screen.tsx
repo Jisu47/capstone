@@ -208,7 +208,6 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   const [renewalError, setRenewalError] = useState<string | null>(null);
   const [renewalDraft, setRenewalDraft] = useState({
     examDate: "",
-    weeklyGoal: "",
     overallGoal: "",
   });
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -302,7 +301,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   }
 
   function handleRenewalDraftChange(
-    key: "examDate" | "weeklyGoal" | "overallGoal",
+    key: "examDate" | "overallGoal",
     value: string,
   ) {
     setRenewalDraft((previous) => ({
@@ -315,7 +314,6 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   function openRenewGroupCycleModal() {
     setRenewalDraft({
       examDate: activeGroup.examDate,
-      weeklyGoal: activeGroup.weeklyGoal,
       overallGoal: activeGroup.overallGoal,
     });
     setRenewalError(null);
@@ -581,15 +579,6 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                 type="date"
                 value={renewalDraft.examDate}
                 onChange={(event) => handleRenewalDraftChange("examDate", event.target.value)}
-                className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[rgba(121,184,149,0.16)]"
-              />
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold text-slate-800">새 이번 목표</span>
-              <textarea
-                rows={3}
-                value={renewalDraft.weeklyGoal}
-                onChange={(event) => handleRenewalDraftChange("weeklyGoal", event.target.value)}
                 className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[rgba(121,184,149,0.16)]"
               />
             </label>

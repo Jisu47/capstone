@@ -89,7 +89,7 @@ type PrototypeContextValue = {
   completeGroup: (groupId: string) => Promise<void>;
   renewGroupCycle: (
     groupId: string,
-    input: { examDate: string; weeklyGoal: string; overallGoal: string },
+    input: { examDate: string; overallGoal: string },
   ) => Promise<void>;
   syncCurrentUserProfile: () => Promise<void>;
   updateGroupDetails: (groupId: string, updates: GroupDetailsInput) => Promise<void>;
@@ -711,7 +711,7 @@ export function PrototypeProvider({
 
   async function renewGroupCycle(
     groupId: string,
-    input: { examDate: string; weeklyGoal: string; overallGoal: string },
+    input: { examDate: string; overallGoal: string },
   ) {
     await runMutation(async () => {
       await renewPrototypeGroupCycle(groupId, input);
