@@ -157,10 +157,6 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
               ))}
             </div>
 
-            <p className="min-h-[20px] text-xs leading-5 text-slate-400">
-              {planAgentStatus ?? ""}
-            </p>
-
             {activeGroup.planAgentChat.length > 0 ? (
               activeGroup.planAgentChat.map((message) => (
                 <div
@@ -190,6 +186,12 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                 빠른 질문을 누르거나 직접 입력해서 계획 초안을 시작해 보세요.
               </div>
             )}
+
+            {planAgentStatus ? (
+              <div className="flex justify-start">
+                <p className="px-1 text-xs leading-5 text-slate-400">{planAgentStatus}</p>
+              </div>
+            ) : null}
           </div>
 
           <form
