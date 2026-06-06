@@ -129,20 +129,14 @@ function CheckIcon({ active }: Readonly<{ active: boolean }>) {
 
 function HeroIllustration() {
   return (
-    <div className="relative h-[136px] w-[126px] shrink-0">
-      <div className="absolute bottom-0 right-1 h-[58px] w-[88px] rounded-[24px] bg-white/22 blur-[2px]" />
-      <div className="absolute bottom-5 right-7 h-16 w-16 rounded-full bg-[#2F8C5C]/18" />
-      <div className="absolute bottom-8 right-12 h-10 w-10 rounded-full bg-[#FFF8E7]" />
-      <div className="absolute bottom-3 right-5 h-12 w-10 rounded-t-[18px] rounded-b-[10px] bg-[#6E8A73]" />
-      <div className="absolute bottom-10 right-7 h-10 w-16 rounded-[16px] bg-[#7FAF8F]" />
-      <div className="absolute bottom-0 right-0 h-[58px] w-[92px] rounded-[22px] bg-[#F4FAF6] shadow-[0_14px_30px_rgba(30,64,47,0.14)]" />
-      <div className="absolute bottom-9 right-5 h-3 w-10 rounded-full bg-[#D5E8DA]" />
-      <div className="absolute bottom-5 right-5 h-3 w-12 rounded-full bg-[#D5E8DA]" />
-      <div className="absolute bottom-1 right-[18px] h-10 w-[62px] rounded-[12px] border border-[#D6E9DC] bg-white" />
-      <div className="absolute bottom-[28px] right-[45px] h-8 w-8 rounded-full bg-[#314B37]" />
-      <div className="absolute bottom-[26px] right-[29px] h-7 w-6 rotate-[22deg] rounded-full bg-[#4C6A53]" />
-      <div className="absolute bottom-[14px] right-[34px] h-2 w-9 rounded-full bg-[#A7BFAF]" />
-      <div className="absolute bottom-[10px] right-[24px] h-[2px] w-12 rotate-[18deg] bg-[#879F8E]" />
+    <div className="relative h-[132px] w-[126px] shrink-0">
+      <div className="absolute inset-x-3 top-4 h-[92px] rounded-[28px] bg-white/12 blur-[1px]" />
+      <div className="absolute bottom-2 right-1 h-[88px] w-[102px] rounded-[28px] bg-white/95 shadow-[0_18px_36px_rgba(28,62,43,0.18)]" />
+      <div className="absolute right-7 top-[34px] h-[42px] w-[42px] rounded-full bg-[#314536]" />
+      <div className="absolute right-[18px] top-[46px] h-[36px] w-[36px] rounded-full bg-[#556B59]" />
+      <div className="absolute right-[52px] top-[20px] h-[56px] w-[56px] rounded-[20px] bg-white/16" />
+      <div className="absolute bottom-[28px] right-[24px] h-[8px] w-[44px] rounded-full bg-[#9CAC9E]" />
+      <div className="absolute bottom-[21px] right-[18px] h-[4px] w-[58px] rotate-[22deg] rounded-full bg-[#8B9A8E]" />
     </div>
   );
 }
@@ -503,7 +497,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
           <div className="space-y-1">
             <p className="text-[13px] font-medium text-slate-500">안녕하세요, {greetingName}님</p>
             <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-950">
-              오늘도 화이팅이에요
+              오늘도 화이팅이에요 💪
             </h1>
           </div>
 
