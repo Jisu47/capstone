@@ -12,6 +12,7 @@ const presetClassMap: Record<AvatarPreset, string> = {
 const sizeClassMap = {
   sm: "h-10 w-10 text-sm",
   md: "h-14 w-14 text-lg",
+  profile: "h-16 w-16 text-xl",
   lg: "h-20 w-20 text-2xl",
 };
 
@@ -22,7 +23,7 @@ export function ProfileAvatar({
 }: Readonly<{
   name: string;
   avatarPreset: AvatarPreset;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "profile" | "lg";
 }>) {
   const initial = name.trim().charAt(0).toUpperCase() || "?";
 

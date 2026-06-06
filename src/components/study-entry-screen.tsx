@@ -456,7 +456,7 @@ function AuthenticatedHome() {
   return (
     <AppShell
       requireAuth={false}
-      showNavigation
+      showNavigation={false}
       navReady={Boolean(recentGroupId)}
       navGroupId={recentGroupId}
       headerBehavior="fixed"

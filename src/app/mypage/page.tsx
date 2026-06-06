@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -260,13 +259,13 @@ function MetricInfoCard({
   value: string;
 }>) {
   return (
-    <div className="min-w-0 rounded-[20px] bg-white px-3.5 py-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+    <div className="min-w-0 rounded-[18px] bg-white px-3 py-3 shadow-[0_8px_22px_rgba(15,23,42,0.05)] min-h-[72px]">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] bg-[#F4FBF6] text-[#4CAF7A]">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[12px] bg-[#F4FBF6] text-[#4CAF7A]">
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-[12px] font-medium text-slate-500">{label}</p>
+          <p className="truncate text-[13px] font-medium text-slate-500">{label}</p>
           <p className="mt-1 truncate text-[18px] font-semibold tracking-[-0.03em] text-slate-950">
             {value}
           </p>
@@ -286,29 +285,14 @@ function GroupInfoItem({
   value: string;
 }>) {
   return (
-    <div className="min-w-0 rounded-[18px] bg-[#FBFDFC] px-3 py-3 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.04)]">
+    <div className="min-w-0 rounded-[16px] bg-[#FBFDFC] px-2.5 py-2.5 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.04)] min-h-[64px]">
       <div className="flex min-w-0 items-center gap-2 text-[12px] font-medium text-slate-500">
         <div className="shrink-0 text-[#69B68A]">{icon}</div>
         <p className="truncate">{label}</p>
       </div>
-      <p className="mt-2 min-w-0 whitespace-normal text-[15px] font-semibold text-slate-950">
+      <p className="mt-1.5 min-w-0 whitespace-normal text-[16px] font-semibold text-slate-950">
         {value}
       </p>
-    </div>
-  );
-}
-
-function HeroIllustration() {
-  return (
-    <div className="mx-auto flex h-[132px] w-[132px] max-w-[140px] items-center justify-center rounded-[24px] bg-white/65 shadow-[0_10px_24px_rgba(76,175,122,0.08)]">
-      <Image
-        src="/hero-study-illustration.svg"
-        alt=""
-        aria-hidden="true"
-        width={132}
-        height={132}
-        className="h-[132px] w-[132px] object-contain"
-      />
     </div>
   );
 }
@@ -552,15 +536,15 @@ export default function MyPage() {
               마이페이지
             </h1>
 
-            <section className="rounded-[28px] bg-[linear-gradient(135deg,#F6FBF7_0%,#ECF7EF_45%,#F8FCF9_100%)] px-6 py-6 shadow-[0_12px_34px_rgba(76,175,122,0.10)]">
-              <div className="space-y-5">
+            <section className="max-h-[260px] rounded-[24px] bg-[linear-gradient(135deg,#F6FBF7_0%,#ECF7EF_45%,#F8FCF9_100%)] px-5 py-5 shadow-[0_10px_26px_rgba(76,175,122,0.09)]">
+              <div className="space-y-4">
                 <div className="flex min-w-0 items-start gap-4">
-                  <div className="rounded-[24px] bg-[linear-gradient(135deg,#7FCB95_0%,#4CAF7A_100%)] p-[3px] shadow-[0_12px_24px_rgba(76,175,122,0.16)]">
-                    <div className="rounded-[21px] bg-white/12 p-1">
+                  <div className="rounded-[20px] bg-[linear-gradient(135deg,#7FCB95_0%,#4CAF7A_100%)] p-[3px] shadow-[0_10px_18px_rgba(76,175,122,0.14)]">
+                    <div className="rounded-[17px] bg-white/12 p-1">
                       <ProfileAvatar
                         name={currentUser.displayName}
                         avatarPreset={currentUser.avatarPreset}
-                        size="lg"
+                        size="profile"
                       />
                     </div>
                   </div>
@@ -575,8 +559,6 @@ export default function MyPage() {
                     </p>
                   </div>
                 </div>
-
-                <HeroIllustration />
 
                 <div className="grid min-w-0 grid-cols-2 gap-3">
                   <MetricInfoCard
@@ -593,17 +575,17 @@ export default function MyPage() {
               </div>
             </section>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="mt-4 grid grid-cols-2 gap-3">
               <Link
                 href="/group-setup"
-                className="inline-flex h-14 items-center justify-center gap-2 rounded-[18px] bg-white px-4 text-[16px] font-bold text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.05)] transition hover:translate-y-[-1px]"
+                className="inline-flex h-[52px] items-center justify-center gap-2 rounded-[18px] bg-white px-4 text-[15px] font-bold text-slate-900 shadow-[0_8px_22px_rgba(15,23,42,0.05)] transition hover:translate-y-[-1px]"
               >
                 <PlusIcon />
                 <span className="whitespace-nowrap">그룹 추가하기</span>
               </Link>
               <Link
                 href={recentGroup ? `/group/${recentGroup.id}` : "/create"}
-                className="inline-flex h-14 items-center justify-center gap-2 rounded-[18px] bg-[linear-gradient(135deg,#67B884_0%,#4CAF7A_100%)] px-4 text-[16px] font-bold text-white shadow-[0_16px_30px_rgba(76,175,122,0.18)] transition hover:brightness-[0.98]"
+                className="inline-flex h-[52px] items-center justify-center gap-2 rounded-[18px] bg-[linear-gradient(135deg,#67B884_0%,#4CAF7A_100%)] px-4 text-[15px] font-bold text-white shadow-[0_14px_26px_rgba(76,175,122,0.18)] transition hover:brightness-[0.98]"
               >
                 <FolderIcon />
                 <span className="whitespace-nowrap">최근 그룹 열기</span>
@@ -681,12 +663,12 @@ export default function MyPage() {
               return (
                 <article
                   key={group.id}
-                  className="rounded-[28px] bg-white p-[22px] shadow-[0_10px_28px_rgba(15,23,42,0.06)]"
+                  className="rounded-[24px] bg-white p-[18px] shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
                 >
-                  <div className="flex min-w-0 flex-col gap-4">
+                  <div className="flex min-w-0 flex-col gap-3.5">
                     <div className="flex min-w-0 items-start gap-4">
                       <div
-                        className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] ${
+                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] ${
                           isCompleted
                             ? "bg-[linear-gradient(135deg,#FFD36A_0%,#FFB536_100%)] text-white"
                             : "bg-[linear-gradient(135deg,#D9D7FF_0%,#B6BBFF_100%)] text-white"
@@ -701,7 +683,7 @@ export default function MyPage() {
                         </p>
 
                         <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
-                          <h3 className="min-w-0 whitespace-normal text-[20px] font-semibold tracking-[-0.04em] text-slate-950">
+                          <h3 className="min-w-0 whitespace-normal text-[18px] font-semibold tracking-[-0.04em] text-slate-950">
                             {group.name}
                           </h3>
                           <span
@@ -720,14 +702,14 @@ export default function MyPage() {
                     <div className="flex flex-col gap-3 min-[390px]:flex-row min-[390px]:items-center min-[390px]:justify-between">
                       <Link
                         href={`/group/${group.id}`}
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-[16px] bg-white px-4 text-sm font-semibold text-[#4CAF7A] shadow-[inset_0_0_0_1px_rgba(76,175,122,0.22)] transition hover:bg-[#F7FBF8] min-[390px]:self-start"
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-[16px] bg-white px-4 text-sm font-semibold text-[#4CAF7A] shadow-[inset_0_0_0_1px_rgba(76,175,122,0.22)] transition hover:bg-[#F7FBF8] min-[390px]:self-start"
                       >
                         <span>{isCompleted ? "그룹 기록 보기" : "그룹 바로가기"}</span>
                         <ArrowRightIcon />
                       </Link>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-2.5">
                       <GroupInfoItem
                         icon={<CalendarIcon />}
                         label="목표 날짜"
@@ -751,10 +733,10 @@ export default function MyPage() {
                     </div>
 
                     {showJoinCode ? (
-                      <div className="flex h-14 items-center justify-between gap-3 rounded-[18px] bg-[#F7FAF8] px-4">
+                      <div className="flex h-12 items-center justify-between gap-3 rounded-[16px] bg-[#F7FAF8] px-3.5">
                         <div className="min-w-0">
                           <p className="text-[12px] font-medium text-slate-500">참여 코드</p>
-                          <p className="mt-0.5 truncate text-[16px] font-semibold tracking-[-0.03em] text-[#3E9A65]">
+                          <p className="mt-0.5 truncate text-[14px] font-semibold tracking-[-0.03em] text-[#3E9A65]">
                             {joinCode}
                           </p>
                         </div>
@@ -763,7 +745,7 @@ export default function MyPage() {
                           onClick={() => {
                             void handleCopyJoinCode(joinCode);
                           }}
-                          className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-white px-3 text-sm font-semibold text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.06)]"
+                          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-white px-3 text-sm font-semibold text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.06)]"
                         >
                           <CopyIcon />
                           <span>복사</span>
@@ -772,7 +754,7 @@ export default function MyPage() {
                     ) : null}
 
                     {group.overallGoal.trim() ? (
-                      <div className="rounded-[18px] bg-[linear-gradient(135deg,#F4F9FF_0%,#F1F9F4_100%)] px-4 py-4 text-sm leading-[1.5] text-slate-700">
+                      <div className="line-clamp-2 rounded-[16px] bg-[linear-gradient(135deg,#F4F9FF_0%,#F1F9F4_100%)] px-3 py-3 text-[13px] leading-[1.45] text-slate-700">
                         {group.overallGoal}
                       </div>
                     ) : null}
