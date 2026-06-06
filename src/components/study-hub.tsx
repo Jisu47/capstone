@@ -134,9 +134,9 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
       <div className="space-y-4">
         <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
           <div className="flex justify-end">
-            <div className="flex min-w-[132px] flex-col items-center justify-center rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-center shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
+            <div className="flex h-[88px] w-[164px] flex-col items-center justify-center rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-center shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
               <p className="text-[11px] font-medium text-slate-500">타이머</p>
-              <p className="mt-2 text-[24px] font-semibold leading-none tracking-[-0.04em] text-slate-950">
+              <p className="mt-2 text-[28px] font-semibold leading-none tracking-[-0.05em] text-slate-950">
                 {formatTimer(elapsedSeconds)}
               </p>
             </div>
