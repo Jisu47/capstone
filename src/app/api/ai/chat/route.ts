@@ -3,7 +3,6 @@ import type { AiChatRequest, AiChatResponse } from "@/lib/ai-chat";
 import {
   GeminiRequestError,
   generateGeminiAnswer,
-  getGeminiModel,
 } from "@/lib/gemini";
 
 export const runtime = "nodejs";
@@ -36,7 +35,7 @@ export async function POST(request: NextRequest) {
     const answer = await generateGeminiAnswer(body);
     const response: AiChatResponse = {
       text: answer.text,
-      model: getGeminiModel(),
+      model: answer.model,
       finishReason: answer.finishReason,
       finishMessage: answer.finishMessage,
       isComplete: answer.isComplete,

@@ -49,6 +49,7 @@ export type GeminiAnswerResult = {
   finishReason: string | null;
   finishMessage: string | null;
   isComplete: boolean;
+  model: string;
 };
 
 export type PlanReferenceAnalysisRequest = {
@@ -59,6 +60,10 @@ export type PlanReferenceAnalysisRequest = {
 };
 
 const defaultGeminiModel = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+const fallbackGeminiModel =
+  process.env.GEMINI_FALLBACK_MODEL?.trim() || "gemini-2.5-flash-lite";
+const secondaryFallbackGeminiModel =
+  process.env.GEMINI_SECONDARY_FALLBACK_MODEL?.trim() || "gemini-2.0-flash";
 const retriableStatusCodes = new Set([429, 500, 502, 503, 504]);
 const maxGeminiAttempts = 3;
 const planAgentMaxOutputTokens = 1536;
@@ -99,6 +104,12 @@ function getRetryDelayMilliseconds(attempt: number, retryAfterHeader: string | n
   }
 
   return 800 * 2 ** Math.max(0, attempt - 1);
+}
+
+function getGeminiModelCandidates() {
+  return [...new Set([defaultGeminiModel, fallbackGeminiModel, secondaryFallbackGeminiModel])].filter(
+    (model) => model.trim().length > 0,
+  );
 }
 
 function trimHistory(scope: AiChatScope, history: AiChatHistoryEntry[]): GeminiContent[] {
@@ -502,7 +513,7 @@ function sanitizePlanReferenceAnalysis(payload: unknown, fileName: string) {
   } satisfies PlanReferenceAnalysisResult;
 }
 
-function extractAnswerResult(response: GeminiResponse): GeminiAnswerResult {
+function extractAnswerResult(response: GeminiResponse, model: string): GeminiAnswerResult {
   const primaryCandidate = response.candidates?.[0];
   const text = primaryCandidate?.content?.parts
     ?.map((part) => part.text ?? "")
@@ -518,6 +529,7 @@ function extractAnswerResult(response: GeminiResponse): GeminiAnswerResult {
       finishReason,
       finishMessage,
       isComplete: finishReason === null || finishReason === "STOP",
+      model,
     };
   }
 
@@ -572,55 +584,74 @@ async function requestGeminiContent(
   scope: AiChatScope,
   contents: GeminiContent[],
 ) {
-  for (let attempt = 1; attempt <= maxGeminiAttempts; attempt += 1) {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${defaultGeminiModel}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
+  const modelCandidates = getGeminiModelCandidates();
+  let lastRetriableError: GeminiRequestError | null = null;
+
+  for (const model of modelCandidates) {
+    for (let attempt = 1; attempt <= maxGeminiAttempts; attempt += 1) {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey,
+          },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: buildSystemInstruction(scope) }],
+            },
+            contents,
+            generationConfig: {
+              temperature: scope === "materials" ? 0.45 : 0.65,
+              topP: 0.95,
+              maxOutputTokens: getMaxOutputTokens(scope),
+              responseMimeType: "text/plain",
+            },
+          }),
+          cache: "no-store",
         },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: buildSystemInstruction(scope) }],
-          },
-          contents,
-          generationConfig: {
-            temperature: scope === "materials" ? 0.45 : 0.65,
-            topP: 0.95,
-            maxOutputTokens: getMaxOutputTokens(scope),
-            responseMimeType: "text/plain",
-          },
-        }),
-        cache: "no-store",
-      },
-    );
-
-    if (response.ok) {
-      const payload = (await response.json()) as GeminiResponse;
-      return extractAnswerResult(payload);
-    }
-
-    let detail = response.statusText;
-
-    try {
-      const payload = (await response.json()) as unknown;
-      detail = extractApiError(payload) ?? detail;
-    } catch {
-      detail = await response.text();
-    }
-
-    if (retriableStatusCodes.has(response.status) && attempt < maxGeminiAttempts) {
-      await delay(
-        getRetryDelayMilliseconds(attempt, response.headers.get("retry-after")),
       );
-      continue;
-    }
 
+      if (response.ok) {
+        const payload = (await response.json()) as GeminiResponse;
+        return extractAnswerResult(payload, model);
+      }
+
+      let detail = response.statusText;
+
+      try {
+        const payload = (await response.json()) as unknown;
+        detail = extractApiError(payload) ?? detail;
+      } catch {
+        detail = await response.text();
+      }
+
+      if (retriableStatusCodes.has(response.status) && attempt < maxGeminiAttempts) {
+        await delay(
+          getRetryDelayMilliseconds(attempt, response.headers.get("retry-after")),
+        );
+        continue;
+      }
+
+      const requestError = new GeminiRequestError(
+        response.status,
+        `Gemini API request failed (${response.status}) [${model}]: ${detail}`,
+      );
+
+      if ((response.status === 429 || response.status === 503) && model !== modelCandidates.at(-1)) {
+        lastRetriableError = requestError;
+        break;
+      }
+
+      throw requestError;
+    }
+  }
+
+  if (lastRetriableError) {
     throw new GeminiRequestError(
-      response.status,
-      `Gemini API request failed (${response.status}): ${detail}`,
+      lastRetriableError.status,
+      `${lastRetriableError.message}. All configured Gemini fallback models were unavailable.`,
     );
   }
 
@@ -641,83 +672,102 @@ async function requestPlanReferenceAnalysis(
     throw new Error("진도표 분석은 이미지 파일만 지원해요.");
   }
 
-  for (let attempt = 1; attempt <= maxGeminiAttempts; attempt += 1) {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${defaultGeminiModel}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-        },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: buildPlanReferenceAnalysisInstruction() }],
-          },
-          contents: [
-            {
-              role: "user",
-              parts: [
-                {
-                  inline_data: {
-                    mime_type: resolvedMimeType,
-                    data: parsedDataUrl.base64Data,
-                  },
-                },
-                {
-                  text: buildPlanReferenceAnalysisPrompt(
-                    request.subject,
-                    request.fileName,
-                  ),
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.1,
-            topP: 0.8,
-            maxOutputTokens: planReferenceAnalysisMaxOutputTokens,
-            responseMimeType: "text/plain",
-          },
-        }),
-        cache: "no-store",
-      },
-    );
+  const modelCandidates = getGeminiModelCandidates();
+  let lastRetriableError: GeminiRequestError | null = null;
 
-    if (response.ok) {
-      const payload = (await response.json()) as GeminiResponse;
-      const answer = extractAnswerResult(payload);
+  for (const model of modelCandidates) {
+    for (let attempt = 1; attempt <= maxGeminiAttempts; attempt += 1) {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey,
+          },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: buildPlanReferenceAnalysisInstruction() }],
+            },
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    inline_data: {
+                      mime_type: resolvedMimeType,
+                      data: parsedDataUrl.base64Data,
+                    },
+                  },
+                  {
+                    text: buildPlanReferenceAnalysisPrompt(
+                      request.subject,
+                      request.fileName,
+                    ),
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              temperature: 0.1,
+              topP: 0.8,
+              maxOutputTokens: planReferenceAnalysisMaxOutputTokens,
+              responseMimeType: "text/plain",
+            },
+          }),
+          cache: "no-store",
+        },
+      );
+
+      if (response.ok) {
+        const payload = (await response.json()) as GeminiResponse;
+        const answer = extractAnswerResult(payload, model);
+
+        try {
+          return parsePlanReferenceAnalysisText(answer.text, request.fileName);
+        } catch (error) {
+          throw new Error(
+            error instanceof Error
+              ? error.message
+              : "진도표 분석 결과를 해석하지 못했어요.",
+          );
+        }
+      }
+
+      let detail = response.statusText;
 
       try {
-        return parsePlanReferenceAnalysisText(answer.text, request.fileName);
-      } catch (error) {
-        throw new Error(
-          error instanceof Error
-            ? error.message
-            : "진도표 분석 결과를 해석하지 못했어요.",
-        );
+        const payload = (await response.json()) as unknown;
+        detail = extractApiError(payload) ?? detail;
+      } catch {
+        detail = await response.text();
       }
-    }
 
-    let detail = response.statusText;
+      if (retriableStatusCodes.has(response.status) && attempt < maxGeminiAttempts) {
+        await delay(
+          getRetryDelayMilliseconds(attempt, response.headers.get("retry-after")),
+        );
+        continue;
+      }
 
-    try {
-      const payload = (await response.json()) as unknown;
-      detail = extractApiError(payload) ?? detail;
-    } catch {
-      detail = await response.text();
-    }
-
-    if (retriableStatusCodes.has(response.status) && attempt < maxGeminiAttempts) {
-      await delay(
-        getRetryDelayMilliseconds(attempt, response.headers.get("retry-after")),
+      const requestError = new GeminiRequestError(
+        response.status,
+        `Gemini API request failed (${response.status}) [${model}]: ${detail}`,
       );
-      continue;
-    }
 
+      if ((response.status === 429 || response.status === 503) && model !== modelCandidates.at(-1)) {
+        lastRetriableError = requestError;
+        break;
+      }
+
+      throw requestError;
+    }
+  }
+
+  if (lastRetriableError) {
     throw new GeminiRequestError(
-      response.status,
-      `Gemini API request failed (${response.status}): ${detail}`,
+      lastRetriableError.status,
+      `${lastRetriableError.message}. All configured Gemini fallback models were unavailable.`,
     );
   }
 
