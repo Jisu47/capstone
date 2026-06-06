@@ -81,11 +81,34 @@ function NotificationBellIcon() {
   return (
     <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
       <path
-        d="M14.25 19.5a2.25 2.25 0 0 1-4.5 0M6 9.75a6 6 0 1 1 12 0v4.04c0 .52.21 1.02.59 1.38l.57.57a.75.75 0 0 1-.53 1.28H5.37a.75.75 0 0 1-.53-1.28l.57-.57A1.95 1.95 0 0 0 6 13.79V9.75Z"
+        d="M12 12C14.4853 12 16.5 9.98528 16.5 7.5C16.5 5.01472 14.4853 3 12 3C9.51472 3 7.5 5.01472 7.5 7.5C7.5 9.98528 9.51472 12 12 12Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M4.5 21C4.5 17.4101 7.85786 14.5 12 14.5C16.1421 14.5 19.5 17.4101 19.5 21"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M9.6 4.75h4.8l.5 2.02a5.92 5.92 0 0 1 1.33.77l1.96-.76 2.4 4.15-1.46 1.48c.06.38.09.76.09 1.15s-.03.77-.09 1.15l1.46 1.48-2.4 4.15-1.96-.76c-.42.31-.87.57-1.33.77l-.5 2.02H9.6l-.5-2.02a5.92 5.92 0 0 1-1.33-.77l-1.96.76-2.4-4.15 1.46-1.48A7.8 7.8 0 0 1 4.78 14c0-.39.03-.77.09-1.15L3.41 11.37l2.4-4.15 1.96.76c.42-.31.87-.57 1.33-.77l.5-2.02Z"
         stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth="1.8"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M12 15.35A3.35 3.35 0 1 0 12 8.65a3.35 3.35 0 0 0 0 6.7Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
       />
     </svg>
   );
@@ -459,14 +482,14 @@ export default function MyPage() {
           type="button"
           aria-expanded={isMenuOpen}
           aria-haspopup="menu"
-          onClick={() => setIsMenuOpen((previous) => !previous)}
+          onClick={() => setIsMenuOpen(false)}
           className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition hover:translate-y-[-1px]"
         >
           <span className="sr-only">계정 메뉴 열기</span>
           <NotificationBellIcon />
         </button>
 
-        {isMenuOpen ? (
+        {false ? (
           <div className="absolute right-0 top-[calc(100%+10px)] z-30 w-44 rounded-[20px] bg-white p-2 shadow-[0_18px_42px_rgba(15,23,42,0.14)]">
             <button
               type="button"
@@ -557,6 +580,53 @@ export default function MyPage() {
                     <p className="mt-3 line-clamp-2 text-[15px] leading-[1.5] text-slate-700">
                       {currentUser.bio}
                     </p>
+                  </div>
+
+                  <div ref={menuRef} className="relative shrink-0">
+                    <button
+                      type="button"
+                      aria-expanded={isMenuOpen}
+                      aria-haspopup="menu"
+                      onClick={() => setIsMenuOpen((previous) => !previous)}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition hover:translate-y-[-1px]"
+                    >
+                      <span className="sr-only">怨꾩젙 硫붾돱 ?닿린</span>
+                      <SettingsIcon />
+                    </button>
+
+                    {isMenuOpen ? (
+                      <div className="absolute right-0 top-[calc(100%+10px)] z-30 w-44 rounded-[20px] bg-white p-2 shadow-[0_18px_42px_rgba(15,23,42,0.14)]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            setIsEditingProfile(true);
+                          }}
+                          className="flex w-full items-center rounded-[14px] px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          ?꾨줈???몄쭛
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void handleLogout();
+                          }}
+                          className="flex w-full items-center rounded-[14px] px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          濡쒓렇?꾩썐
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                          className="flex w-full items-center rounded-[14px] px-4 py-3 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50"
+                        >
+                          ?뚯썝 ?덊눜
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 

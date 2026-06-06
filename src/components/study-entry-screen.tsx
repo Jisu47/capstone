@@ -90,14 +90,18 @@ function SplashScreen() {
   );
 }
 
-function NotificationBellIcon() {
+function ProfileUserIcon() {
   return (
     <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
       <path
-        d="M14.25 19.5a2.25 2.25 0 0 1-4.5 0M6 9.75a6 6 0 1 1 12 0v4.04c0 .52.21 1.02.59 1.38l.57.57a.75.75 0 0 1-.53 1.28H5.37a.75.75 0 0 1-.53-1.28l.57-.57A1.95 1.95 0 0 0 6 13.79V9.75Z"
+        d="M12 12C14.4853 12 16.5 9.98528 16.5 7.5C16.5 5.01472 14.4853 3 12 3C9.51472 3 7.5 5.01472 7.5 7.5C7.5 9.98528 9.51472 12 12 12Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M4.5 21C4.5 17.4101 7.85786 14.5 12 14.5C16.1421 14.5 19.5 17.4101 19.5 21"
         stroke="currentColor"
         strokeLinecap="round"
-        strokeLinejoin="round"
         strokeWidth="1.8"
       />
     </svg>
@@ -193,7 +197,7 @@ function HeaderBar({ totalCount }: Readonly<{ totalCount: number }>) {
           aria-label="마이페이지로 이동"
           className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition hover:translate-y-[-1px]"
         >
-          <NotificationBellIcon />
+          <ProfileUserIcon />
         </Link>
       </div>
     </div>
@@ -465,7 +469,9 @@ function AuthenticatedHome() {
       headerContent={<HeaderBar totalCount={sortedGroups.length} />}
     >
       <section>
-        <PageTitle />
+        <div className="hidden">
+          <PageTitle />
+        </div>
         <HeroCard displayName={displayName} />
       </section>
 
