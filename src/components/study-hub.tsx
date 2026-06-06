@@ -138,9 +138,6 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                 타이머
               </p>
-              <h2 className="mt-2 text-[22px] font-semibold tracking-[-0.04em] text-slate-950">
-                {group.weeklyGoal}
-              </h2>
             </div>
             <div className="rounded-[14px] border border-slate-200 bg-white px-3 py-2 text-right shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
               <p className="text-[11px] font-medium text-slate-500">타이머</p>
