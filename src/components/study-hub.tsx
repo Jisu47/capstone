@@ -136,7 +136,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                이번 주 스터디
+                타이머
               </p>
               <h2 className="mt-2 text-[22px] font-semibold tracking-[-0.04em] text-slate-950">
                 {group.weeklyGoal}
@@ -156,7 +156,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
               onClick={() => setIsTimerRunning((previous) => !previous)}
               className="rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
             >
-              타이머
+              {isTimerRunning ? "타이머 멈추기" : "타이머 시작"}
             </button>
             <div className="rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
               오늘 {group.plan.length}개
