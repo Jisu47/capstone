@@ -13,7 +13,6 @@ import { getGroupMembership } from "@/lib/group-membership";
 import {
   formatExamDate,
   getDaysLeft,
-  getGroupProgress,
   getMemberProgress,
   isDatePast,
   type Member,
@@ -22,22 +21,23 @@ import {
 
 const memberAccents = [
   {
-    segment: "bg-emerald-300",
-    bar: "bg-[linear-gradient(90deg,#86efac,#4ade80)]",
+    avatar: "bg-[#E6F5EB] text-[#2F8C5C]",
+    track: "bg-[#EDF6F0]",
+    fill: "bg-[linear-gradient(90deg,#86D1A0_0%,#4CAF7A_100%)]",
   },
   {
-    segment: "bg-green-300",
-    bar: "bg-[linear-gradient(90deg,#86efac,#65a30d)]",
+    avatar: "bg-[#EEF7F0] text-[#4B9A6A]",
+    track: "bg-[#EDF6F0]",
+    fill: "bg-[linear-gradient(90deg,#A7DBB9_0%,#67B487_100%)]",
   },
   {
-    segment: "bg-teal-300",
-    bar: "bg-[linear-gradient(90deg,#99f6e4,#2dd4bf)]",
-  },
-  {
-    segment: "bg-lime-300",
-    bar: "bg-[linear-gradient(90deg,#d9f99d,#84cc16)]",
+    avatar: "bg-[#F4F8F5] text-[#5F8F70]",
+    track: "bg-[#EEF5F0]",
+    fill: "bg-[linear-gradient(90deg,#C6E6D0_0%,#7CB994_100%)]",
   },
 ];
+
+const weekdayMap = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
 type GroupActionModal = "invite" | "leave" | "delete" | "transfer" | null;
 type PostExamModal = "decision" | "renew" | null;
@@ -46,69 +46,52 @@ function getGroupById(groups: StudyGroup[], groupId: string) {
   return groups.find((group) => group.id === groupId);
 }
 
-function ProgressTrack({
-  value,
-  className,
-}: Readonly<{
-  value: number;
-  className: string;
-}>) {
-  return (
-    <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-      <div className={`h-full rounded-full transition-all ${className}`} style={{ width: `${value}%` }} />
-    </div>
-  );
+function getTodayWeekday() {
+  return weekdayMap[new Date().getDay()];
 }
 
-function SegmentedProgressTrack({
-  segments,
-}: Readonly<{
-  segments: Array<{
-    id: string;
-    width: number;
-    className: string;
-  }>;
-}>) {
-  const filledWidth = segments.reduce((sum, segment) => sum + segment.width, 0);
+function getTodayFocusTasks(group: StudyGroup, memberId: string) {
+  const today = getTodayWeekday();
+  const exactDayItems = group.plan.filter((item) => item.day === today);
 
-  return (
-    <div className="overflow-hidden rounded-full border border-slate-200 bg-white">
-      <div className="flex h-3.5 w-full">
-        {segments.map((segment) => (
-          <div
-            key={segment.id}
-            className={segment.className}
-            style={{ width: `${segment.width}%` }}
-          />
-        ))}
-        <div className="bg-slate-100" style={{ width: `${Math.max(0, 100 - filledWidth)}%` }} />
-      </div>
-    </div>
-  );
-}
-
-function SummaryItem({
-  label,
-  value,
-}: Readonly<{
-  label: string;
-  value: string;
-}>) {
-  return (
-    <div className="rounded-[14px] border border-slate-200 bg-white px-3 py-3 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
-      <p className="text-[11px] font-medium text-slate-500">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-slate-900">{value}</p>
-    </div>
-  );
-}
-
-function getSummaryText(group: StudyGroup) {
-  const description = group.description.trim();
-  if (description) {
-    return description;
+  if (exactDayItems.length > 0) {
+    return exactDayItems.slice(0, 3);
   }
 
-  return group.overallGoal.trim();
+  const pendingItems = group.plan.filter((item) => !item.memberStatus[memberId]);
+  if (pendingItems.length > 0) {
+    return pendingItems.slice(0, 3);
+  }
+
+  return group.plan.slice(0, 3);
+}
+
+function getTodayProgressCopy(progress: number, totalCount: number, completedCount: number) {
+  if (totalCount === 0) {
+    return "오늘 표시할 할 일이 없어요. 계획 탭에서 새 일정을 추가해보세요.";
+  }
+
+  if (progress === 100) {
+    return "오늘 목표를 모두 마쳤어요. 좋은 흐름을 그대로 이어가보세요.";
+  }
+
+  if (completedCount === 0) {
+    return "아직 시작하지 않았어요. 오늘 목표를 달성해보세요.";
+  }
+
+  return `${totalCount}개 중 ${completedCount}개를 끝냈어요. 지금 흐름이 좋아요.`;
+}
+
+function getDdayLabel(daysLeft: number, isPast: boolean) {
+  if (isPast) {
+    return "마감 지남";
+  }
+
+  if (daysLeft === 0) {
+    return "D-day";
+  }
+
+  return `D-${daysLeft}`;
 }
 
 function MeatballIcon() {
@@ -118,6 +101,69 @@ function MeatballIcon() {
       <circle cx="12" cy="12" r="1.8" fill="currentColor" />
       <circle cx="12" cy="19" r="1.8" fill="currentColor" />
     </svg>
+  );
+}
+
+function CheckIcon({ active }: Readonly<{ active: boolean }>) {
+  return (
+    <span
+      className={`flex h-6 w-6 items-center justify-center rounded-full border transition ${
+        active
+          ? "border-[#4CAF7A] bg-[#4CAF7A] text-white shadow-[0_8px_18px_rgba(76,175,122,0.24)]"
+          : "border-slate-200 bg-white text-transparent"
+      }`}
+    >
+      <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M5 12.5L9.5 17L19 7.5"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+        />
+      </svg>
+    </span>
+  );
+}
+
+function HeroIllustration() {
+  return (
+    <div className="relative h-[136px] w-[126px] shrink-0">
+      <div className="absolute bottom-0 right-1 h-[58px] w-[88px] rounded-[24px] bg-white/22 blur-[2px]" />
+      <div className="absolute bottom-5 right-7 h-16 w-16 rounded-full bg-[#2F8C5C]/18" />
+      <div className="absolute bottom-8 right-12 h-10 w-10 rounded-full bg-[#FFF8E7]" />
+      <div className="absolute bottom-3 right-5 h-12 w-10 rounded-t-[18px] rounded-b-[10px] bg-[#6E8A73]" />
+      <div className="absolute bottom-10 right-7 h-10 w-16 rounded-[16px] bg-[#7FAF8F]" />
+      <div className="absolute bottom-0 right-0 h-[58px] w-[92px] rounded-[22px] bg-[#F4FAF6] shadow-[0_14px_30px_rgba(30,64,47,0.14)]" />
+      <div className="absolute bottom-9 right-5 h-3 w-10 rounded-full bg-[#D5E8DA]" />
+      <div className="absolute bottom-5 right-5 h-3 w-12 rounded-full bg-[#D5E8DA]" />
+      <div className="absolute bottom-1 right-[18px] h-10 w-[62px] rounded-[12px] border border-[#D6E9DC] bg-white" />
+      <div className="absolute bottom-[28px] right-[45px] h-8 w-8 rounded-full bg-[#314B37]" />
+      <div className="absolute bottom-[26px] right-[29px] h-7 w-6 rotate-[22deg] rounded-full bg-[#4C6A53]" />
+      <div className="absolute bottom-[14px] right-[34px] h-2 w-9 rounded-full bg-[#A7BFAF]" />
+      <div className="absolute bottom-[10px] right-[24px] h-[2px] w-12 rotate-[18deg] bg-[#879F8E]" />
+    </div>
+  );
+}
+
+function ProgressBar({
+  value,
+  trackClassName,
+  fillClassName,
+  heightClassName = "h-2.5",
+}: Readonly<{
+  value: number;
+  trackClassName: string;
+  fillClassName: string;
+  heightClassName?: string;
+}>) {
+  return (
+    <div className={`${heightClassName} w-full overflow-hidden rounded-full ${trackClassName}`}>
+      <div
+        className={`h-full rounded-full transition-all ${fillClassName}`}
+        style={{ width: `${value}%` }}
+      />
+    </div>
   );
 }
 
@@ -137,7 +183,7 @@ function MenuActionButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex w-full items-center justify-between rounded-[12px] px-3 py-2.5 text-left text-sm font-medium transition ${
+      className={`flex w-full items-center justify-between rounded-[14px] px-3 py-2.5 text-left text-sm font-medium transition ${
         destructive
           ? "text-rose-600 hover:bg-rose-50"
           : "text-slate-700 hover:bg-slate-50"
@@ -163,15 +209,11 @@ function GroupActionModalShell({
 }>) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/30 px-4 pb-6 pt-10 sm:items-center">
-      <div
-        className="absolute inset-0"
-        aria-hidden="true"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0" aria-hidden="true" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
-        className="relative w-full max-w-[400px] rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_24px_48px_rgba(15,23,42,0.16)]"
+        className="relative w-full max-w-[400px] rounded-[28px] bg-white p-5 shadow-[0_24px_48px_rgba(15,23,42,0.16)]"
       >
         <div className="space-y-2">
           <h3 className="text-[18px] font-semibold tracking-[-0.03em] text-slate-950">{title}</h3>
@@ -195,10 +237,12 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     currentUserId,
     deleteGroup,
     leaveGroup,
+    togglePlanItem,
     transferGroupLeadership,
     isLoading,
     isMutating,
   } = usePrototype();
+  const { currentUser } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<GroupActionModal>(null);
   const [postExamModal, setPostExamModal] = useState<PostExamModal>(null);
@@ -211,7 +255,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     overallGoal: "",
   });
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const { currentUser } = useAuth();
+
   const group = getGroupById(groups, groupId);
   const membership = currentUser && group ? getGroupMembership(group, currentUser.userId) : null;
 
@@ -234,7 +278,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   if (isLoading && !group) {
     return (
-      <AppShell groupId={groupId} title="홈">
+      <AppShell groupId={groupId} title="홈" headerBehavior="fixed">
         <LoadingState message="그룹 정보를 불러오는 중입니다." />
       </AppShell>
     );
@@ -242,7 +286,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   if (!group) {
     return (
-      <AppShell groupId={groupId} title="홈">
+      <AppShell groupId={groupId} title="홈" headerBehavior="fixed">
         <MissingGroupState />
       </AppShell>
     );
@@ -250,7 +294,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   if (currentUser && !membership) {
     return (
-      <AppShell groupId={groupId} title="홈">
+      <AppShell groupId={groupId} title="홈" headerBehavior="fixed">
         <MissingGroupState />
       </AppShell>
     );
@@ -258,10 +302,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   const activeGroup = group;
   const inviteCode = createGroupJoinCode(activeGroup.id);
-  const leader =
-    activeGroup.members.find((member) => member.role === "팀장") ?? activeGroup.members[0];
-  const currentMember =
-    activeGroup.members.find((member) => member.id === currentUserId) ?? null;
+  const currentMember = activeGroup.members.find((member) => member.id === currentUserId) ?? null;
   const leaderMode = currentMember?.role === "팀장";
   const showTutorial = leaderMode && hasPendingGroupHomeTour(currentUserId, activeGroup.id);
   const shouldPromptPostExamDecision =
@@ -269,25 +310,23 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   const resolvedPostExamModal = postExamModal ?? (shouldPromptPostExamDecision ? "decision" : null);
   const transferableMembers = activeGroup.members.filter((member) => member.id !== currentUserId);
   const daysLeft = getDaysLeft(activeGroup.examDate);
-  const groupProgress = getGroupProgress(activeGroup);
-  const summaryText = getSummaryText(activeGroup);
-  const totalSlots = activeGroup.plan.length * activeGroup.members.length;
-  const completedSlots = activeGroup.plan.reduce((count, item) => {
-    return count + Object.values(item.memberStatus).filter(Boolean).length;
-  }, 0);
+  const ddayLabel = getDdayLabel(daysLeft, shouldPromptPostExamDecision);
   const memberProgresses = activeGroup.members.map((member, index) => ({
     member,
     progress: getMemberProgress(activeGroup, member.id),
     accent: memberAccents[index % memberAccents.length],
   }));
-  const memberProgressTotal = memberProgresses.reduce((sum, item) => sum + item.progress, 0);
-  const segmentedProgress = memberProgresses
-    .filter((item) => item.progress > 0 && memberProgressTotal > 0)
-    .map((item) => ({
-      id: item.member.id,
-      width: (item.progress / memberProgressTotal) * groupProgress,
-      className: item.accent.segment,
-    }));
+  const todayTasks = getTodayFocusTasks(activeGroup, currentUserId);
+  const completedTodayTasks = todayTasks.filter((item) => item.memberStatus[currentUserId]).length;
+  const todayProgress = todayTasks.length
+    ? Math.round((completedTodayTasks / todayTasks.length) * 100)
+    : 0;
+  const todayProgressCopy = getTodayProgressCopy(
+    todayProgress,
+    todayTasks.length,
+    completedTodayTasks,
+  );
+  const greetingName = currentUser?.displayName ?? currentMember?.name ?? "스터디 메이트";
 
   function closeModal() {
     setActiveModal(null);
@@ -300,10 +339,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     bumpTutorialState((value) => value + 1);
   }
 
-  function handleRenewalDraftChange(
-    key: "examDate" | "overallGoal",
-    value: string,
-  ) {
+  function handleRenewalDraftChange(key: "examDate" | "overallGoal", value: string) {
     setRenewalDraft((previous) => ({
       ...previous,
       [key]: value,
@@ -323,9 +359,9 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   async function handleCopyInviteCode() {
     try {
       await navigator.clipboard.writeText(inviteCode);
-      setCopyFeedback("초대코드를 복사했어요.");
+      setCopyFeedback("초대 코드를 복사했어요.");
     } catch {
-      setCopyFeedback("복사에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      setCopyFeedback("복사에 실패했어요. 다시 한 번 시도해 주세요.");
     }
   }
 
@@ -376,7 +412,9 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
       setRenewalError(null);
     } catch (error) {
       setRenewalError(
-        error instanceof Error ? error.message : "새 시험 일정과 목표를 저장하지 못했어요.",
+        error instanceof Error
+          ? error.message
+          : "다음 시험 일정과 목표를 저장하지 못했어요.",
       );
     }
   }
@@ -384,126 +422,214 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   return (
     <AppShell
       groupId={groupId}
-      title="홈"
+      title={activeGroup.name}
+      headerBehavior="fixed"
       headerContent={<GroupPageHeader groupId={activeGroup.id} groupName={activeGroup.name} />}
     >
-      <div className="space-y-4">
-        <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-5 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                {activeGroup.subject}
-              </p>
-              <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.04em] text-slate-950">
-                {activeGroup.name}
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-600">{summaryText}</p>
-            </div>
+      <div className="space-y-5 pb-1">
+        <section className="flex items-start justify-between gap-3 px-1">
+          <div className="space-y-1">
+            <p className="text-[13px] font-medium text-slate-500">안녕하세요, {greetingName}님</p>
+            <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-950">
+              오늘도 화이팅이에요
+            </h1>
+          </div>
 
-            <div ref={menuRef} className="relative shrink-0">
-              <button
-                type="button"
-                aria-expanded={isMenuOpen}
-                aria-haspopup="menu"
-                onClick={() => setIsMenuOpen((previous) => !previous)}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-[0_4px_10px_rgba(15,23,42,0.03)] transition hover:bg-slate-50"
-              >
-                <MeatballIcon />
-              </button>
+          <div ref={menuRef} className="relative shrink-0">
+            <button
+              type="button"
+              aria-expanded={isMenuOpen}
+              aria-haspopup="menu"
+              onClick={() => setIsMenuOpen((previous) => !previous)}
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-500 shadow-[0_10px_26px_rgba(15,23,42,0.08)] transition hover:translate-y-[-1px]"
+            >
+              <MeatballIcon />
+            </button>
 
-              {isMenuOpen ? (
-                <div className="absolute right-0 top-[calc(100%+10px)] z-40 w-[220px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_16px_32px_rgba(15,23,42,0.12)]">
-                  <div className="space-y-1">
-                    <MenuActionButton
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        setActiveModal("invite");
-                      }}
-                    >
-                      <span>초대코드 확인</span>
-                    </MenuActionButton>
+            {isMenuOpen ? (
+              <div className="absolute right-0 top-[calc(100%+10px)] z-40 w-[220px] rounded-[22px] bg-white p-2 shadow-[0_18px_42px_rgba(15,23,42,0.14)]">
+                <div className="space-y-1">
+                  <MenuActionButton
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setActiveModal("invite");
+                    }}
+                  >
+                    <span>초대 코드 확인</span>
+                  </MenuActionButton>
 
-                    {leaderMode ? (
-                      <>
-                        <MenuActionButton
-                          disabled={transferableMembers.length === 0}
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            setActiveModal("transfer");
-                          }}
-                        >
-                          <span>팀장 위임</span>
-                        </MenuActionButton>
-                        <MenuActionButton
-                          destructive
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            setActiveModal("delete");
-                          }}
-                        >
-                          <span>그룹 삭제</span>
-                        </MenuActionButton>
-                      </>
-                    ) : (
+                  {leaderMode ? (
+                    <>
+                      <MenuActionButton
+                        disabled={transferableMembers.length === 0}
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          setActiveModal("transfer");
+                        }}
+                      >
+                        <span>팀장 권한 넘기기</span>
+                      </MenuActionButton>
                       <MenuActionButton
                         destructive
                         onClick={() => {
                           setIsMenuOpen(false);
-                          setActiveModal("leave");
+                          setActiveModal("delete");
                         }}
                       >
-                        <span>그룹 탈퇴</span>
+                        <span>그룹 삭제</span>
                       </MenuActionButton>
-                    )}
-                  </div>
+                    </>
+                  ) : (
+                    <MenuActionButton
+                      destructive
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setActiveModal("leave");
+                      }}
+                    >
+                      <span>그룹 나가기</span>
+                    </MenuActionButton>
+                  )}
                 </div>
-              ) : null}
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="relative overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,#7FCB95_0%,#67B884_56%,#56AA79_100%)] px-5 pb-5 pt-5 text-white shadow-[0_22px_48px_rgba(76,175,122,0.24)]">
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.18),transparent_58%)]" />
+          <div className="absolute right-[-38px] top-[-34px] h-36 w-36 rounded-full bg-white/10 blur-2xl" />
+
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium tracking-[0.04em] text-white/82">진행 중인 스터디</p>
+              <h2 className="mt-2 text-[30px] font-semibold tracking-[-0.06em] text-white">
+                {activeGroup.name}
+              </h2>
+              <p className="mt-2 text-sm font-medium text-white/84">
+                목표일 {formatExamDate(activeGroup.examDate)}
+              </p>
             </div>
+
+            <span className="inline-flex shrink-0 rounded-full bg-white/88 px-3 py-2 text-sm font-semibold text-[#4A9568] shadow-[0_10px_20px_rgba(20,60,38,0.12)]">
+              {ddayLabel}
+            </span>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2.5">
-            <SummaryItem label="팀장" value={leader?.name ?? "미정"} />
-            <SummaryItem label="팀원" value={`${activeGroup.members.length}명`} />
-            <SummaryItem label="목표 날짜" value={formatExamDate(activeGroup.examDate)} />
-            <SummaryItem
-              label="목표까지"
-              value={shouldPromptPostExamDecision ? "일정 지남" : daysLeft === 0 ? "D-day" : `D-${daysLeft}`}
-            />
+          <div className="relative mt-7 flex items-end justify-between gap-4">
+            <div className="max-w-[205px]">
+              <p className="text-sm font-medium text-white/88">오늘 진행률</p>
+              <p className="mt-2 text-[46px] font-semibold leading-none tracking-[-0.06em] text-white">
+                {todayProgress}%
+              </p>
+
+              <div className="mt-4">
+                <ProgressBar
+                  value={todayProgress}
+                  trackClassName="bg-white/30"
+                  fillClassName="bg-white"
+                  heightClassName="h-2.5"
+                />
+              </div>
+
+              <p className="mt-4 text-sm leading-6 text-white/88">{todayProgressCopy}</p>
+            </div>
+
+            <HeroIllustration />
           </div>
         </section>
 
-        <section className="space-y-2 px-1">
-          <div className="flex items-end justify-between gap-3">
-            <p className="text-[18px] font-semibold tracking-[-0.03em] text-slate-900">
-              오늘의 진행도
-            </p>
-            <p className="text-[24px] font-semibold tracking-[-0.05em] text-slate-950">
-              {groupProgress}%
-            </p>
-          </div>
-
-          <SegmentedProgressTrack segments={segmentedProgress} />
-
-          <p className="text-xs text-slate-500">
-            총 {completedSlots}/{totalSlots}개 체크 완료
-          </p>
-        </section>
-
-        <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
+        <section className="rounded-[24px] bg-white p-5 shadow-[0_4px_20px_rgba(15,23,42,0.06)]">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-[15px] font-semibold text-slate-900">팀원별 진행 현황</h2>
-            <span className="text-xs text-slate-500">{activeGroup.members.length}명</span>
+            <h2 className="text-[18px] font-semibold tracking-[-0.03em] text-slate-950">
+              팀원 진행 현황
+            </h2>
+            <span className="text-xs font-medium text-slate-400">전체 {activeGroup.members.length}명</span>
           </div>
 
           <div className="space-y-4">
             {memberProgresses.map(({ member, progress, accent }) => (
-              <div key={member.id} className="grid grid-cols-[64px_1fr_auto] items-center gap-3">
-                <p className="truncate text-sm font-medium text-slate-900">{member.name}</p>
-                <ProgressTrack value={progress} className={accent.bar} />
-                <span className="text-xs font-semibold text-slate-500">{progress}%</span>
+              <div key={member.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold ${accent.avatar}`}
+                >
+                  {(member.name.trim().charAt(0) || "?").toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-900">{member.name}</p>
+                  <div className="mt-2">
+                    <ProgressBar
+                      value={progress}
+                      trackClassName={accent.track}
+                      fillClassName={accent.fill}
+                    />
+                  </div>
+                </div>
+                <span className="text-sm font-semibold text-slate-500">{progress}%</span>
               </div>
             ))}
           </div>
+        </section>
+
+        <section className="rounded-[24px] bg-white p-5 shadow-[0_4px_20px_rgba(15,23,42,0.06)]">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-[18px] font-semibold tracking-[-0.03em] text-slate-950">오늘 할 일</h2>
+            <span className="text-xs font-medium text-slate-400">
+              {completedTodayTasks}/{todayTasks.length || 0}
+            </span>
+          </div>
+
+          {todayTasks.length === 0 ? (
+            <div className="rounded-[20px] bg-[#F7FAF8] px-4 py-5 text-sm leading-6 text-slate-500">
+              오늘 표시할 할 일이 없어요. 계획 탭에서 새 일정을 추가해보세요.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {todayTasks.map((item) => {
+                const checked = item.memberStatus[currentUserId];
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      void togglePlanItem(activeGroup.id, item.id);
+                    }}
+                    className={`flex w-full items-center gap-3 rounded-[18px] px-3 py-3 text-left transition ${
+                      checked
+                        ? "bg-[#F3FAF5]"
+                        : "bg-[#FAFCFA] hover:bg-[#F5FBF7]"
+                    }`}
+                  >
+                    <CheckIcon active={checked} />
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={`truncate text-[15px] font-medium ${
+                          checked ? "text-slate-400 line-through" : "text-slate-900"
+                        }`}
+                      >
+                        {item.title}
+                      </p>
+                    </div>
+                    <svg
+                      aria-hidden="true"
+                      className="h-4 w-4 shrink-0 text-slate-300"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M9 6L15 12L9 18"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.8"
+                      />
+                    </svg>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </section>
       </div>
 
@@ -518,8 +644,8 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
 
       {resolvedPostExamModal === "decision" ? (
         <GroupActionModalShell
-          title="스터디 일정이 끝났어요"
-          description={`${formatExamDate(activeGroup.examDate)} 기준 일정이 지났습니다. 이 스터디를 수료할지, 새로운 날짜와 목표로 이어갈지 결정해 주세요.`}
+          title="스터디 일정이 지났어요"
+          description={`${formatExamDate(activeGroup.examDate)} 기준으로 목표 일정이 지났습니다. 이 스터디를 종료할지, 새 일정과 목표로 이어갈지 선택해 주세요.`}
           onClose={() => {}}
           footer={
             <>
@@ -529,16 +655,16 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                   void handleCompleteGroup();
                 }}
                 disabled={isMutating}
-                className="flex-1 rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:opacity-70"
+                className="flex-1 rounded-[16px] bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.26)] disabled:opacity-70"
               >
-                스터디 수료
+                스터디 종료
               </button>
               <button
                 type="button"
                 onClick={openRenewGroupCycleModal}
                 className="flex-1 rounded-[16px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
               >
-                새 날짜와 목표 설정
+                새 목표로 이어가기
               </button>
             </>
           }
@@ -548,14 +674,14 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
       {resolvedPostExamModal === "renew" ? (
         <GroupActionModalShell
           title="새 시험 일정과 목표 설정"
-          description="다음 스터디 주기를 위해 새로운 D-day와 목표를 저장해 주세요."
+          description="다음 사이클을 위해 새로운 목표일과 전체 목표를 입력해 주세요."
           onClose={() => setPostExamModal("decision")}
           footer={
             <>
               <button
                 type="button"
                 onClick={() => setPostExamModal("decision")}
-                className="flex-1 rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+                className="flex-1 rounded-[16px] bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.26)]"
               >
                 이전으로
               </button>
@@ -574,12 +700,12 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
         >
           <div className="space-y-3">
             <label className="block space-y-2">
-              <span className="text-sm font-semibold text-slate-800">새 D-day</span>
+              <span className="text-sm font-semibold text-slate-800">목표 날짜</span>
               <input
                 type="date"
                 value={renewalDraft.examDate}
                 onChange={(event) => handleRenewalDraftChange("examDate", event.target.value)}
-                className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[rgba(121,184,149,0.16)]"
+                className="w-full rounded-[16px] bg-white px-4 py-3 text-sm text-slate-900 outline-none shadow-[inset_0_0_0_1px_rgba(148,163,184,0.20)] transition focus:ring-4 focus:ring-[rgba(76,175,122,0.16)]"
               />
             </label>
             <label className="block space-y-2">
@@ -588,7 +714,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                 rows={3}
                 value={renewalDraft.overallGoal}
                 onChange={(event) => handleRenewalDraftChange("overallGoal", event.target.value)}
-                className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[rgba(121,184,149,0.16)]"
+                className="w-full rounded-[16px] bg-white px-4 py-3 text-sm text-slate-900 outline-none shadow-[inset_0_0_0_1px_rgba(148,163,184,0.20)] transition focus:ring-4 focus:ring-[rgba(76,175,122,0.16)]"
               />
             </label>
             {renewalError ? (
@@ -602,7 +728,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
 
       {activeModal === "invite" ? (
         <GroupActionModalShell
-          title="초대코드 확인"
+          title="초대 코드 확인"
           description="이 코드를 팀원에게 공유하면 같은 그룹에 참여할 수 있어요."
           onClose={closeModal}
           footer={
@@ -610,7 +736,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
               <button
                 type="button"
                 onClick={closeModal}
-                className="flex-1 rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+                className="flex-1 rounded-[16px] bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.26)]"
               >
                 닫기
               </button>
@@ -626,9 +752,9 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
             </>
           }
         >
-          <div className="rounded-[18px] border border-slate-200 bg-[var(--brand-soft)] px-4 py-4 text-center">
+          <div className="rounded-[22px] bg-[var(--brand-soft)] px-4 py-4 text-center">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-              그룹 초대코드
+              Group Invite Code
             </p>
             <p className="mt-2 text-[22px] font-semibold tracking-[0.16em] text-[var(--brand)]">
               {inviteCode}
@@ -642,15 +768,15 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
 
       {activeModal === "leave" ? (
         <GroupActionModalShell
-          title="정말 이 그룹에서 탈퇴하시겠어요?"
-          description="탈퇴하면 이 그룹의 홈, 스터디, 계획, 자료 화면에 더 이상 접근할 수 없어요."
+          title="정말 그룹에서 나가시겠어요?"
+          description="나가면 이 그룹의 스터디 계획과 자료 화면에 더 이상 접근할 수 없어요."
           onClose={closeModal}
           footer={
             <>
               <button
                 type="button"
                 onClick={closeModal}
-                className="flex-1 rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+                className="flex-1 rounded-[16px] bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.26)]"
               >
                 취소
               </button>
@@ -662,7 +788,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                 disabled={isMutating}
                 className="flex-1 rounded-[16px] bg-rose-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-70"
               >
-                탈퇴하기
+                나가기
               </button>
             </>
           }
@@ -671,15 +797,15 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
 
       {activeModal === "delete" ? (
         <GroupActionModalShell
-          title="정말 이 그룹을 삭제하시겠어요?"
-          description="삭제하면 이 그룹의 홈, 스터디, 계획, 자료와 초대코드가 모두 사라져요."
+          title="정말 이 그룹을 삭제할까요?"
+          description="삭제하면 이 그룹의 계획, 자료, 초대 코드가 모두 사라져요."
           onClose={closeModal}
           footer={
             <>
               <button
                 type="button"
                 onClick={closeModal}
-                className="flex-1 rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+                className="flex-1 rounded-[16px] bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.26)]"
               >
                 취소
               </button>
@@ -700,15 +826,15 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
 
       {activeModal === "transfer" ? (
         <GroupActionModalShell
-          title="팀장 위임"
-          description="새 팀장을 선택하면 현재 사용자는 팀원으로 전환돼요."
+          title="팀장 권한 넘기기"
+          description="새 팀장을 선택하면 현재 사용자는 일반 팀원으로 전환돼요."
           onClose={closeModal}
           footer={
             <>
               <button
                 type="button"
                 onClick={closeModal}
-                className="flex-1 rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+                className="flex-1 rounded-[16px] bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.26)]"
               >
                 취소
               </button>
@@ -720,7 +846,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                 disabled={!selectedLeaderId || isMutating}
                 className="flex-1 rounded-[16px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-70"
               >
-                위임하기
+                넘기기
               </button>
             </>
           }
@@ -735,10 +861,10 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                     key={member.id}
                     type="button"
                     onClick={() => setSelectedLeaderId(member.id)}
-                    className={`flex w-full items-center justify-between rounded-[16px] border px-4 py-3 text-left transition ${
+                    className={`flex w-full items-center justify-between rounded-[18px] px-4 py-3 text-left transition ${
                       selected
-                        ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                        : "border-slate-200 bg-white hover:border-slate-300"
+                        ? "bg-[var(--brand-soft)] shadow-[inset_0_0_0_1px_rgba(76,175,122,0.28)]"
+                        : "bg-white shadow-[inset_0_0_0_1px_rgba(148,163,184,0.18)]"
                     }`}
                   >
                     <div>
@@ -753,8 +879,8 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
               })}
             </div>
           ) : (
-            <div className="rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
-              위임할 수 있는 다른 팀원이 아직 없어요.
+            <div className="rounded-[18px] bg-slate-50 px-4 py-4 text-sm text-slate-600">
+              권한을 넘길 다른 팀원이 아직 없어요.
             </div>
           )}
         </GroupActionModalShell>
