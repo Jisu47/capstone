@@ -24,7 +24,7 @@ type HeaderBehavior = "sticky" | "fixed";
 function getFixedHeaderOffsetClass(variant: HeaderVariant) {
   switch (variant) {
     case "bare":
-      return "pt-[calc(env(safe-area-inset-top)+7.5rem)]";
+      return "pt-[calc(env(safe-area-inset-top)+5rem)]";
     case "capsule":
       return "pt-[calc(env(safe-area-inset-top)+8.5rem)]";
     case "default":
