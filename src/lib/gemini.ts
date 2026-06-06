@@ -237,10 +237,10 @@ function buildSystemInstruction(scope: AiChatScope) {
 function buildPlanReferenceAnalysisInstruction() {
   return [
     "You analyze uploaded study timetable and syllabus images.",
-    "Return only JSON that matches the requested schema.",
     "Preserve the source language from the image when possible.",
     "Focus on visible study topics, objectives, and content.",
     "Ignore teaching method, evaluation activity, empty cells, and decorative text.",
+    "Return plain text only.",
   ].join(" ");
 }
 
@@ -254,7 +254,11 @@ function buildPlanReferenceAnalysisPrompt(subject: string, fileName: string) {
     "3. If the image is organized by week, keep one unit per week row.",
     "4. For each unit, write a short label and a detail that merges the visible topic, goal, and content.",
     "5. Omit teaching method and evaluation text even if they appear in the image.",
-    "6. Return a one-sentence summary plus the ordered units.",
+    "6. Use this exact output format:",
+    "SUMMARY: one sentence summary",
+    "UNIT: label || detail",
+    "UNIT: label || detail",
+    "7. Do not output JSON, markdown fences, numbering, or extra commentary.",
   ].join("\n");
 }
 
@@ -269,33 +273,6 @@ function parseDataUrl(dataUrl: string) {
   return {
     mimeType,
     base64Data,
-  };
-}
-
-function buildPlanReferenceResponseSchema() {
-  return {
-    type: "OBJECT",
-    required: ["summary", "units"],
-    properties: {
-      summary: {
-        type: "STRING",
-      },
-      units: {
-        type: "ARRAY",
-        items: {
-          type: "OBJECT",
-          required: ["label", "detail"],
-          properties: {
-            label: {
-              type: "STRING",
-            },
-            detail: {
-              type: "STRING",
-            },
-          },
-        },
-      },
-    },
   };
 }
 
@@ -314,6 +291,76 @@ function normalizeAnalysisText(value: unknown) {
   }
 
   return value.replace(/\s+/g, " ").trim();
+}
+
+function parsePlanReferenceAnalysisText(value: string, fileName: string) {
+  const normalized = stripJsonCodeFence(value);
+
+  try {
+    return sanitizePlanReferenceAnalysis(JSON.parse(normalized) as unknown, fileName);
+  } catch {
+    // Fall back to the plain-text extraction format below.
+  }
+
+  const lines = normalized
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  let summary = "";
+  const units: Array<{ label: string; detail: string }> = [];
+
+  for (const line of lines) {
+    if (/^summary\s*:/i.test(line)) {
+      summary = normalizeAnalysisText(line.replace(/^summary\s*:/i, ""));
+      continue;
+    }
+
+    if (!/^unit\s*:/i.test(line)) {
+      continue;
+    }
+
+    const unitText = line.replace(/^unit\s*:/i, "").trim();
+    const splitByDoublePipe = unitText.split(/\s*\|\|\s*/);
+
+    if (splitByDoublePipe.length >= 2) {
+      const [labelPart, ...detailParts] = splitByDoublePipe;
+      const label = normalizeAnalysisText(labelPart);
+      const detail = normalizeAnalysisText(detailParts.join(" || "));
+
+      if (label) {
+        units.push({
+          label,
+          detail: detail || `${fileName} 기준 ${label} 범위를 학습합니다.`,
+        });
+      }
+
+      continue;
+    }
+
+    const splitByDash = unitText.split(/\s+-\s+/);
+
+    if (splitByDash.length >= 2) {
+      const [labelPart, ...detailParts] = splitByDash;
+      const label = normalizeAnalysisText(labelPart);
+      const detail = normalizeAnalysisText(detailParts.join(" - "));
+
+      if (label) {
+        units.push({
+          label,
+          detail: detail || `${fileName} 기준 ${label} 범위를 학습합니다.`,
+        });
+      }
+    }
+  }
+
+  return sanitizePlanReferenceAnalysis(
+    {
+      summary,
+      units,
+    },
+    fileName,
+  );
 }
 
 function sanitizePlanReferenceAnalysis(payload: unknown, fileName: string) {
@@ -539,8 +586,7 @@ async function requestPlanReferenceAnalysis(
             temperature: 0.1,
             topP: 0.8,
             maxOutputTokens: planReferenceAnalysisMaxOutputTokens,
-            responseMimeType: "application/json",
-            responseSchema: buildPlanReferenceResponseSchema(),
+            responseMimeType: "text/plain",
           },
         }),
         cache: "no-store",
@@ -552,8 +598,7 @@ async function requestPlanReferenceAnalysis(
       const answer = extractAnswerResult(payload);
 
       try {
-        const parsed = JSON.parse(stripJsonCodeFence(answer.text)) as unknown;
-        return sanitizePlanReferenceAnalysis(parsed, request.fileName);
+        return parsePlanReferenceAnalysisText(answer.text, request.fileName);
       } catch (error) {
         throw new Error(
           error instanceof Error
