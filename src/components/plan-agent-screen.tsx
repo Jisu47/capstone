@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GroupPageHeader } from "@/components/group-page-header";
 import {
   AppShell,
@@ -35,6 +35,20 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   } = usePrototype();
   const group = getGroupById(groups, groupId);
   const [draftQuestion, setDraftQuestion] = useState("");
+  const latestChatAnchorRef = useRef<HTMLDivElement | null>(null);
+  const planAgentChatLength = group?.planAgentChat.length ?? 0;
+  const planAgentStatus = group ? getPlanAgentStatus(group.id) : null;
+
+  useEffect(() => {
+    if (!latestChatAnchorRef.current || !group) {
+      return;
+    }
+
+    latestChatAnchorRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "end",
+    });
+  }, [group, planAgentChatLength, planAgentStatus]);
 
   if (isLoading && !group) {
     return (
@@ -57,7 +71,6 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   const draft = buildPlanAgentDraft(activeGroup);
   const reviewInterval = activeGroup.reviewIntervals[currentUserId] ?? null;
   const planAgentBusy = isPlanAgentAnswering(activeGroup.id);
-  const planAgentStatus = getPlanAgentStatus(activeGroup.id);
   const quickQuestions = [
     "진도표 기준으로 전체 계획 주차별 정리",
     "진도표 1주차 기준으로 이번주 계획 생성",
@@ -192,6 +205,8 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                 <p className="px-1 text-xs leading-5 text-slate-400">{planAgentStatus}</p>
               </div>
             ) : null}
+
+            <div ref={latestChatAnchorRef} />
           </div>
 
           <form
