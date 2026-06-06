@@ -1039,13 +1039,24 @@ export function PrototypeProvider({
       body: JSON.stringify(payload),
     });
 
-    const data = (await response.json()) as { error?: string; text?: string };
+    const data = (await response.json()) as {
+      error?: string;
+      text?: string;
+      finishReason?: string | null;
+      finishMessage?: string | null;
+      isComplete?: boolean;
+    };
 
     if (!response.ok || !data.text?.trim()) {
       throw new Error(data.error ?? "Gemini API returned an empty response.");
     }
 
-    return data.text.trim();
+    return {
+      text: data.text.trim(),
+      finishReason: data.finishReason ?? null,
+      finishMessage: data.finishMessage ?? null,
+      isComplete: data.isComplete ?? true,
+    };
   }
 
   async function sendScopedQuestion(
@@ -1092,12 +1103,21 @@ export function PrototypeProvider({
     const timeoutId = window.setTimeout(() => {
       void runMutation(async () => {
         try {
-          const answerText = await requestAiAnswer(group, trimmedQuestion, scope);
-          await addPrototypeAssistantAnswer(group, trimmedQuestion, scope, answerText);
+          const answer = await requestAiAnswer(group, trimmedQuestion, scope);
+          await addPrototypeAssistantAnswer(group, trimmedQuestion, scope, answer.text);
           await refreshGroups();
           if (scope === "plan-agent") {
             clearPlanAgentStatusSequence(groupId);
-            setPlanAgentStatus(groupId, "답변 완료");
+            if (answer.isComplete) {
+              setPlanAgentStatus(groupId, "답변 완료");
+            } else if (answer.finishReason === "MAX_TOKENS") {
+              setPlanAgentStatus(groupId, "답변이 중간에 멈췄어요. 이어서 다시 질문해 주세요.");
+            } else {
+              setPlanAgentStatus(
+                groupId,
+                "답변이 완전히 끝나지 않았을 수 있어요. 한 번 더 확인해 주세요.",
+              );
+            }
           }
         } catch (caughtError) {
           if (scope === "plan-agent") {

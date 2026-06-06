@@ -13,6 +13,8 @@ type GeminiCandidate = {
   content?: {
     parts?: GeminiPart[];
   };
+  finishReason?: string;
+  finishMessage?: string;
 };
 
 type GeminiResponse = {
@@ -23,6 +25,13 @@ type GeminiResponse = {
   error?: {
     message?: string;
   };
+};
+
+export type GeminiAnswerResult = {
+  text: string;
+  finishReason: string | null;
+  finishMessage: string | null;
+  isComplete: boolean;
 };
 
 const defaultGeminiModel = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
@@ -157,15 +166,23 @@ function buildSystemInstruction(scope: AiChatScope) {
   ].join(" ");
 }
 
-function extractText(response: GeminiResponse) {
-  const text = response.candidates
-    ?.flatMap((candidate) => candidate.content?.parts ?? [])
-    .map((part) => part.text ?? "")
+function extractAnswerResult(response: GeminiResponse): GeminiAnswerResult {
+  const primaryCandidate = response.candidates?.[0];
+  const text = primaryCandidate?.content?.parts
+    ?.map((part) => part.text ?? "")
     .join("")
     .trim();
 
   if (text) {
-    return text;
+    const finishReason = primaryCandidate?.finishReason ?? null;
+    const finishMessage = primaryCandidate?.finishMessage ?? null;
+
+    return {
+      text,
+      finishReason,
+      finishMessage,
+      isComplete: finishReason === null || finishReason === "STOP",
+    };
   }
 
   if (response.promptFeedback?.blockReason) {
@@ -239,7 +256,7 @@ export async function generateGeminiAnswer({
 
     if (response.ok) {
       const payload = (await response.json()) as GeminiResponse;
-      return extractText(payload);
+      return extractAnswerResult(payload);
     }
 
     let detail = response.statusText;

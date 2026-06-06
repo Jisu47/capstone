@@ -33,10 +33,13 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "Invalid AI chat request." }, { status: 400 });
     }
 
-    const text = await generateGeminiAnswer(body);
+    const answer = await generateGeminiAnswer(body);
     const response: AiChatResponse = {
-      text,
+      text: answer.text,
       model: getGeminiModel(),
+      finishReason: answer.finishReason,
+      finishMessage: answer.finishMessage,
+      isComplete: answer.isComplete,
     };
 
     return Response.json(response);

@@ -43,4 +43,7 @@ export type AiChatRequest = {
 export type AiChatResponse = {
   text: string;
   model: string;
+  finishReason?: string | null;
+  finishMessage?: string | null;
+  isComplete?: boolean;
 };
