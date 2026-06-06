@@ -1531,6 +1531,24 @@ export async function transferPrototypeGroupLeadership(
   }
 
   ensureSuccess(
+    "Failed to update next leader membership role",
+    await client
+      .from("group_members")
+      .update({ member_role: "leader" })
+      .eq("group_id", groupId)
+      .eq("member_id", nextLeaderId),
+  );
+
+  ensureSuccess(
+    "Failed to update previous leader membership role",
+    await client
+      .from("group_members")
+      .update({ member_role: "member" })
+      .eq("group_id", groupId)
+      .eq("member_id", currentLeaderId),
+  );
+
+  ensureSuccess(
     "Failed to update next leader profile",
     await client
       .from("profiles")
