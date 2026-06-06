@@ -156,7 +156,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
               onClick={() => setIsTimerRunning((previous) => !previous)}
               className="rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
             >
-              {isTimerRunning ? "타이머 멈추기" : "타이머 시작"}
+              타이머
             </button>
             <div className="rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
               오늘 {group.plan.length}개
