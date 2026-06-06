@@ -107,6 +107,13 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   });
   const previewDraft =
     previewDraftState?.groupId === activeGroup.id ? previewDraftState.draft : null;
+  const lastPlanAgentMessage = activeGroup.planAgentChat.at(-1) ?? null;
+  const retryQuestion =
+    !planAgentBusy &&
+    Boolean(planAgentStatus?.includes("다시 시도")) &&
+    lastPlanAgentMessage?.role === "user"
+      ? lastPlanAgentMessage.text.trim()
+      : "";
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -251,9 +258,20 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                       </div>
 
                       {isLastMessage && planAgentStatus ? (
-                        <p className="px-1 pt-2 text-xs leading-5 text-slate-400">
-                          {planAgentStatus}
-                        </p>
+                        <div className="px-1 pt-2">
+                          <p className="text-xs leading-5 text-slate-400">{planAgentStatus}</p>
+                          {retryQuestion ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void sendPlanAgentMessage(activeGroup.id, retryQuestion);
+                              }}
+                              className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
+                            >
+                              다시 시도
+                            </button>
+                          ) : null}
+                        </div>
                       ) : null}
                     </div>
                   </div>
