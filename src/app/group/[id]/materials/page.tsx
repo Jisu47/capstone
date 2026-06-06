@@ -1,4 +1,4 @@
-import { MaterialsScreen } from "@/components/prototype-screens";
+import { MaterialsScreen } from "@/components/materials-screen";
 
 export default async function MaterialsPage({
   params,
