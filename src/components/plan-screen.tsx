@@ -327,6 +327,91 @@ function WeeklyPlanTabs({
   );
 }
 
+function RoadmapTabs({
+  roadmap,
+}: Readonly<{
+  roadmap: StudyGroup["roadmap"];
+}>) {
+  const [activeRoadmapId, setActiveRoadmapId] = useState(roadmap[0]?.id ?? "");
+  const selectedRoadmapId =
+    roadmap.find((item) => item.id === activeRoadmapId)?.id ?? roadmap[0]?.id ?? "";
+  const activeItem = roadmap.find((item) => item.id === selectedRoadmapId) ?? roadmap[0];
+
+  if (!activeItem) {
+    return null;
+  }
+
+  return (
+    <div className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+      <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fcfdfc_100%)]">
+        <div
+          className="flex gap-1 overflow-x-auto px-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          aria-label="전체 계획 주차 선택"
+        >
+          {roadmap.map((item) => {
+            const active = item.id === selectedRoadmapId;
+            const coveredUnitCount = Math.max(
+              1,
+              item.unitEndSequence - item.unitStartSequence + 1,
+            );
+            const countClass = active
+              ? "bg-[var(--brand)] text-white"
+              : "bg-[rgba(121,184,149,0.18)] text-[var(--brand)]";
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveRoadmapId(item.id)}
+                className={`relative shrink-0 flex min-w-[102px] flex-col items-center gap-2 px-3 pb-4 pt-4 text-sm transition ${
+                  active ? "font-semibold text-slate-950" : "font-medium text-slate-500"
+                }`}
+                aria-pressed={active}
+              >
+                <span className="flex items-center gap-1.5 whitespace-nowrap">
+                  <span>{item.weekNumber}주차</span>
+                  <span
+                    className={`inline-flex min-w-8 items-center justify-center rounded-full px-2 py-1 text-xs font-semibold ${countClass}`}
+                  >
+                    {coveredUnitCount}
+                  </span>
+                </span>
+                {active ? (
+                  <span className="absolute inset-x-3 bottom-0 h-[3px] rounded-full bg-[var(--brand)]" />
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="px-4 py-4">
+        <article className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
+          <div className="flex items-start gap-4">
+            <PlanTypeIcon type="book" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[19px] font-semibold tracking-[-0.03em] text-slate-950">
+                    {activeItem.title}
+                  </p>
+                  <p className="mt-1 text-[15px] font-medium text-slate-600">
+                    {activeItem.weekNumber}주차 학습 범위
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                  {activeItem.unitStartSequence} ~ {activeItem.unitEndSequence}
+                </span>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">{activeItem.summary}</p>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  );
+}
+
 function SummaryChip({
   label,
   value,
@@ -664,29 +749,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                 : "계획 에이전트에서 초안을 만들면 전체 계획이 여기 반영됩니다."}
             </div>
           ) : (
-            <div className="space-y-3">
-              {activeGroup.roadmap.map((item) => (
-                <article
-                  key={item.id}
-                  className="rounded-[16px] border border-slate-200 bg-white px-4 py-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
-                        {item.weekNumber}주차
-                      </p>
-                      <p className="mt-1 text-base font-semibold text-slate-900">
-                        {item.title}
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                      {item.unitStartSequence} ~ {item.unitEndSequence}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{item.summary}</p>
-                </article>
-              ))}
-            </div>
+            <RoadmapTabs roadmap={activeGroup.roadmap} />
           )}
         </ExpandableSection>
 
