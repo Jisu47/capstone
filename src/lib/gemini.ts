@@ -65,6 +65,15 @@ const planAgentMaxOutputTokens = 1536;
 const materialsMaxOutputTokens = 384;
 const maxPlanAgentContinuationTurns = 2;
 const planReferenceAnalysisMaxOutputTokens = 2048;
+const materialsHistoryLimit = 8;
+const planAgentHistoryLimit = 4;
+const materialsContextMaterialLimit = 5;
+const planContextUploadLimit = 2;
+const planContextDetailedUnitLimit = 6;
+const planContextOutlineUnitLimit = 10;
+const planContextRoadmapLimit = 4;
+const planContextWeeklyPlanLimit = 4;
+const maxContextLineLength = 88;
 
 export class GeminiRequestError extends Error {
   status: number;
@@ -92,9 +101,11 @@ function getRetryDelayMilliseconds(attempt: number, retryAfterHeader: string | n
   return 800 * 2 ** Math.max(0, attempt - 1);
 }
 
-function trimHistory(history: AiChatHistoryEntry[]): GeminiContent[] {
+function trimHistory(scope: AiChatScope, history: AiChatHistoryEntry[]): GeminiContent[] {
+  const historyLimit = scope === "materials" ? materialsHistoryLimit : planAgentHistoryLimit;
+
   return history
-    .slice(-8)
+    .slice(-historyLimit)
     .filter((entry) => entry.text.trim().length > 0)
     .map((entry) => ({
       role: entry.role === "assistant" ? ("model" as const) : ("user" as const),
@@ -111,9 +122,9 @@ function buildGeminiContents(
   return [
     {
       role: "user",
-      parts: [{ text: buildGroupContext(scope, group) }],
+      parts: [{ text: buildGroupContext(scope, group, question) }],
     },
-    ...trimHistory(history),
+    ...trimHistory(scope, history),
     {
       role: "user",
       parts: [{ text: question.trim() }],
@@ -121,7 +132,95 @@ function buildGeminiContents(
   ];
 }
 
-function buildGroupContext(scope: AiChatScope, group: AiChatGroupContext) {
+function compactContextText(value: string, maxLength = maxContextLineLength) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, Math.max(1, maxLength - 1)).trimEnd()}…`;
+}
+
+function appendOmittedNotice(lines: string[], omittedCount: number, noun: string) {
+  if (omittedCount > 0) {
+    lines.push(`... and ${omittedCount} more ${noun}.`);
+  }
+}
+
+function detectPlanAgentFocus(question: string) {
+  const normalized = question.replace(/\s+/g, "").toLowerCase();
+
+  if (/전체계획|로드맵|주차별|진도표기준|전체정리/.test(normalized)) {
+    return "roadmap" as const;
+  }
+
+  if (/이번주|주간|이번주계획|이번주할일/.test(normalized)) {
+    return "weekly" as const;
+  }
+
+  return "general" as const;
+}
+
+function buildPlanReferenceUnitLines(
+  units: AiChatGroupContext["planReferenceUnits"],
+  detailedLimit: number,
+  outlineLimit: number,
+) {
+  if (units.length === 0) {
+    return ["No extracted timetable units are available."];
+  }
+
+  const detailedUnits = units.slice(0, detailedLimit).map(
+    (unit) =>
+      `${unit.sequence}. ${compactContextText(unit.label, 40)} - ${compactContextText(unit.detail, 64)}`,
+  );
+  const outlineUnits = units
+    .slice(detailedLimit, detailedLimit + outlineLimit)
+    .map((unit) => `${unit.sequence}. ${compactContextText(unit.label, 52)}`);
+  const omittedCount = Math.max(0, units.length - detailedLimit - outlineLimit);
+  const lines = [...detailedUnits];
+
+  if (outlineUnits.length > 0) {
+    lines.push("Additional unit labels:");
+    lines.push(...outlineUnits);
+  }
+
+  appendOmittedNotice(lines, omittedCount, "timetable units");
+  return lines;
+}
+
+function buildRoadmapLines(roadmap: AiChatGroupContext["roadmap"], limit: number) {
+  if (roadmap.length === 0) {
+    return ["No roadmap has been generated yet."];
+  }
+
+  const lines = roadmap.slice(0, limit).map(
+    (item) =>
+      `${item.weekNumber}. ${compactContextText(item.title, 42)} - ${compactContextText(item.summary, 68)}`,
+  );
+  appendOmittedNotice(lines, Math.max(0, roadmap.length - limit), "roadmap items");
+  return lines;
+}
+
+function buildWeeklyPlanLines(plan: AiChatGroupContext["plan"], limit: number) {
+  if (plan.length === 0) {
+    return ["No weekly plan is available."];
+  }
+
+  const lines = plan.slice(0, limit).map(
+    (item) =>
+      `${item.day}: ${compactContextText(item.title, 36)} / ${compactContextText(item.detail, 54)} / ${item.duration}`,
+  );
+  appendOmittedNotice(lines, Math.max(0, plan.length - limit), "weekly plan items");
+  return lines;
+}
+
+function buildGroupContext(
+  scope: AiChatScope,
+  group: AiChatGroupContext,
+  question: string,
+) {
   const header = [
     `Group: ${group.name}`,
     `Subject: ${group.subject}`,
@@ -135,10 +234,10 @@ function buildGroupContext(scope: AiChatScope, group: AiChatGroupContext) {
     const materials =
       group.materials.length > 0
         ? group.materials
-            .slice(0, 6)
+            .slice(0, materialsContextMaterialLimit)
             .map(
               (material, index) =>
-                `${index + 1}. ${material.title} (${material.locationHint}) - ${material.summary}`,
+                `${index + 1}. ${compactContextText(material.title, 38)} (${material.locationHint}) - ${compactContextText(material.summary, 68)}`,
             )
             .join("\n")
         : "No shared materials are available.";
@@ -149,7 +248,7 @@ function buildGroupContext(scope: AiChatScope, group: AiChatGroupContext) {
             .slice(0, 5)
             .map(
               (item) =>
-                `${item.day}: ${item.title} / ${item.detail} / ${item.duration}`,
+                `${item.day}: ${compactContextText(item.title, 32)} / ${compactContextText(item.detail, 46)} / ${item.duration}`,
             )
             .join("\n")
         : "No weekly plan is available.";
@@ -157,58 +256,49 @@ function buildGroupContext(scope: AiChatScope, group: AiChatGroupContext) {
     return `${header.join("\n")}\n\nShared materials:\n${materials}\n\nCurrent weekly plan:\n${planPreview}`;
   }
 
-  const roadmap =
-    group.roadmap.length > 0
-      ? group.roadmap
-          .slice(0, 8)
-          .map(
-            (item) =>
-              `${item.weekNumber}. ${item.title} - ${item.summary}`,
-          )
-          .join("\n")
-      : "No roadmap has been generated yet.";
-
-  const weeklyPlan =
-    group.plan.length > 0
-      ? group.plan
-          .slice(0, 7)
-          .map(
-            (item) =>
-              `${item.day}: ${item.title} / ${item.detail} / ${item.duration}`,
-          )
-          .join("\n")
-      : "No weekly plan is available.";
+  const focus = detectPlanAgentFocus(question);
+  const unitDetailedLimit =
+    focus === "roadmap" ? planContextDetailedUnitLimit + 2 : planContextDetailedUnitLimit;
+  const unitOutlineLimit =
+    focus === "roadmap" ? planContextOutlineUnitLimit + 2 : planContextOutlineUnitLimit;
+  const roadmapLimit =
+    focus === "roadmap" ? planContextRoadmapLimit + 2 : planContextRoadmapLimit;
+  const weeklyPlanLimit =
+    focus === "weekly" ? planContextWeeklyPlanLimit + 2 : planContextWeeklyPlanLimit;
 
   const planReferenceUploads =
     group.planReferenceUploads.length > 0
       ? group.planReferenceUploads
-          .slice(0, 4)
-          .map((upload, index) => `${index + 1}. ${upload.fileName} - ${upload.summary}`)
-          .join("\n")
-      : "No plan reference uploads are available.";
-
-  const planReferenceUnits =
-    group.planReferenceUnits.length > 0
-      ? group.planReferenceUnits
-          .slice(0, 24)
-          .map((unit) => `${unit.sequence}. ${unit.label} - ${unit.detail}`)
-          .join("\n")
-      : "No extracted timetable units are available.";
+          .slice(0, planContextUploadLimit)
+          .map(
+            (upload, index) =>
+              `${index + 1}. ${compactContextText(upload.fileName, 38)} - ${compactContextText(upload.summary, 68)}`,
+          )
+      : ["No plan reference uploads are available."];
+  const planReferenceUnits = buildPlanReferenceUnitLines(
+    group.planReferenceUnits,
+    unitDetailedLimit,
+    unitOutlineLimit,
+  );
+  const roadmap = buildRoadmapLines(group.roadmap, roadmapLimit);
+  const weeklyPlan = buildWeeklyPlanLines(group.plan, weeklyPlanLimit);
 
   return [
     ...header,
     "",
+    `Planning focus: ${focus}`,
+    "",
     "Plan reference uploads:",
-    planReferenceUploads,
+    ...planReferenceUploads,
     "",
     "Extracted timetable units:",
-    planReferenceUnits,
+    ...planReferenceUnits,
     "",
     "Roadmap:",
-    roadmap,
+    ...roadmap,
     "",
     "Weekly plan:",
-    weeklyPlan,
+    ...weeklyPlan,
   ].join("\n");
 }
 
@@ -228,6 +318,7 @@ function buildSystemInstruction(scope: AiChatScope) {
     "You are Study Flow's planning agent assistant.",
     "Answer in Korean.",
     "Use the provided extracted timetable units, roadmap, weekly plan, and group goals to suggest realistic study planning guidance.",
+    "The provided context may be compacted or partially truncated for speed, so prioritize the most relevant details and briefly say what extra information would help if needed.",
     "Do not claim that changes were already applied.",
     "Treat review management as a personal setting outside this shared planning conversation.",
     "Keep the answer concise enough for a mobile chat UI.",
