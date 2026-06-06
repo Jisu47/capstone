@@ -28,6 +28,16 @@ export type PlanReferenceUploadDraft = {
   imageDataUrl: string;
 };
 
+export type PlanReferenceAnalysisUnit = {
+  label: string;
+  detail: string;
+};
+
+export type PlanReferenceAnalysisResult = {
+  summary: string;
+  units: PlanReferenceAnalysisUnit[];
+};
+
 export type PersonalPlanItemDraft = {
   title: string;
   detail: string;
@@ -113,6 +123,17 @@ function getSubjectUnits(subject: string) {
 
 function createDraftId(prefix: string, index: number) {
   return `${prefix}-${index + 1}`;
+}
+
+function parseWeekNumberFromText(value: string) {
+  const matched = value.match(/(\d+)\s*주차/i);
+
+  if (!matched) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(matched[1] ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 function getLastPlanAgentQuestion(messages: ChatMessage[]) {
@@ -231,6 +252,22 @@ export function buildMockPlanReferenceUnits({
   }));
 }
 
+export function buildPlanReferenceUnitsFromAnalysis({
+  uploadId,
+  analysis,
+}: Readonly<{
+  uploadId: string;
+  analysis: PlanReferenceAnalysisResult;
+}>) {
+  return analysis.units.map<PlanReferenceUnit>((unit, index) => ({
+    id: `${uploadId}-unit-${index + 1}`,
+    uploadId,
+    sequence: index + 1,
+    label: unit.label.trim(),
+    detail: unit.detail.trim(),
+  }));
+}
+
 export function summarizeUnits(units: PlanReferenceUnit[]) {
   if (units.length === 0) {
     return "아직 추출된 진도 단위가 없습니다.";
@@ -240,6 +277,21 @@ export function summarizeUnits(units: PlanReferenceUnit[]) {
 }
 
 export function buildRoadmapFromUnits(group: StudyGroup, units: PlanReferenceUnit[]) {
+  const weekNumberMatches = units
+    .map((unit) => parseWeekNumberFromText(`${unit.label} ${unit.detail}`))
+    .filter((value): value is number => value !== null);
+
+  if (weekNumberMatches.length >= Math.max(2, Math.ceil(units.length / 2))) {
+    return units.map<RoadmapItem>((unit, index) => ({
+      id: createDraftId(`${group.id}-roadmap`, index),
+      weekNumber: parseWeekNumberFromText(`${unit.label} ${unit.detail}`) ?? index + 1,
+      title: unit.label,
+      summary: unit.detail,
+      unitStartSequence: unit.sequence,
+      unitEndSequence: unit.sequence,
+    }));
+  }
+
   const chunkSize = 3;
   const chunks: RoadmapItem[] = [];
 

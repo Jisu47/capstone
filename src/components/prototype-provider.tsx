@@ -11,7 +11,7 @@ import {
 } from "react";
 import { type AuthUser, type UserRole, useAuth } from "@/components/auth-provider";
 import type { AiChatRequest, AiChatScope } from "@/lib/ai-chat";
-import { uploadMaterial } from "@/lib/client-api";
+import { analyzePlanReference, uploadMaterial } from "@/lib/client-api";
 import {
   buildMemberWeaknessInsights,
   recordMaterialQuestion,
@@ -874,7 +874,14 @@ export function PrototypeProvider({
     }
 
     await runMutation(async () => {
-      await addPrototypePlanReferenceUpload(group, upload, resolvedCurrentUserId);
+      const analysis = await analyzePlanReference({
+        subject: group.subject,
+        fileName: upload.fileName,
+        mimeType: upload.mimeType,
+        imageDataUrl: upload.imageDataUrl,
+      });
+
+      await addPrototypePlanReferenceUpload(group, upload, analysis, resolvedCurrentUserId);
       await refreshGroups();
     });
   }
@@ -891,10 +898,18 @@ export function PrototypeProvider({
     }
 
     await runMutation(async () => {
+      const analysis = await analyzePlanReference({
+        subject: group.subject,
+        fileName: upload.fileName,
+        mimeType: upload.mimeType,
+        imageDataUrl: upload.imageDataUrl,
+      });
+
       await replacePrototypePlanReferenceUpload(
         group,
         uploadId,
         upload,
+        analysis,
         resolvedCurrentUserId,
       );
       await refreshGroups();
@@ -1047,6 +1062,15 @@ export function PrototypeProvider({
         overallGoal: group.overallGoal,
         description: group.description,
         recentUpdate: group.recentUpdate,
+        planReferenceUploads: group.planReferenceUploads.map((upload) => ({
+          fileName: upload.fileName,
+          summary: upload.summary,
+        })),
+        planReferenceUnits: group.planReferenceUnits.map((unit) => ({
+          sequence: unit.sequence,
+          label: unit.label,
+          detail: unit.detail,
+        })),
         materials: group.materials.map((material) => ({
           title: material.title,
           summary: material.summary,

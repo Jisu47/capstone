@@ -1,10 +1,11 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
-  buildMockPlanReferenceUnits,
+  buildPlanReferenceUnitsFromAnalysis,
   buildPlanAgentDraft,
   buildPlanAgentAnswer,
   isReviewCandidateDue,
   type PersonalPlanItemDraft,
+  type PlanReferenceAnalysisResult,
   type PlanAgentDraft,
   type PlanReferenceUploadDraft,
   type SavedPersonalTaskDraft,
@@ -1841,20 +1842,18 @@ export async function addPrototypeUploadedMaterial(
 export async function addPrototypePlanReferenceUpload(
   group: StudyGroup,
   upload: PlanReferenceUploadDraft,
+  analysis: PlanReferenceAnalysisResult,
   memberId = currentUserId,
 ) {
   const client = getSupabaseBrowserClient();
   const uploadId = createId(`${group.id}-plan-reference`);
   const fileName = upload.fileName.trim() || `${group.subject}-plan-reference.png`;
   const createdAt = new Date().toISOString();
-  const units = buildMockPlanReferenceUnits({
-    group,
-    upload: { id: uploadId, fileName },
+  const units = buildPlanReferenceUnitsFromAnalysis({
+    uploadId,
+    analysis,
   });
-  const summary =
-    units.length > 0
-      ? `${units[0]?.label}부터 ${units[units.length - 1]?.label}까지 ${units.length}개 진도 단위를 만들었습니다.`
-      : "진도 단위를 아직 만들지 못했습니다.";
+  const summary = analysis.summary.trim();
 
   ensureSuccess(
     "Failed to save plan reference upload",
@@ -1902,6 +1901,7 @@ export async function replacePrototypePlanReferenceUpload(
   group: StudyGroup,
   uploadId: string,
   upload: PlanReferenceUploadDraft,
+  analysis: PlanReferenceAnalysisResult,
   memberId = currentUserId,
 ) {
   const client = getSupabaseBrowserClient();
@@ -1920,14 +1920,11 @@ export async function replacePrototypePlanReferenceUpload(
   }
 
   const fileName = upload.fileName.trim() || `${group.subject}-plan-reference.png`;
-  const units = buildMockPlanReferenceUnits({
-    group,
-    upload: { id: uploadId, fileName },
+  const units = buildPlanReferenceUnitsFromAnalysis({
+    uploadId,
+    analysis,
   });
-  const summary =
-    units.length > 0
-      ? `${units[0]?.label}부터 ${units[units.length - 1]?.label}까지 ${units.length}개 진도 단위를 만들었습니다.`
-      : "진도 단위를 아직 만들지 못했습니다.";
+  const summary = analysis.summary.trim();
 
   ensureSuccess(
     "Failed to remove previous plan reference units",

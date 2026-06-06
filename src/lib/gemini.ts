@@ -4,19 +4,31 @@ import type {
   AiChatRequest,
   AiChatScope,
 } from "@/lib/ai-chat";
+import type { PlanReferenceAnalysisResult } from "@/lib/plan-flow";
 
-type GeminiPart = {
-  text?: string;
+type GeminiTextPart = {
+  text: string;
 };
+
+type GeminiInlineDataPart = {
+  inline_data: {
+    mime_type: string;
+    data: string;
+  };
+};
+
+type GeminiMessagePart = GeminiTextPart | GeminiInlineDataPart;
 
 type GeminiContent = {
   role: "user" | "model";
-  parts: GeminiPart[];
+  parts: GeminiMessagePart[];
 };
 
 type GeminiCandidate = {
   content?: {
-    parts?: GeminiPart[];
+    parts?: Array<{
+      text?: string;
+    }>;
   };
   finishReason?: string;
   finishMessage?: string;
@@ -39,12 +51,20 @@ export type GeminiAnswerResult = {
   isComplete: boolean;
 };
 
+export type PlanReferenceAnalysisRequest = {
+  subject: string;
+  fileName: string;
+  mimeType: string;
+  imageDataUrl: string;
+};
+
 const defaultGeminiModel = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
 const retriableStatusCodes = new Set([429, 500, 502, 503, 504]);
 const maxGeminiAttempts = 3;
 const planAgentMaxOutputTokens = 1536;
 const materialsMaxOutputTokens = 384;
 const maxPlanAgentContinuationTurns = 2;
+const planReferenceAnalysisMaxOutputTokens = 2048;
 
 export class GeminiRequestError extends Error {
   status: number;
@@ -159,8 +179,30 @@ function buildGroupContext(scope: AiChatScope, group: AiChatGroupContext) {
           .join("\n")
       : "No weekly plan is available.";
 
+  const planReferenceUploads =
+    group.planReferenceUploads.length > 0
+      ? group.planReferenceUploads
+          .slice(0, 4)
+          .map((upload, index) => `${index + 1}. ${upload.fileName} - ${upload.summary}`)
+          .join("\n")
+      : "No plan reference uploads are available.";
+
+  const planReferenceUnits =
+    group.planReferenceUnits.length > 0
+      ? group.planReferenceUnits
+          .slice(0, 24)
+          .map((unit) => `${unit.sequence}. ${unit.label} - ${unit.detail}`)
+          .join("\n")
+      : "No extracted timetable units are available.";
+
   return [
     ...header,
+    "",
+    "Plan reference uploads:",
+    planReferenceUploads,
+    "",
+    "Extracted timetable units:",
+    planReferenceUnits,
     "",
     "Roadmap:",
     roadmap,
@@ -185,11 +227,141 @@ function buildSystemInstruction(scope: AiChatScope) {
   return [
     "You are Study Flow's planning agent assistant.",
     "Answer in Korean.",
-    "Use the provided roadmap, weekly plan, and group goals to suggest realistic study planning guidance.",
+    "Use the provided extracted timetable units, roadmap, weekly plan, and group goals to suggest realistic study planning guidance.",
     "Do not claim that changes were already applied.",
     "Treat review management as a personal setting outside this shared planning conversation.",
     "Keep the answer concise enough for a mobile chat UI.",
   ].join(" ");
+}
+
+function buildPlanReferenceAnalysisInstruction() {
+  return [
+    "You analyze uploaded study timetable and syllabus images.",
+    "Return only JSON that matches the requested schema.",
+    "Preserve the source language from the image when possible.",
+    "Focus on visible study topics, objectives, and content.",
+    "Ignore teaching method, evaluation activity, empty cells, and decorative text.",
+  ].join(" ");
+}
+
+function buildPlanReferenceAnalysisPrompt(subject: string, fileName: string) {
+  return [
+    `Subject: ${subject || "Unknown subject"}`,
+    `File name: ${fileName || "plan-reference-image"}`,
+    "Task:",
+    "1. Read the uploaded timetable or syllabus image in order.",
+    "2. Extract ordered learning units.",
+    "3. If the image is organized by week, keep one unit per week row.",
+    "4. For each unit, write a short label and a detail that merges the visible topic, goal, and content.",
+    "5. Omit teaching method and evaluation text even if they appear in the image.",
+    "6. Return a one-sentence summary plus the ordered units.",
+  ].join("\n");
+}
+
+function parseDataUrl(dataUrl: string) {
+  const matched = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+
+  if (!matched) {
+    throw new Error("진도표 이미지 형식을 읽지 못했어요. 다시 업로드해 주세요.");
+  }
+
+  const [, mimeType, base64Data] = matched;
+  return {
+    mimeType,
+    base64Data,
+  };
+}
+
+function buildPlanReferenceResponseSchema() {
+  return {
+    type: "OBJECT",
+    required: ["summary", "units"],
+    properties: {
+      summary: {
+        type: "STRING",
+      },
+      units: {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          required: ["label", "detail"],
+          properties: {
+            label: {
+              type: "STRING",
+            },
+            detail: {
+              type: "STRING",
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
+function stripJsonCodeFence(value: string) {
+  return value
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+}
+
+function normalizeAnalysisText(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function sanitizePlanReferenceAnalysis(payload: unknown, fileName: string) {
+  if (!payload || typeof payload !== "object") {
+    throw new Error("진도표 분석 결과 형식이 올바르지 않아요.");
+  }
+
+  const maybeAnalysis = payload as {
+    summary?: unknown;
+    units?: unknown;
+  };
+
+  const units = Array.isArray(maybeAnalysis.units)
+    ? maybeAnalysis.units
+        .map((unit) => {
+          if (!unit || typeof unit !== "object") {
+            return null;
+          }
+
+          const maybeUnit = unit as {
+            label?: unknown;
+            detail?: unknown;
+          };
+          const label = normalizeAnalysisText(maybeUnit.label);
+          const detail = normalizeAnalysisText(maybeUnit.detail);
+
+          if (!label) {
+            return null;
+          }
+
+          return {
+            label,
+            detail: detail || `${fileName} 기준 ${label} 범위를 학습합니다.`,
+          };
+        })
+        .filter((unit): unit is { label: string; detail: string } => Boolean(unit))
+    : [];
+
+  if (units.length === 0) {
+    throw new Error("진도표에서 읽을 수 있는 계획 단위를 찾지 못했어요. 더 선명한 이미지로 다시 업로드해 주세요.");
+  }
+
+  return {
+    summary:
+      normalizeAnalysisText(maybeAnalysis.summary) ||
+      `${units[0]?.label}부터 ${units[units.length - 1]?.label}까지 ${units.length}개 단위를 추출했어요.`,
+    units,
+  } satisfies PlanReferenceAnalysisResult;
 }
 
 function extractAnswerResult(response: GeminiResponse): GeminiAnswerResult {
@@ -320,6 +492,105 @@ async function requestGeminiContent(
   );
 }
 
+async function requestPlanReferenceAnalysis(
+  apiKey: string,
+  request: PlanReferenceAnalysisRequest,
+) {
+  const parsedDataUrl = parseDataUrl(request.imageDataUrl);
+  const resolvedMimeType = request.mimeType.trim() || parsedDataUrl.mimeType;
+
+  if (!resolvedMimeType.startsWith("image/")) {
+    throw new Error("진도표 분석은 이미지 파일만 지원해요.");
+  }
+
+  for (let attempt = 1; attempt <= maxGeminiAttempts; attempt += 1) {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${defaultGeminiModel}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: buildPlanReferenceAnalysisInstruction() }],
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  inline_data: {
+                    mime_type: resolvedMimeType,
+                    data: parsedDataUrl.base64Data,
+                  },
+                },
+                {
+                  text: buildPlanReferenceAnalysisPrompt(
+                    request.subject,
+                    request.fileName,
+                  ),
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            topP: 0.8,
+            maxOutputTokens: planReferenceAnalysisMaxOutputTokens,
+            responseMimeType: "application/json",
+            responseSchema: buildPlanReferenceResponseSchema(),
+          },
+        }),
+        cache: "no-store",
+      },
+    );
+
+    if (response.ok) {
+      const payload = (await response.json()) as GeminiResponse;
+      const answer = extractAnswerResult(payload);
+
+      try {
+        const parsed = JSON.parse(stripJsonCodeFence(answer.text)) as unknown;
+        return sanitizePlanReferenceAnalysis(parsed, request.fileName);
+      } catch (error) {
+        throw new Error(
+          error instanceof Error
+            ? error.message
+            : "진도표 분석 결과를 해석하지 못했어요.",
+        );
+      }
+    }
+
+    let detail = response.statusText;
+
+    try {
+      const payload = (await response.json()) as unknown;
+      detail = extractApiError(payload) ?? detail;
+    } catch {
+      detail = await response.text();
+    }
+
+    if (retriableStatusCodes.has(response.status) && attempt < maxGeminiAttempts) {
+      await delay(
+        getRetryDelayMilliseconds(attempt, response.headers.get("retry-after")),
+      );
+      continue;
+    }
+
+    throw new GeminiRequestError(
+      response.status,
+      `Gemini API request failed (${response.status}): ${detail}`,
+    );
+  }
+
+  throw new GeminiRequestError(
+    503,
+    "Gemini API request failed (503): The service remained unavailable after retries.",
+  );
+}
+
 export function getGeminiModel() {
   return defaultGeminiModel;
 }
@@ -374,4 +645,16 @@ export async function generateGeminiAnswer({
     text: combinedText,
     isComplete: lastResult.finishReason === null || lastResult.finishReason === "STOP",
   };
+}
+
+export async function analyzePlanReferenceImage(
+  request: PlanReferenceAnalysisRequest,
+) {
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
+
+  if (!apiKey) {
+    throw new Error("Gemini API key is missing. Set GEMINI_API_KEY in .env.local.");
+  }
+
+  return requestPlanReferenceAnalysis(apiKey, request);
 }

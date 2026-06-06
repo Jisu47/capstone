@@ -13,6 +13,15 @@ export type AiChatGroupContext = {
   overallGoal: string;
   description: string;
   recentUpdate: string;
+  planReferenceUploads: Array<{
+    fileName: string;
+    summary: string;
+  }>;
+  planReferenceUnits: Array<{
+    sequence: number;
+    label: string;
+    detail: string;
+  }>;
   materials: Array<{
     title: string;
     summary: string;

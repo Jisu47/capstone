@@ -11,6 +11,7 @@ import type {
   PlanMutationRequest,
   PlanMutationResponse,
 } from "@/lib/api-contracts";
+import type { PlanReferenceAnalysisResult } from "@/lib/plan-flow";
 
 async function parseResponse<T>(response: Response): Promise<T> {
   if (response.ok) {
@@ -91,4 +92,21 @@ export async function askQuestion(groupId: string, request: AskQuestionRequest) 
   });
 
   return parseResponse<ChatAnswerDto>(response);
+}
+
+export async function analyzePlanReference(request: {
+  subject: string;
+  fileName: string;
+  mimeType: string;
+  imageDataUrl: string;
+}) {
+  const response = await fetch("/api/plan-reference/analyze", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  return parseResponse<PlanReferenceAnalysisResult>(response);
 }
