@@ -12,9 +12,7 @@ import {
 import { usePrototype } from "@/components/prototype-provider";
 import {
   buildPlanAgentDraft,
-  getReviewIntervalLabel,
   isLeader,
-  reviewIntervalOptions,
   type PlanAgentDraft,
 } from "@/lib/plan-flow";
 import { type StudyGroup } from "@/lib/mock-data";
@@ -77,7 +75,6 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
 
   const activeGroup = group;
   const leaderMode = isLeader(activeGroup, currentUserId);
-  const reviewInterval = activeGroup.reviewIntervals[currentUserId] ?? null;
   const planAgentBusy = isPlanAgentAnswering(activeGroup.id);
   const quickQuestions = [
     "진도표 기준으로 전체 계획 주차별 정리",
@@ -173,25 +170,16 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
           )}
         </SectionCard>
 
-        <SectionCard title="현재 설정">
-          <div className="grid gap-3 sm:grid-cols-2">
+        <SectionCard title="계획 참고 정보">
+          <div className="space-y-3">
             <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
-              <p className="text-xs font-medium text-slate-500">내 복습 간격</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">
-                {getReviewIntervalLabel(reviewInterval)}
-              </p>
+              <p className="text-xs font-medium text-slate-500">이번 주 목표</p>
+              <p className="mt-2 text-base font-semibold text-slate-900">{activeGroup.weeklyGoal}</p>
             </div>
             <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
-              <p className="text-xs font-medium text-slate-500">복습 기준</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">
-                이해도 낮음 항목만 복습 예정으로 저장됩니다.
-              </p>
+              <p className="text-xs font-medium text-slate-500">전체 목표</p>
+              <p className="mt-2 text-sm leading-6 text-slate-900">{activeGroup.overallGoal}</p>
             </div>
-          </div>
-
-          <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4">
-            <p className="text-xs font-medium text-slate-500">이번 주 목표</p>
-            <p className="mt-2 text-base font-semibold text-slate-900">{activeGroup.weeklyGoal}</p>
           </div>
         </SectionCard>
 
@@ -413,10 +401,6 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
         >
           계획으로 돌아가기
         </Link>
-
-        <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 text-xs leading-6 text-slate-500 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
-          복습 간격 옵션: {reviewIntervalOptions.map((option) => option.label).join(" / ")}
-        </div>
       </div>
     </AppShell>
   );

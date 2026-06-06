@@ -35,7 +35,6 @@ import type {
   PlanReferenceUploadDraft,
   SavedPersonalTaskDraft,
 } from "@/lib/plan-flow";
-import { getReviewIntervalLabel } from "@/lib/plan-flow";
 import {
   addPrototypeAssistantAnswer,
   addPrototypeDueReviewCandidateTodos,
@@ -454,7 +453,7 @@ export function PrototypeProvider({
       } else {
         sequence.timeoutIds.push(
           window.setTimeout(() => {
-            setPlanAgentStatus(group.id, "현재 계획과 복습 설정을 바탕으로 답변을 정리하는 중입니다.");
+            setPlanAgentStatus(group.id, "현재 계획과 목표를 바탕으로 답변을 정리하는 중입니다.");
           }, 700),
         );
       }
@@ -1048,9 +1047,6 @@ export function PrototypeProvider({
         overallGoal: group.overallGoal,
         description: group.description,
         recentUpdate: group.recentUpdate,
-        reviewIntervalLabel: getReviewIntervalLabel(
-          group.reviewIntervals[resolvedCurrentUserId] ?? null,
-        ),
         materials: group.materials.map((material) => ({
           title: material.title,
           summary: material.summary,
