@@ -5,8 +5,8 @@ import { useAuth } from "@/components/auth-provider";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { usePrototype } from "@/components/prototype-provider";
 
-const shellRootClass = "flex min-h-dvh flex-col bg-white text-slate-900";
-const shellFrameClass = "mx-auto flex w-full max-w-[430px] flex-col";
+const shellRootClass = "flex min-h-dvh flex-col overflow-x-hidden bg-white text-slate-900";
+const shellFrameClass = "mx-auto flex min-w-0 w-full max-w-[430px] flex-col";
 const shellHeaderStickyClass = "sticky top-0 z-30 px-4 md:px-6 lg:px-8";
 const shellHeaderFixedClass = "fixed inset-x-0 top-0 z-40 px-4 md:px-6 lg:px-8";
 const shellHeaderInnerClass =
@@ -15,8 +15,8 @@ const shellHeaderBareInnerClass =
   "mx-auto flex w-full max-w-[430px] flex-col gap-3 px-0 pb-0 pt-[calc(env(safe-area-inset-top)+0.875rem)]";
 const shellHeaderCapsuleInnerClass =
   "mx-auto flex w-full max-w-[430px] flex-col gap-3 px-0 pb-0 pt-[calc(env(safe-area-inset-top)+0.875rem)]";
-const shellMainClass = "space-y-4 px-4 pb-32 pt-4 md:px-6 md:pt-5 lg:px-8";
-const shellMainWithoutNavClass = "space-y-4 px-4 pb-10 pt-4 md:px-6 md:pt-5 lg:px-8";
+const shellMainClass = "min-w-0 space-y-4 px-4 pb-32 pt-4 md:px-6 md:pt-5 lg:px-8";
+const shellMainWithoutNavClass = "min-w-0 space-y-4 px-4 pb-10 pt-4 md:px-6 md:pt-5 lg:px-8";
 
 type HeaderVariant = "default" | "bare" | "capsule";
 type HeaderBehavior = "sticky" | "fixed";
