@@ -2258,78 +2258,88 @@ export async function togglePrototypePersonalPlanItem(itemId: string, completed:
 export async function applyPrototypePlanAgentDraft(groupId: string, draft: PlanAgentDraft) {
   const client = getSupabaseBrowserClient();
 
-  const existingPlanItems = await client
-    .from("plan_items")
-    .select("id")
-    .eq("group_id", groupId);
+  if (draft.scope === "both" || draft.scope === "weekly-plan") {
+    const existingPlanItems = await client
+      .from("plan_items")
+      .select("id")
+      .eq("group_id", groupId);
 
-  const planItemIds = unwrapData(
-    "Failed to inspect existing group plan items",
-    existingPlanItems,
-  ).map((row) => row.id);
+    const planItemIds = unwrapData(
+      "Failed to inspect existing group plan items",
+      existingPlanItems,
+    ).map((row) => row.id);
 
-  if (planItemIds.length > 0) {
+    if (planItemIds.length > 0) {
+      ensureSuccess(
+        "Failed to delete existing plan completions",
+        await client.from("plan_item_completions").delete().in("plan_item_id", planItemIds),
+      );
+    }
+
     ensureSuccess(
-      "Failed to delete existing plan completions",
-      await client.from("plan_item_completions").delete().in("plan_item_id", planItemIds),
+      "Failed to delete existing plan items",
+      await client.from("plan_items").delete().eq("group_id", groupId),
     );
+
+    if (draft.weeklyPlan.length > 0) {
+      ensureSuccess(
+        "Failed to save generated weekly plan",
+        await client.from("plan_items").insert(
+          draft.weeklyPlan.map((item, index) => ({
+            id: createId("plan-agent"),
+            group_id: groupId,
+            day: item.day,
+            title: item.title,
+            detail: item.detail,
+            duration: item.duration,
+            reference_unit_sequence: item.referenceUnitSequence ?? null,
+            sort_order: index,
+            created_at: new Date().toISOString(),
+          })),
+        ),
+      );
+    }
   }
 
-  ensureSuccess(
-    "Failed to delete existing plan items",
-    await client.from("plan_items").delete().eq("group_id", groupId),
-  );
-  ensureSuccess(
-    "Failed to delete existing roadmap items",
-    await client.from("group_roadmap_items").delete().eq("group_id", groupId),
-  );
-
-  if (draft.roadmap.length > 0) {
+  if (draft.scope === "both" || draft.scope === "roadmap") {
     ensureSuccess(
-      "Failed to save roadmap items",
-      await client.from("group_roadmap_items").insert(
-        draft.roadmap.map((item, index) => ({
-          id: item.id,
-          group_id: groupId,
-          week_number: item.weekNumber,
-          title: item.title,
-          summary: item.summary,
-          unit_start_sequence: item.unitStartSequence,
-          unit_end_sequence: item.unitEndSequence,
-          sort_order: index,
-        })),
-      ),
+      "Failed to delete existing roadmap items",
+      await client.from("group_roadmap_items").delete().eq("group_id", groupId),
     );
+
+    if (draft.roadmap.length > 0) {
+      ensureSuccess(
+        "Failed to save roadmap items",
+        await client.from("group_roadmap_items").insert(
+          draft.roadmap.map((item, index) => ({
+            id: item.id,
+            group_id: groupId,
+            week_number: item.weekNumber,
+            title: item.title,
+            summary: item.summary,
+            unit_start_sequence: item.unitStartSequence,
+            unit_end_sequence: item.unitEndSequence,
+            sort_order: index,
+          })),
+        ),
+      );
+    }
   }
 
-  if (draft.weeklyPlan.length > 0) {
-    ensureSuccess(
-      "Failed to save generated weekly plan",
-      await client.from("plan_items").insert(
-        draft.weeklyPlan.map((item, index) => ({
-          id: createId("plan-agent"),
-          group_id: groupId,
-          day: item.day,
-          title: item.title,
-          detail: item.detail,
-          duration: item.duration,
-          reference_unit_sequence: item.referenceUnitSequence ?? null,
-          sort_order: index,
-          created_at: new Date().toISOString(),
-        })),
-      ),
-    );
+  const groupUpdate: {
+    recent_update: string;
+    weekly_goal?: string;
+  } = {
+    recent_update: draft.recentUpdate,
+  };
+
+  if (draft.scope === "both" || draft.scope === "weekly-plan") {
+    groupUpdate.weekly_goal = draft.weeklyGoal;
   }
 
   ensureSuccess(
     "Failed to update group summary after applying plan agent draft",
-    await client
-      .from("study_groups")
-      .update({
-        weekly_goal: draft.weeklyGoal,
-        recent_update: draft.recentUpdate,
-      })
-      .eq("id", groupId),
+    await client.from("study_groups").update(groupUpdate).eq("id", groupId),
   );
 }
 
