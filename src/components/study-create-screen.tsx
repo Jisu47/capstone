@@ -52,8 +52,8 @@ export function StudyCreateScreen() {
   return (
     <AppShell
       showNavigation={false}
+      headerVariant="capsule"
       title="새 스터디 그룹"
-      subtitle="목표 날짜와 전체 목표를 먼저 정리하면 그룹 홈과 계획, 자료 흐름까지 자연스럽게 이어져요."
     >
       <SectionCard title="기본 정보 입력">
         <form className="space-y-4" onSubmit={handleSubmit}>

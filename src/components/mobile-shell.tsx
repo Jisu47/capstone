@@ -12,10 +12,12 @@ const shellHeaderInnerClass =
   "mx-auto flex w-full max-w-[430px] flex-col gap-3 rounded-b-[14px] rounded-t-none border border-slate-200 bg-white px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.875rem)] shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
 const shellHeaderBareInnerClass =
   "mx-auto flex w-full max-w-[430px] flex-col gap-3 px-0 pb-0 pt-[calc(env(safe-area-inset-top)+0.875rem)]";
+const shellHeaderCapsuleInnerClass =
+  "mx-auto flex w-full max-w-[430px] flex-col gap-3 px-0 pb-0 pt-[calc(env(safe-area-inset-top)+0.875rem)]";
 const shellMainClass = "space-y-4 px-4 pb-32 pt-4 md:px-6 md:pt-5 lg:px-8";
 const shellMainWithoutNavClass = "space-y-4 px-4 pb-10 pt-4 md:px-6 md:pt-5 lg:px-8";
 
-type HeaderVariant = "default" | "bare";
+type HeaderVariant = "default" | "bare" | "capsule";
 
 export function SectionCard({
   title,
@@ -72,10 +74,31 @@ export function MissingGroupState() {
 function DefaultHeader({
   title,
   subtitle,
+  variant = "default",
 }: Readonly<{
   title: string;
   subtitle?: string;
+  variant?: HeaderVariant;
 }>) {
+  if (variant === "capsule") {
+    return (
+      <section className="rounded-[28px] border border-[rgba(121,184,149,0.18)] bg-[linear-gradient(180deg,#ffffff_0%,#fbfdfb_100%)] px-4 pb-4 pt-4 shadow-[0_14px_32px_rgba(121,184,149,0.10)]">
+        <div className="space-y-4">
+          <Link
+            href="/"
+            className="inline-flex rounded-[999px] border border-[rgba(121,184,149,0.16)] bg-white px-4 py-2 text-[11px] font-semibold tracking-[0.06em] text-slate-700 shadow-[0_6px_16px_rgba(121,184,149,0.08)]"
+          >
+            STUDY FLOW
+          </Link>
+
+          <p className="font-[family:var(--font-study-display)] text-[30px] leading-none tracking-[-0.05em] text-slate-950">
+            {title}
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <>
       <div className="flex items-center justify-between gap-3">
@@ -130,14 +153,18 @@ export function AppShell({
   const shouldShowNavigation =
     showNavigation && (!requireAuth || (isAuthReady && Boolean(sessionName)));
   const resolvedHeaderInnerClass =
-    headerVariant === "bare" ? shellHeaderBareInnerClass : shellHeaderInnerClass;
+    headerVariant === "bare"
+      ? shellHeaderBareInnerClass
+      : headerVariant === "capsule"
+        ? shellHeaderCapsuleInnerClass
+        : shellHeaderInnerClass;
 
   if (requireAuth && !isAuthReady) {
     return (
       <div className={shellRootClass}>
         <header className={shellHeaderClass}>
           <div className={resolvedHeaderInnerClass}>
-            <DefaultHeader title={title} subtitle={subtitle} />
+            <DefaultHeader title={title} subtitle={subtitle} variant={headerVariant} />
           </div>
         </header>
 
@@ -155,7 +182,7 @@ export function AppShell({
       <div className={shellRootClass}>
         <header className={shellHeaderClass}>
           <div className={resolvedHeaderInnerClass}>
-            <DefaultHeader title={title} subtitle={subtitle} />
+            <DefaultHeader title={title} subtitle={subtitle} variant={headerVariant} />
           </div>
         </header>
 
@@ -187,7 +214,7 @@ export function AppShell({
           {headerContent ? (
             headerContent
           ) : (
-            <DefaultHeader title={title} subtitle={subtitle} />
+            <DefaultHeader title={title} subtitle={subtitle} variant={headerVariant} />
           )}
 
           {isLoading || isMutating ? (

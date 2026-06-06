@@ -223,7 +223,7 @@ export default function MyPage() {
       <AppShell
         requireAuth={false}
         showNavigation={false}
-        headerVariant="bare"
+        headerVariant="capsule"
         title="마이페이지"
       >
         <LoadingState message="계정 상태를 확인하는 중입니다." />
@@ -236,7 +236,7 @@ export default function MyPage() {
       <AppShell
         requireAuth={false}
         showNavigation={false}
-        headerVariant="bare"
+        headerVariant="capsule"
         title="마이페이지"
       >
         <SectionCard
