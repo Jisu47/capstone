@@ -202,7 +202,7 @@ function HeaderBar({ totalCount }: Readonly<{ totalCount: number }>) {
 
 function PageTitle() {
   return (
-    <h1 className="min-w-0 whitespace-normal text-[30px] font-[family:var(--font-study-display)] leading-none tracking-[-0.05em] text-slate-950">
+    <h1 className="mt-6 mb-6 min-w-0 whitespace-normal text-[36px] font-[family:var(--font-study-display)] font-extrabold leading-[1.2] tracking-[-0.05em] text-slate-950">
       그룹 선택
     </h1>
   );
@@ -210,19 +210,21 @@ function PageTitle() {
 
 function HeroCard({ displayName }: Readonly<{ displayName: string }>) {
   return (
-    <section className="rounded-[28px] bg-[linear-gradient(135deg,#F7FCF8_0%,#EEF8F1_52%,#FBFDFB_100%)] px-6 py-6 shadow-[0_8px_30px_rgba(76,175,122,0.10)]">
-      <div className="flex flex-col items-start gap-4">
-        <h2 className="min-w-0 whitespace-normal text-[24px] font-semibold leading-[1.35] tracking-[-0.04em] text-slate-950 sm:text-[26px]">
-          {displayName}님, 어디부터 들어갈까요?
+    <section className="h-[200px] max-h-[220px] rounded-[28px] bg-[linear-gradient(135deg,#F7FCF8_0%,#EEF8F1_52%,#FBFDFB_100%)] p-6 shadow-[0_8px_30px_rgba(76,175,122,0.10)]">
+      <div className="flex h-full min-w-0 items-center justify-between gap-4">
+        <h2 className="min-w-0 flex-1 whitespace-normal text-[24px] font-semibold leading-[1.35] tracking-[-0.04em] text-slate-950 sm:text-[26px]">
+          {displayName}님,
+          <br />
+          어디부터 들어갈까요?
         </h2>
 
-        <div className="mx-auto mt-1 flex h-[150px] w-[150px] max-w-[160px] items-center justify-center rounded-[28px] bg-white/70 shadow-[0_10px_28px_rgba(76,175,122,0.08)]">
+        <div className="mt-4 flex h-[132px] w-[132px] max-w-[140px] shrink-0 items-center justify-center self-end">
           <Image
             src="/hero-study-illustration.svg"
             alt="공부하는 학생 일러스트"
-            width={150}
-            height={150}
-            className="h-[150px] w-[150px] object-contain"
+            width={132}
+            height={132}
+            className="h-[132px] w-[132px] object-contain"
             priority
           />
         </div>
@@ -247,7 +249,7 @@ function ActionCard({
   return (
     <Link
       href={href}
-      className={`flex w-full min-w-0 items-center gap-4 rounded-[24px] px-5 py-4 transition ${
+      className={`flex min-h-[108px] w-full min-w-0 items-center gap-4 rounded-[24px] px-5 py-5 transition ${
         strong
           ? "bg-[linear-gradient(135deg,#7AC595_0%,#4CAF7A_100%)] text-white shadow-[0_16px_30px_rgba(76,175,122,0.18)] hover:brightness-[0.99]"
           : "bg-white text-slate-900 shadow-[0_8px_30px_rgba(15,23,42,0.05)] hover:translate-y-[-1px]"
@@ -262,10 +264,10 @@ function ActionCard({
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="min-w-0 whitespace-normal text-[18px] font-semibold tracking-[-0.03em] sm:text-[19px]">
+        <p className="min-w-0 whitespace-nowrap text-[20px] font-semibold tracking-[-0.03em]">
           {title}
         </p>
-        <p className={`mt-1.5 min-w-0 whitespace-normal text-[14px] leading-5 ${strong ? "text-white/82" : "text-slate-500"}`}>
+        <p className={`mt-1.5 min-w-0 whitespace-normal text-[14px] leading-[1.4] ${strong ? "text-white/82" : "text-slate-500"}`}>
           {description}
         </p>
       </div>
@@ -337,59 +339,14 @@ function NextGroupCard({
           <GroupInfoCard icon={<MaterialIcon />} label="자료 수" value={`${group.materials.length}개`} />
         </div>
 
-        <div className="flex min-w-0 flex-col gap-3">
-          <button
-            type="button"
-            onClick={() => onOpen(group.id)}
-            className="inline-flex w-full items-center justify-center gap-3 rounded-[18px] bg-[linear-gradient(135deg,#7AC595_0%,#4CAF7A_100%)] px-6 py-3.5 text-base font-semibold text-white shadow-[0_16px_30px_rgba(76,175,122,0.18)] transition hover:brightness-[0.99]"
-          >
-            <span>들어가기</span>
-            <ArrowRightIcon />
-          </button>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function ActiveGroupCard({
-  group,
-  onOpen,
-}: Readonly<{
-  group: StudyGroup;
-  onOpen: (groupId: string) => void;
-}>) {
-  return (
-    <article className="min-w-0 rounded-[24px] bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
-      <div className="flex min-w-0 flex-col gap-4">
-        <div className="flex min-w-0 flex-col gap-3 min-[390px]:flex-row min-[390px]:items-start min-[390px]:justify-between">
-          <div className="min-w-0">
-            <p className="text-[12px] font-semibold tracking-[0.08em] text-slate-400">{group.subject}</p>
-            <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
-              <h3 className="min-w-0 whitespace-normal text-[20px] font-semibold tracking-[-0.04em] text-slate-950">
-                {group.name}
-              </h3>
-              <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[#4CAF7A]">
-                {getGroupStatusLabel(group)}
-              </span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => onOpen(group.id)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-[18px] bg-white px-4 py-3 text-sm font-semibold text-[#4CAF7A] shadow-[inset_0_0_0_1px_rgba(76,175,122,0.22)] min-[390px]:w-auto"
-          >
-            <span>그룹 바로가기</span>
-            <ArrowRightIcon />
-          </button>
-        </div>
-
-        <div className="grid min-w-0 grid-cols-2 gap-3 min-[420px]:grid-cols-3">
-          <GroupInfoCard icon={<CalendarIcon />} label="목표 날짜" value={formatExamDate(group.examDate)} />
-          <GroupInfoCard icon={<MembersIcon />} label="팀원 수" value={`${group.members.length}명`} />
-          <GroupInfoCard icon={<MaterialIcon />} label="자료 수" value={`${group.materials.length}개`} />
-        </div>
+        <button
+          type="button"
+          onClick={() => onOpen(group.id)}
+          className="inline-flex h-[52px] w-full items-center justify-center gap-3 rounded-[18px] bg-[linear-gradient(135deg,#7AC595_0%,#4CAF7A_100%)] px-6 text-base font-semibold text-white shadow-[0_16px_30px_rgba(76,175,122,0.18)] transition hover:brightness-[0.99]"
+        >
+          <span>들어가기</span>
+          <ArrowRightIcon />
+        </button>
       </div>
     </article>
   );
@@ -493,7 +450,6 @@ function AuthenticatedHome() {
   const activeGroups = sortedGroups.filter((group) => group.status === "active");
   const completedGroups = sortedGroups.filter((group) => group.status === "completed");
   const featuredGroup = activeGroups[0] ?? null;
-  const otherActiveGroups = activeGroups.slice(1);
   const recentGroupId = currentUser?.joinedGroupId ?? featuredGroup?.id ?? null;
   const displayName = currentUser?.displayName ?? sessionName ?? "스터디 메이트";
 
@@ -508,12 +464,12 @@ function AuthenticatedHome() {
       title="그룹 선택"
       headerContent={<HeaderBar totalCount={sortedGroups.length} />}
     >
-      <section className="space-y-5">
+      <section>
         <PageTitle />
         <HeroCard displayName={displayName} />
       </section>
 
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <section className="grid grid-cols-1 gap-4">
         <ActionCard
           href="/create"
           title="새 그룹 만들기"
@@ -546,23 +502,6 @@ function AuthenticatedHome() {
             router.push(`/group/${groupId}`);
           }}
         />
-      ) : null}
-
-      {otherActiveGroups.length > 0 ? (
-        <section className="space-y-4">
-          <h3 className="px-1 text-[20px] font-semibold tracking-[-0.04em] text-slate-950">
-            다른 진행 중인 그룹
-          </h3>
-          {otherActiveGroups.map((group) => (
-            <ActiveGroupCard
-              key={group.id}
-              group={group}
-              onOpen={(groupId) => {
-                router.push(`/group/${groupId}`);
-              }}
-            />
-          ))}
-        </section>
       ) : null}
 
       {completedGroups.length > 0 ? (
