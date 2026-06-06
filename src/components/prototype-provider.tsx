@@ -11,7 +11,11 @@ import {
 } from "react";
 import { type AuthUser, type UserRole, useAuth } from "@/components/auth-provider";
 import type { AiChatRequest, AiChatScope } from "@/lib/ai-chat";
-import { analyzePlanReference, uploadMaterial } from "@/lib/client-api";
+import {
+  analyzePlanReference,
+  deleteMaterial,
+  uploadMaterial,
+} from "@/lib/client-api";
 import {
   buildMemberWeaknessInsights,
   recordMaterialQuestion,
@@ -103,6 +107,7 @@ type PrototypeContextValue = {
   addPlanItem: (groupId: string, item: PlanItemDraft) => Promise<void>;
   queueMockUpload: (groupId: string) => Promise<void>;
   uploadMaterialFile: (groupId: string, file: File) => Promise<void>;
+  deleteMaterialFile: (groupId: string, materialId: string) => Promise<void>;
   recordMaterialView: (
     groupId: string,
     materialId: string,
@@ -820,6 +825,20 @@ export function PrototypeProvider({
     });
   }
 
+  async function deleteMaterialFile(groupId: string, materialId: string) {
+    await runMutation(async () => {
+      const sessionResult = await getSupabaseBrowserClient().auth.getSession();
+      const accessToken = sessionResult.data.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error("濡쒓렇???곹깭瑜??ㅼ떆 ?뺤씤??二쇱꽭??");
+      }
+
+      await deleteMaterial(groupId, materialId, accessToken);
+      await refreshGroups();
+    });
+  }
+
   function recordMaterialView(
     groupId: string,
     materialId: string,
@@ -1229,6 +1248,7 @@ export function PrototypeProvider({
     addPlanItem,
     queueMockUpload,
     uploadMaterialFile,
+    deleteMaterialFile,
     recordMaterialView,
     getWeaknessInsights,
     uploadPlanReference,

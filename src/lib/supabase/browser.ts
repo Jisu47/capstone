@@ -20,6 +20,7 @@ export function getSupabaseBrowserClient() {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
+      storage: typeof window === "undefined" ? undefined : window.sessionStorage,
     },
   });
 

@@ -7,7 +7,8 @@ import { usePrototype } from "@/components/prototype-provider";
 
 const shellRootClass = "flex min-h-dvh flex-col bg-white text-slate-900";
 const shellFrameClass = "mx-auto flex w-full max-w-[430px] flex-col";
-const shellHeaderClass = "sticky top-0 z-30 px-4 md:px-6 lg:px-8";
+const shellHeaderStickyClass = "sticky top-0 z-30 px-4 md:px-6 lg:px-8";
+const shellHeaderFixedClass = "fixed inset-x-0 top-0 z-40 px-4 md:px-6 lg:px-8";
 const shellHeaderInnerClass =
   "mx-auto flex w-full max-w-[430px] flex-col gap-3 rounded-b-[14px] rounded-t-none border border-slate-200 bg-white px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.875rem)] shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
 const shellHeaderBareInnerClass =
@@ -18,6 +19,19 @@ const shellMainClass = "space-y-4 px-4 pb-32 pt-4 md:px-6 md:pt-5 lg:px-8";
 const shellMainWithoutNavClass = "space-y-4 px-4 pb-10 pt-4 md:px-6 md:pt-5 lg:px-8";
 
 type HeaderVariant = "default" | "bare" | "capsule";
+type HeaderBehavior = "sticky" | "fixed";
+
+function getFixedHeaderOffsetClass(variant: HeaderVariant) {
+  switch (variant) {
+    case "bare":
+      return "pt-[calc(env(safe-area-inset-top)+5.5rem)]";
+    case "capsule":
+      return "pt-[calc(env(safe-area-inset-top)+8.5rem)]";
+    case "default":
+    default:
+      return "pt-[calc(env(safe-area-inset-top)+6.75rem)]";
+  }
+}
 
 export function SectionCard({
   title,
@@ -131,6 +145,7 @@ export function AppShell({
   requireAuth = true,
   showNavigation = true,
   headerVariant = "default",
+  headerBehavior = "sticky",
   headerContent,
   children,
 }: Readonly<{
@@ -142,6 +157,7 @@ export function AppShell({
   requireAuth?: boolean;
   showNavigation?: boolean;
   headerVariant?: HeaderVariant;
+  headerBehavior?: HeaderBehavior;
   headerContent?: React.ReactNode;
   children: React.ReactNode;
 }>) {
@@ -152,24 +168,31 @@ export function AppShell({
   const resolvedNavReady = navReady ?? (groupId ? true : !isLoading);
   const shouldShowNavigation =
     showNavigation && (!requireAuth || (isAuthReady && Boolean(sessionName)));
+  const resolvedHeaderClass =
+    headerBehavior === "fixed" ? shellHeaderFixedClass : shellHeaderStickyClass;
   const resolvedHeaderInnerClass =
     headerVariant === "bare"
       ? shellHeaderBareInnerClass
       : headerVariant === "capsule"
         ? shellHeaderCapsuleInnerClass
         : shellHeaderInnerClass;
+  const fixedHeaderOffsetClass =
+    headerBehavior === "fixed" ? getFixedHeaderOffsetClass(headerVariant) : "";
+  const mainClassName = `${
+    shouldShowNavigation ? shellMainClass : shellMainWithoutNavClass
+  } ${fixedHeaderOffsetClass}`.trim();
 
   if (requireAuth && !isAuthReady) {
     return (
       <div className={shellRootClass}>
-        <header className={shellHeaderClass}>
+        <header className={resolvedHeaderClass}>
           <div className={resolvedHeaderInnerClass}>
             <DefaultHeader title={title} subtitle={subtitle} variant={headerVariant} />
           </div>
         </header>
 
         <div className={shellFrameClass}>
-          <main className={shellMainWithoutNavClass}>
+          <main className={`${shellMainWithoutNavClass} ${fixedHeaderOffsetClass}`.trim()}>
             <LoadingState message="로그인 상태를 확인하고 있습니다." />
           </main>
         </div>
@@ -180,14 +203,14 @@ export function AppShell({
   if (requireAuth && !sessionName) {
     return (
       <div className={shellRootClass}>
-        <header className={shellHeaderClass}>
+        <header className={resolvedHeaderClass}>
           <div className={resolvedHeaderInnerClass}>
             <DefaultHeader title={title} subtitle={subtitle} variant={headerVariant} />
           </div>
         </header>
 
         <div className={shellFrameClass}>
-          <main className={shellMainWithoutNavClass}>
+          <main className={`${shellMainWithoutNavClass} ${fixedHeaderOffsetClass}`.trim()}>
             <SectionCard
               title="로그인이 필요해요"
               action={
@@ -209,7 +232,7 @@ export function AppShell({
 
   return (
     <div className={shellRootClass}>
-      <header className={shellHeaderClass}>
+      <header className={resolvedHeaderClass}>
         <div className={resolvedHeaderInnerClass}>
           {headerContent ? (
             headerContent
@@ -232,7 +255,7 @@ export function AppShell({
       </header>
 
       <div className={shellFrameClass}>
-        <main className={shouldShowNavigation ? shellMainClass : shellMainWithoutNavClass}>
+        <main className={mainClassName}>
           {children}
         </main>
 

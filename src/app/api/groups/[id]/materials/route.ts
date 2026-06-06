@@ -16,6 +16,18 @@ import { getSupabaseAdminClient, getSupabaseServerClient } from "@/lib/supabase/
 
 export const runtime = "nodejs";
 
+type MembershipRow = {
+  member_id: string;
+  member_role?: "leader" | "member" | null;
+};
+
+type MaterialRecordRow = {
+  id: string;
+  title: string;
+  uploaded_by_member_id: string;
+  storage_path?: string | null;
+};
+
 function getAccessToken(request: Request) {
   const authorization = request.headers.get("authorization")?.trim();
 
@@ -112,6 +124,42 @@ async function cleanupFailedUpload(
     databaseClient.from("materials").delete().eq("id", materialId),
     databaseClient.storage.from(studyMaterialsBucket).remove([storagePath]),
   ]);
+}
+
+async function getVerifiedUser(request: Request) {
+  const accessToken = getAccessToken(request);
+  const serverClient = getSupabaseServerClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await serverClient.auth.getUser(accessToken);
+
+  if (authError || !user) {
+    throw new Error("?꾩옱 濡쒓렇?명븳 ?ъ슜?먮? ?뺤씤?섏? 紐삵뻽?댁슂. ?ㅼ떆 濡쒓렇?명빐 二쇱꽭??");
+  }
+
+  return user;
+}
+
+async function getGroupMembership(
+  databaseClient: SupabaseClient,
+  groupId: string,
+  userId: string,
+) {
+  const membershipResponse = await databaseClient
+    .from("group_members")
+    .select("member_id, member_role")
+    .eq("group_id", groupId)
+    .eq("member_id", userId)
+    .maybeSingle();
+
+  if (membershipResponse.error) {
+    throw new Error(
+      `洹몃９ 硫ㅻ쾭??쓣 ?뺤씤?섏? 紐삵뻽?댁슂: ${membershipResponse.error.message}`,
+    );
+  }
+
+  return (membershipResponse.data ?? null) as MembershipRow | null;
 }
 
 export async function GET(
@@ -269,6 +317,104 @@ export async function POST(
       },
       { status: 201 },
     );
+  } catch (error) {
+    return jsonError(error, 500);
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await context.params;
+    const materialId = new URL(request.url).searchParams.get("materialId")?.trim();
+
+    if (!materialId) {
+      return jsonError(new Error("???쒗븷 ?먮즺瑜??좏깮??二쇱꽭??"), 400);
+    }
+
+    let user: Awaited<ReturnType<typeof getVerifiedUser>>;
+
+    try {
+      user = await getVerifiedUser(request);
+    } catch (error) {
+      return jsonError(error, 401);
+    }
+
+    const hasServiceRoleKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
+    const adminClient = hasServiceRoleKey ? getSupabaseAdminClient() : null;
+    const databaseClient = adminClient ?? getSupabaseServerClient();
+    const membership = await getGroupMembership(databaseClient, id, user.id);
+
+    if (!membership) {
+      return NextResponse.json(
+        { error: "???ㅽ꽣??紐⑥엫??硫ㅻ쾭留??먮즺瑜???젣?????놁뼱??" },
+        { status: 403 },
+      );
+    }
+
+    const materialResponse = await databaseClient
+      .from("materials")
+      .select("*")
+      .eq("group_id", id)
+      .eq("id", materialId)
+      .maybeSingle();
+
+    if (materialResponse.error) {
+      throw new Error(`?먮즺 ?뺣낫瑜?遺덈윭?ㅼ? 紐삵뻽?댁슂: ${materialResponse.error.message}`);
+    }
+
+    const material = (materialResponse.data ?? null) as MaterialRecordRow | null;
+
+    if (!material) {
+      return NextResponse.json({ error: "?먮즺瑜?李얠? 紐삵뻽?댁슂." }, { status: 404 });
+    }
+
+    const canDelete =
+      membership.member_role === "leader" || material.uploaded_by_member_id === user.id;
+
+    if (!canDelete) {
+      return NextResponse.json(
+        { error: "?낅줈?쒗븳 ?ъ슜?먮굹 ???μ옣留??먮즺瑜???젣?????놁뼱??" },
+        { status: 403 },
+      );
+    }
+
+    const deleteResponse = await databaseClient
+      .from("materials")
+      .delete()
+      .eq("group_id", id)
+      .eq("id", materialId);
+
+    if (deleteResponse.error) {
+      throw new Error(`?먮즺瑜???젣?섏? 紐삵뻽?댁슂: ${deleteResponse.error.message}`);
+    }
+
+    if (material.storage_path && adminClient) {
+      const removeResponse = await adminClient.storage
+        .from(studyMaterialsBucket)
+        .remove([material.storage_path]);
+
+      if (removeResponse.error) {
+        console.error("Failed to remove material from storage", removeResponse.error);
+      }
+    }
+
+    const groupUpdateResponse = await databaseClient
+      .from("study_groups")
+      .update({
+        recent_update: `${material.title} ?먮즺瑜???젣?섏뿀?듬땲??`,
+      })
+      .eq("id", id);
+
+    if (groupUpdateResponse.error) {
+      throw new Error(
+        `洹몃９ 理쒓렐 ?쒕룞??媛깆떊?섏? 紐삵뻽?댁슂: ${groupUpdateResponse.error.message}`,
+      );
+    }
+
+    return NextResponse.json({ ok: true, materialId });
   } catch (error) {
     return jsonError(error, 500);
   }

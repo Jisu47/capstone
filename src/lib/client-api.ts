@@ -96,6 +96,24 @@ export async function uploadMaterial(groupId: string, file: File, accessToken: s
   return parseResponse<MaterialDto>(response);
 }
 
+export async function deleteMaterial(
+  groupId: string,
+  materialId: string,
+  accessToken: string,
+) {
+  const response = await fetch(
+    `/api/groups/${groupId}/materials?materialId=${encodeURIComponent(materialId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+  return parseResponse<{ ok: true; materialId: string }>(response);
+}
+
 export async function fetchChat(groupId: string) {
   const response = await fetch(`/api/groups/${groupId}/chat`, {
     cache: "no-store",

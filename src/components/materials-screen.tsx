@@ -412,6 +412,7 @@ type MaterialRowProps = {
   onOpenChat: () => void;
   onToggleMenu: () => void;
   onRecordView: () => void;
+  onDelete: () => void;
 };
 
 function MaterialRow({
@@ -421,6 +422,7 @@ function MaterialRow({
   onOpenChat,
   onToggleMenu,
   onRecordView,
+  onDelete,
 }: Readonly<MaterialRowProps>) {
   return (
     <div
@@ -442,7 +444,17 @@ function MaterialRow({
           </div>
         </button>
 
-        <div className="relative shrink-0" data-material-menu-root="true">
+        <div className="flex shrink-0 items-start gap-1">
+          <button
+            type="button"
+            onClick={onDelete}
+            className="rounded-full p-2 text-rose-300 transition hover:bg-rose-50 hover:text-rose-600"
+            aria-label={`${material.title} 삭제`}
+          >
+            <CloseIcon />
+          </button>
+
+          <div className="relative" data-material-menu-root="true">
           <button
             type="button"
             onClick={onToggleMenu}
@@ -470,6 +482,7 @@ function MaterialRow({
               </button>
             </div>
           ) : null}
+          </div>
         </div>
       </div>
     </div>
@@ -609,6 +622,7 @@ function AiPanel({
 
 export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
   const {
+    deleteMaterialFile,
     groups,
     getWeaknessInsights,
     isAnswering,
@@ -739,6 +753,31 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
     setFeedbackMessage(`${material.title} 읽기 기록을 남겼어요.`);
     setErrorMessage(null);
     setOpenMenuMaterialId(null);
+  }
+
+  async function handleDeleteMaterial(material: Material) {
+    const confirmed = window.confirm(`${material.title} 자료를 삭제할까요?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setOpenMenuMaterialId(null);
+    setErrorMessage(null);
+    setFeedbackMessage(null);
+
+    try {
+      await deleteMaterialFile(activeGroup.id, material.id);
+      setFeedbackMessage(`${material.title} 자료를 삭제했어요.`);
+
+      if (selectedMaterialId === material.id) {
+        setActiveView("list");
+      }
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "자료 삭제 중 오류가 발생했어요.",
+      );
+    }
   }
 
   function openMaterialChat(material: Material) {
@@ -909,6 +948,9 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
                         )
                       }
                       onRecordView={() => handleRecordMaterial(material)}
+                      onDelete={() => {
+                        void handleDeleteMaterial(material);
+                      }}
                     />
                   ))}
                 </div>

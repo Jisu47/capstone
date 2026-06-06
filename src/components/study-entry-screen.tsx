@@ -99,23 +99,23 @@ function SplashScreen() {
 
 function HomeHeader({ totalCount }: Readonly<{ totalCount: number }>) {
   return (
-    <div className="space-y-3">
+    <section className="rounded-[28px] border border-[rgba(121,184,149,0.18)] bg-[linear-gradient(180deg,#ffffff_0%,#fbfdfb_100%)] px-4 pb-4 pt-4 shadow-[0_14px_32px_rgba(121,184,149,0.10)]">
       <div className="flex items-center justify-between gap-3">
         <Link
           href="/"
-          className="inline-flex rounded-full border border-[rgba(121,184,149,0.18)] bg-white/90 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-slate-700 shadow-[0_6px_16px_rgba(121,184,149,0.08)]"
+          className="inline-flex rounded-[999px] border border-[rgba(121,184,149,0.16)] bg-white px-4 py-2 text-[11px] font-semibold tracking-[0.06em] text-slate-700 shadow-[0_6px_16px_rgba(121,184,149,0.08)]"
         >
           STUDY FLOW
         </Link>
-        <div className="rounded-full border border-[rgba(121,184,149,0.22)] bg-[rgba(230,243,235,0.82)] px-3 py-1 text-[10px] font-semibold text-[var(--brand)]">
+        <div className="rounded-full border border-[rgba(121,184,149,0.18)] bg-[var(--brand-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--brand)]">
           내 그룹 {totalCount}개
         </div>
       </div>
 
-      <p className="font-[family:var(--font-study-display)] text-[31px] leading-none tracking-[-0.06em] text-slate-950">
+      <p className="mt-4 font-[family:var(--font-study-display)] text-[30px] leading-none tracking-[-0.05em] text-slate-950">
         그룹 선택
       </p>
-    </div>
+    </section>
   );
 }
 
@@ -309,7 +309,8 @@ function AuthenticatedHome() {
     <AppShell
       requireAuth={false}
       showNavigation={false}
-      headerVariant="bare"
+      headerVariant="capsule"
+      headerBehavior="fixed"
       title="그룹 선택"
       headerContent={
         <HomeHeader totalCount={sortedGroups.length} />
