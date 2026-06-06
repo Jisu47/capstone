@@ -171,6 +171,7 @@ function toErrorMessage(error: unknown) {
       error.message.includes("overall_goal") ||
       error.message.includes("review_days") ||
       error.message.includes("reference_unit_sequence") ||
+      error.message.includes("member_role") ||
       error.message.includes("plan_reference_uploads") ||
       error.message.includes("plan_reference_units") ||
       error.message.includes("group_roadmap_items") ||
@@ -217,9 +218,9 @@ function syncCurrentMemberGroupState(group: StudyGroup, currentMember: Member | 
     return group;
   }
 
-  const hasCurrentMember = group.members.some((member) => member.id === currentMember.id);
+  const existingMember = group.members.find((member) => member.id === currentMember.id);
 
-  if (!hasCurrentMember) {
+  if (!existingMember) {
     return group;
   }
 
@@ -227,7 +228,9 @@ function syncCurrentMemberGroupState(group: StudyGroup, currentMember: Member | 
     member.id === currentMember.id
       ? {
           ...member,
-          ...currentMember,
+          name: currentMember.name,
+          bio: currentMember.bio,
+          avatarPreset: currentMember.avatarPreset,
         }
       : member,
   );

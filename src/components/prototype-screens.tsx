@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { ProfileAvatar } from "@/components/profile-avatar";
@@ -383,13 +383,10 @@ export function CreateGroupScreen() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState<CreateGroupInput>({
-    name: "알고리즘 기말 대비",
-    subject: "알고리즘",
-    examDate: "2026-04-30",
-    presentationDate: "2026-04-24",
-    deadlineDate: "2026-04-27",
-    overallGoal: "기말고사 전까지 팀 전체가 안정적으로 문제를 풀 수 있는 상태 만들기",
-    weeklyGoal: "그래프/DP 정리, 기출 2회독, 발표 질문 준비",
+    name: "",
+    subject: "",
+    examDate: "",
+    overallGoal: "",
   });
 
   function handleChange<Key extends keyof CreateGroupInput>(
@@ -417,7 +414,7 @@ export function CreateGroupScreen() {
   return (
     <AppShell
       title="새 스터디 모임 만들기"
-      subtitle="모임명과 시험 일정만 넣으면 공용 자료, 주간 계획, AI 질문 흐름이 바로 이어지는 데모를 확인할 수 있습니다."
+      subtitle="모임명과 목표 날짜, 전체 목표만 정리하면 공용 자료와 계획 흐름이 바로 이어집니다."
     >
       <SectionCard title="입력 정보">
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -427,6 +424,7 @@ export function CreateGroupScreen() {
               required
               value={form.name}
               onChange={(event) => handleChange("name", event.target.value)}
+              placeholder="예: 알고리즘 기말 대비"
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
             />
           </label>
@@ -437,12 +435,13 @@ export function CreateGroupScreen() {
               required
               value={form.subject}
               onChange={(event) => handleChange("subject", event.target.value)}
+              placeholder="예: 알고리즘"
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
             />
           </label>
 
           <label className="block space-y-2">
-            <span className="text-sm font-semibold text-slate-800">시험일 또는 마감일</span>
+            <span className="text-sm font-semibold text-slate-800">목표 날짜</span>
             <input
               required
               type="date"
@@ -453,12 +452,13 @@ export function CreateGroupScreen() {
           </label>
 
           <label className="block space-y-2">
-            <span className="text-sm font-semibold text-slate-800">주간 목표</span>
+            <span className="text-sm font-semibold text-slate-800">전체 목표</span>
             <textarea
               required
               rows={4}
-              value={form.weeklyGoal}
-              onChange={(event) => handleChange("weeklyGoal", event.target.value)}
+              value={form.overallGoal}
+              onChange={(event) => handleChange("overallGoal", event.target.value)}
+              placeholder="예: 기말고사 전까지 팀 전체가 핵심 문제를 안정적으로 설명하고 해결할 수 있는 상태 만들기"
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
             />
           </label>
@@ -477,7 +477,7 @@ export function CreateGroupScreen() {
         <div className="grid gap-3">
           {[
             "공용 자료 3개가 예시 데이터로 자동 세팅됩니다.",
-            "시험일까지 남은 기간을 기준으로 요일별 학습 계획이 생성됩니다.",
+            "목표 날짜까지 남은 기간을 기준으로 요일별 학습 계획이 생성됩니다.",
             "AI 질문 화면에서 추천 질문과 mock 답변을 바로 확인할 수 있습니다.",
           ].map((item) => (
             <div key={item} className="rounded-2xl bg-white/80 p-3 text-sm leading-6 text-slate-700">

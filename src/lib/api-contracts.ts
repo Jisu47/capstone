@@ -143,6 +143,7 @@ export type StoredGroup = {
 export type StoredGroupMember = {
   groupId: string;
   userId: string;
+  memberRole: "leader" | "member";
 };
 
 export type StoredPlanItem = {

@@ -79,6 +79,7 @@ type GroupMemberRow = {
   member_id: string;
   sort_order: number;
   review_interval_days: ReviewIntervalDays | null;
+  member_role: "leader" | "member";
 };
 
 type MaterialRow = {
@@ -282,6 +283,10 @@ function toStoredProfileRole(role: Member["role"]) {
   return role === "팀장" ? "leader" : "member";
 }
 
+function toStoredMembershipRole(role: Member["role"]) {
+  return role === "팀장" ? "leader" : "member";
+}
+
 function toMemberRole(role: string | null | undefined): Member["role"] {
   if (role === "leader" || role === "팀장") {
     return "팀장";
@@ -413,6 +418,7 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
     member_id: member.id,
     sort_order: index,
     review_interval_days: group.reviewIntervals[member.id] ?? null,
+    member_role: toStoredMembershipRole(member.role),
   }));
 
   const materials = group.materials.map<MaterialRow>((material) => {
@@ -854,7 +860,7 @@ function rowsToGroups({
       .sort((left, right) => left.sort_order - right.sort_order)
       .map((membership) => {
         const profile = profilesById.get(membership.member_id);
-        const role = toMemberRole(profile?.role);
+        const role = toMemberRole(membership.member_role ?? profile?.role);
 
         return createMemberProfile({
           id: membership.member_id,
@@ -1351,6 +1357,7 @@ export async function ensurePrototypeGroupMembership(groupId: string, member: Me
         member_id: member.id,
         sort_order: memberRows.length,
         review_interval_days: null,
+        member_role: toStoredMembershipRole(member.role),
       },
       { onConflict: "group_id,member_id" },
     ),

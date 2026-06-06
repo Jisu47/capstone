@@ -160,7 +160,12 @@ export type GroupDetailsInput = {
   overallGoal: string;
 };
 
-export type CreateGroupInput = GroupDetailsInput;
+export type CreateGroupInput = {
+  name: string;
+  subject: string;
+  examDate: string;
+  overallGoal: string;
+};
 
 export const currentUserId = "member-jiyoon";
 const avatarPresetOrder: AvatarPreset[] = ["sky", "emerald", "rose", "amber"];
@@ -257,11 +262,6 @@ function parseGoals(weeklyGoal: string) {
     .split(/[\n,\/]/)
     .map((goal) => goal.trim())
     .filter(Boolean);
-}
-
-function normalizeOptionalDate(value: string) {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
 }
 
 export function buildGroupDescription(subject: string, overallGoal: string) {
@@ -553,11 +553,11 @@ export function createGroupFromInput(
   const memberIds = members.map((member) => member.id);
   const trimmedSubject = input.subject.trim();
   const trimmedName = input.name.trim();
-  const trimmedWeeklyGoal = input.weeklyGoal.trim();
   const trimmedOverallGoal = input.overallGoal.trim();
+  const trimmedWeeklyGoal = trimmedOverallGoal;
   const groupId = `group-${Date.now().toString(36)}`;
 
-  if (!trimmedName || !trimmedSubject || !input.examDate || !trimmedWeeklyGoal || !trimmedOverallGoal) {
+  if (!trimmedName || !trimmedSubject || !input.examDate || !trimmedOverallGoal) {
     throw new Error("스터디 생성에 필요한 기본 정보가 비어 있습니다.");
   }
 
@@ -567,8 +567,8 @@ export function createGroupFromInput(
     subject: trimmedSubject,
     status: "active",
     examDate: input.examDate,
-    presentationDate: normalizeOptionalDate(input.presentationDate),
-    deadlineDate: normalizeOptionalDate(input.deadlineDate),
+    presentationDate: null,
+    deadlineDate: null,
     weeklyGoal: trimmedWeeklyGoal,
     overallGoal: trimmedOverallGoal,
     description: buildGroupDescription(trimmedSubject, trimmedOverallGoal),

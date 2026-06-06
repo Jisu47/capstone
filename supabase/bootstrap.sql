@@ -84,6 +84,26 @@ alter table public.study_groups
 alter table public.group_members
   add column if not exists review_interval_days integer;
 
+alter table public.group_members
+  add column if not exists member_role text;
+
+update public.group_members
+set member_role = case when sort_order = 0 then 'leader' else 'member' end
+where member_role is null;
+
+alter table public.group_members
+  alter column member_role set default 'member';
+
+alter table public.group_members
+  alter column member_role set not null;
+
+alter table public.group_members
+  drop constraint if exists group_members_member_role_check;
+
+alter table public.group_members
+  add constraint group_members_member_role_check
+  check (member_role in ('leader', 'member'));
+
 create table if not exists public.materials (
   id text primary key,
   group_id text not null references public.study_groups(id) on delete cascade,

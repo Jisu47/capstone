@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/auth-provider";
 import { GroupHomeTutorial } from "@/components/group-home-tutorial";
 import { AppShell, LoadingState, MissingGroupState } from "@/components/mobile-shell";
 import { GroupPageHeader } from "@/components/group-page-header";
 import { usePrototype } from "@/components/prototype-provider";
 import { createGroupJoinCode } from "@/lib/group-join-code";
 import { clearPendingGroupHomeTour, hasPendingGroupHomeTour } from "@/lib/group-home-tour";
+import { getGroupMembership } from "@/lib/group-membership";
 import {
   formatExamDate,
   getDaysLeft,
@@ -210,7 +212,9 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     overallGoal: "",
   });
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const { currentUser } = useAuth();
   const group = getGroupById(groups, groupId);
+  const membership = currentUser && group ? getGroupMembership(group, currentUser.userId) : null;
 
   useEffect(() => {
     if (!isMenuOpen) {
@@ -238,6 +242,14 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   }
 
   if (!group) {
+    return (
+      <AppShell groupId={groupId} title="홈">
+        <MissingGroupState />
+      </AppShell>
+    );
+  }
+
+  if (currentUser && !membership) {
     return (
       <AppShell groupId={groupId} title="홈">
         <MissingGroupState />
@@ -454,9 +466,9 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
           <div className="mt-4 grid grid-cols-2 gap-2.5">
             <SummaryItem label="팀장" value={leader?.name ?? "미정"} />
             <SummaryItem label="팀원" value={`${activeGroup.members.length}명`} />
-            <SummaryItem label="시험일" value={formatExamDate(activeGroup.examDate)} />
+            <SummaryItem label="목표 날짜" value={formatExamDate(activeGroup.examDate)} />
             <SummaryItem
-              label="시험까지"
+              label="목표까지"
               value={shouldPromptPostExamDecision ? "일정 지남" : daysLeft === 0 ? "D-day" : `D-${daysLeft}`}
             />
           </div>

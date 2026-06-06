@@ -44,6 +44,15 @@ type AuthActionResult =
       error: string;
     };
 
+type DeleteAccountResult =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
 type AuthContextValue = {
   isAuthReady: boolean;
   sessionName: string | null;
@@ -52,6 +61,7 @@ type AuthContextValue = {
   signUp: (input: SignUpInput) => Promise<AuthActionResult>;
   updateProfile: (input: UpdateProfileInput) => Promise<AuthActionResult>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<DeleteAccountResult>;
   markGroupJoined: (groupId: string, role: UserRole) => Promise<AuthUser | null>;
   setJoinedGroupState: (
     groupId: string | null,
@@ -496,6 +506,51 @@ export function AuthProvider({
     setCurrentUser(null);
   }
 
+  async function deleteAccount(): Promise<DeleteAccountResult> {
+    if (!sessionUser) {
+      return {
+        ok: false,
+        error: "로그인 상태를 다시 확인해 주세요.",
+      };
+    }
+
+    const sessionResult = await client.auth.getSession();
+    const accessToken = sessionResult.data.session?.access_token;
+
+    if (!accessToken) {
+      return {
+        ok: false,
+        error: "인증 토큰을 확인하지 못했어요. 다시 로그인해 주세요.",
+      };
+    }
+
+    const response = await fetch("/api/account/delete", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const payload = (await response.json().catch(() => null)) as
+      | { error?: string }
+      | null;
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        error: payload?.error ?? "회원 탈퇴에 실패했어요.",
+      };
+    }
+
+    try {
+      await client.auth.signOut();
+    } finally {
+      setSessionUser(null);
+      setCurrentUser(null);
+    }
+
+    return { ok: true };
+  }
+
   async function markGroupJoined(groupId: string, role: UserRole) {
     if (!sessionUser) {
       return null;
@@ -531,6 +586,7 @@ export function AuthProvider({
         signUp,
         updateProfile,
         signOut,
+        deleteAccount,
         markGroupJoined,
         setJoinedGroupState,
         resolvePostAuthPath,

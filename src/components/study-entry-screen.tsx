@@ -6,15 +6,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { AppShell, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
+import { getMemberGroups } from "@/lib/group-membership";
 import { formatExamDate, getDaysLeft, type StudyGroup } from "@/lib/mock-data";
-
-function findUserGroups(groups: StudyGroup[], userId: string | null) {
-  if (!userId) {
-    return [];
-  }
-
-  return groups.filter((group) => group.members.some((member) => member.id === userId));
-}
 
 function sortGroupsByStatusAndExamDate(groups: StudyGroup[]) {
   return [...groups].sort((left, right) => {
@@ -32,7 +25,7 @@ function sortGroupsByStatusAndExamDate(groups: StudyGroup[]) {
 
 function getGroupStatusLabel(group: StudyGroup) {
   if (group.status === "completed") {
-    return "수료함";
+    return "운영 종료";
   }
 
   const daysLeft = getDaysLeft(group.examDate);
@@ -63,9 +56,7 @@ function SplashScreen() {
 
       <div className="relative mx-auto flex w-full max-w-[430px] flex-1 flex-col px-6 pb-10 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
         <div className="flex items-center justify-between text-sm text-slate-500">
-          <span className="font-semibold tracking-[0.24em] text-slate-600">
-            STUDY FLOW
-          </span>
+          <span className="font-semibold tracking-[0.24em] text-slate-600">STUDY FLOW</span>
         </div>
 
         <div className="flex flex-1 flex-col items-center justify-center">
@@ -107,31 +98,23 @@ function SplashScreen() {
 
 function AuthenticatedHome() {
   const { allGroups, isLoading } = usePrototype();
-  const { currentUser, sessionName, signOut } = useAuth();
+  const { currentUser, sessionName } = useAuth();
   const router = useRouter();
-  const sortedGroups = sortGroupsByStatusAndExamDate(
-    findUserGroups(allGroups, currentUser?.userId ?? null),
-  );
+  const sortedGroups = currentUser
+    ? sortGroupsByStatusAndExamDate(getMemberGroups(allGroups, currentUser.userId))
+    : [];
 
   return (
     <AppShell requireAuth={false} showNavigation={false} title="그룹 선택">
       <SectionCard
         title={`${sessionName ?? "사용자"}님`}
         action={
-          <button
-            type="button"
-            onClick={() => {
-              void signOut();
-            }}
-            className="text-sm font-semibold text-[var(--brand)]"
-          >
-            로그아웃
-          </button>
+          <Link href="/mypage" className="text-sm font-semibold text-[var(--brand)]">
+            마이페이지
+          </Link>
         }
       >
-        <p className="text-sm text-[var(--ink-soft)]">
-          들어갈 스터디 그룹을 선택해 주세요.
-        </p>
+        <p className="text-sm text-[var(--ink-soft)]">들어갈 스터디 그룹을 선택해 주세요.</p>
       </SectionCard>
 
       <SectionCard
@@ -187,9 +170,7 @@ function AuthenticatedHome() {
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                       {group.subject}
                     </p>
-                    <p className="mt-1 text-base font-semibold text-slate-900">
-                      {group.name}
-                    </p>
+                    <p className="mt-1 text-base font-semibold text-slate-900">{group.name}</p>
                   </div>
                   <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
                     {getGroupStatusLabel(group)}
@@ -197,7 +178,7 @@ function AuthenticatedHome() {
                 </div>
 
                 <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                  <span>시험 {formatExamDate(group.examDate)}</span>
+                  <span>목표 날짜 {formatExamDate(group.examDate)}</span>
                   <span>{group.members.length}명</span>
                 </div>
               </div>
@@ -218,9 +199,7 @@ function AuthenticatedHome() {
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                     {group.subject}
                   </p>
-                  <p className="mt-1 text-base font-semibold text-slate-950">
-                    {group.name}
-                  </p>
+                  <p className="mt-1 text-base font-semibold text-slate-950">{group.name}</p>
                 </div>
                 <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[var(--brand)]">
                   {getGroupStatusLabel(group)}
@@ -228,7 +207,7 @@ function AuthenticatedHome() {
               </div>
 
               <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                <span>시험 {formatExamDate(group.examDate)}</span>
+                <span>목표 날짜 {formatExamDate(group.examDate)}</span>
                 <span>{group.members.length}명</span>
               </div>
             </button>

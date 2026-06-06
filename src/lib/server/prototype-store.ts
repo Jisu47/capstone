@@ -17,15 +17,11 @@ import {
   type PrototypeDatabase,
   type SourceCardDto,
   type StoredChatMessage,
-  type StoredGroup,
   type StoredMaterial,
   type StoredMaterialChunk,
-  type StoredPlanCompletion,
-  type StoredPlanItem,
   type StoredUser,
 } from "@/lib/api-contracts";
 import {
-  type ChatMessage,
   type CreateGroupInput,
   type Material,
   type StudyGroup,
@@ -44,10 +40,6 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 const MAX_SOURCE_CHUNKS = 3;
 
 let writeQueue = Promise.resolve<unknown>(undefined);
-
-function clone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
-}
 
 function getResolvedCurrentUserId() {
   return process.env.STUDY_FLOW_CURRENT_USER_ID?.trim() || currentUserId;
@@ -256,7 +248,11 @@ function buildSeedDatabase(): PrototypeDatabase {
         bio: member.bio,
         avatarPreset: member.avatarPreset,
       });
-      database.groupMembers.push({ groupId: group.id, userId: member.id });
+      database.groupMembers.push({
+        groupId: group.id,
+        userId: member.id,
+        memberRole: member.role === "팀장" ? "leader" : "member",
+      });
     }
 
     for (const item of group.plan) {
@@ -392,13 +388,22 @@ function getStudyGroups(database: PrototypeDatabase) {
   const groups = database.groups.map((group) => {
     const members = database.groupMembers
       .filter((groupMember) => groupMember.groupId === group.id)
-      .map((groupMember) => getUserById(database, groupMember.userId))
-      .filter(isStoredUser)
-      .map((user) =>
+      .map((groupMember) => ({
+        groupMember,
+        user: getUserById(database, groupMember.userId),
+      }))
+      .filter(
+        (entry): entry is { groupMember: PrototypeDatabase["groupMembers"][number]; user: StoredUser } =>
+          isStoredUser(entry.user),
+      )
+      .map(({ groupMember, user }) =>
         createMemberProfile({
           id: user.id,
           name: user.name,
-          role: user.role as StudyGroup["members"][number]["role"],
+          role:
+            groupMember.memberRole === "leader" || user.role === "팀장"
+              ? "팀장"
+              : "팀원",
           focus: user.focus,
           bio: user.bio,
           avatarPreset: user.avatarPreset,
@@ -544,6 +549,7 @@ function upsertGroupFromStudyGroup(database: PrototypeDatabase, group: StudyGrou
     database.groupMembers.push({
       groupId: group.id,
       userId: member.id,
+      memberRole: member.role === "팀장" ? "leader" : "member",
     });
   }
 

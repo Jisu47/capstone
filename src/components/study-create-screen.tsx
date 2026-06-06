@@ -8,13 +8,10 @@ import { markGroupHomeTourPending } from "@/lib/group-home-tour";
 import { type CreateGroupInput } from "@/lib/mock-data";
 
 const initialForm: CreateGroupInput = {
-  name: "알고리즘 기말 대비",
-  subject: "알고리즘",
-  examDate: "2026-04-30",
-  presentationDate: "2026-04-24",
-  deadlineDate: "2026-04-27",
-  weeklyGoal: "그래프와 DP 정리, 기출 2회독, 발표 질문 준비",
-  overallGoal: "기말고사 전까지 팀 전체가 핵심 문제를 안정적으로 설명하고 해결할 수 있는 상태 만들기",
+  name: "",
+  subject: "",
+  examDate: "",
+  overallGoal: "",
 };
 
 export function StudyCreateScreen() {
@@ -56,7 +53,7 @@ export function StudyCreateScreen() {
     <AppShell
       showNavigation={false}
       title="새 스터디 그룹"
-      subtitle="시험 일정과 공동 목표를 먼저 정리하면 그룹 홈과 계획, 자료 흐름까지 자연스럽게 이어져요."
+      subtitle="목표 날짜와 전체 목표를 먼저 정리하면 그룹 홈과 계획, 자료 흐름까지 자연스럽게 이어져요."
     >
       <SectionCard title="기본 정보 입력">
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -66,7 +63,8 @@ export function StudyCreateScreen() {
               required
               value={form.name}
               onChange={(event) => handleChange("name", event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+              placeholder="예: 알고리즘 기말 대비"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[var(--brand)]"
             />
           </label>
 
@@ -76,50 +74,18 @@ export function StudyCreateScreen() {
               required
               value={form.subject}
               onChange={(event) => handleChange("subject", event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+              placeholder="예: 알고리즘"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[var(--brand)]"
             />
           </label>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold text-slate-800">시험일</span>
-              <input
-                required
-                type="date"
-                value={form.examDate}
-                onChange={(event) => handleChange("examDate", event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
-              />
-            </label>
-
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold text-slate-800">발표 일정</span>
-              <input
-                type="date"
-                value={form.presentationDate}
-                onChange={(event) => handleChange("presentationDate", event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
-              />
-            </label>
-          </div>
-
           <label className="block space-y-2">
-            <span className="text-sm font-semibold text-slate-800">마감일</span>
+            <span className="text-sm font-semibold text-slate-800">목표 날짜</span>
             <input
-              type="date"
-              value={form.deadlineDate}
-              onChange={(event) => handleChange("deadlineDate", event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
-            />
-          </label>
-
-          <label className="block space-y-2">
-            <span className="text-sm font-semibold text-slate-800">이번 주 목표</span>
-            <textarea
               required
-              rows={4}
-              value={form.weeklyGoal}
-              onChange={(event) => handleChange("weeklyGoal", event.target.value)}
+              type="date"
+              value={form.examDate}
+              onChange={(event) => handleChange("examDate", event.target.value)}
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
             />
           </label>
@@ -131,7 +97,8 @@ export function StudyCreateScreen() {
               rows={4}
               value={form.overallGoal}
               onChange={(event) => handleChange("overallGoal", event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+              placeholder="예: 기말고사 전까지 팀 전체가 핵심 문제를 안정적으로 설명하고 해결할 수 있는 상태 만들기"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[var(--brand)]"
             />
           </label>
 
@@ -156,7 +123,7 @@ export function StudyCreateScreen() {
           {[
             "생성 직후 현재 계정이 팀장으로 자동 지정되고 그룹 화면으로 바로 이동해요.",
             "처음 만든 그룹은 빈 상태로 시작해서 자료와 계획을 필요한 만큼 직접 채워 넣을 수 있어요.",
-            "이후 다시 로그인해도 그룹 가입 상태와 역할이 유지되고, 그룹 선택 화면에서 바로 이어서 들어갈 수 있어요.",
+            "이후 다시 로그인해도 그룹 가입 상태와 역할이 유지되고, 마이페이지와 그룹 선택 화면에서 바로 이어서 들어갈 수 있어요.",
           ].map((item) => (
             <div
               key={item}

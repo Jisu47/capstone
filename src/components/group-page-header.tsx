@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "@/components/auth-provider";
 import { usePrototype } from "@/components/prototype-provider";
+import { getMemberGroups } from "@/lib/group-membership";
 
 type GroupPageHeaderProps = {
   groupId: string;
@@ -69,7 +71,9 @@ export function GroupPageHeader({
 }: Readonly<GroupPageHeaderProps>) {
   const pathname = usePathname();
   const { groups } = usePrototype();
+  const { currentUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const memberGroups = currentUser ? getMemberGroups(groups, currentUser.userId) : [];
 
   return (
     <div className="relative">
@@ -142,7 +146,7 @@ export function GroupPageHeader({
       {isOpen ? (
         <div className="absolute left-1/2 top-[calc(100%+12px)] z-40 w-[220px] -translate-x-1/2 rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
           <div className="space-y-1">
-            {groups.map((group) => {
+            {memberGroups.map((group) => {
               const active = group.id === groupId;
 
               return (
