@@ -97,63 +97,25 @@ function SplashScreen() {
   );
 }
 
-function HeaderMetric({
-  label,
-  value,
-}: Readonly<{
-  label: string;
-  value: string;
-}>) {
+function HomeHeader({ totalCount }: Readonly<{ totalCount: number }>) {
   return (
-    <div className="rounded-[18px] border border-white/60 bg-white/70 px-3 py-3 backdrop-blur">
-      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">
-        {label}
-      </p>
-      <p className="mt-1 text-base font-semibold tracking-[-0.03em] text-slate-950">{value}</p>
-    </div>
-  );
-}
-
-function HomeHeader({
-  activeCount,
-  completedCount,
-  totalCount,
-}: Readonly<{
-  activeCount: number;
-  completedCount: number;
-  totalCount: number;
-}>) {
-  return (
-    <>
+    <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <Link
           href="/"
-          className="inline-flex rounded-full border border-slate-200 bg-white/85 px-3 py-1 text-[11px] font-semibold tracking-[0.12em] text-slate-700"
+          className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-slate-700"
         >
           STUDY FLOW
         </Link>
-        <div className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--brand)]">
+        <div className="rounded-full border border-[rgba(121,184,149,0.18)] bg-[var(--brand-soft)] px-3 py-1 text-[10px] font-semibold text-[var(--brand)]">
           내 그룹 {totalCount}개
         </div>
       </div>
 
-      <div className="space-y-3">
-        <div className="space-y-2">
-          <p className="font-[family:var(--font-study-display)] text-[31px] leading-none tracking-[-0.06em] text-slate-950">
-            그룹 선택
-          </p>
-          <p className="max-w-[22rem] text-sm leading-6 text-[var(--ink-soft)]">
-            오늘 바로 들어갈 그룹과 마감이 가까운 흐름을 먼저 보여줄게요.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          <HeaderMetric label="Active" value={`${activeCount}`} />
-          <HeaderMetric label="Archive" value={`${completedCount}`} />
-          <HeaderMetric label="Ready" value={activeCount > 0 ? "ON" : "NEW"} />
-        </div>
-      </div>
-    </>
+      <p className="font-[family:var(--font-study-display)] text-[31px] leading-none tracking-[-0.06em] text-slate-950">
+        그룹 선택
+      </p>
+    </div>
   );
 }
 
@@ -348,8 +310,6 @@ function AuthenticatedHome() {
       subtitle="내가 참여 중인 흐름을 고르고 이어서 들어가요."
       headerContent={
         <HomeHeader
-          activeCount={activeGroups.length}
-          completedCount={completedGroups.length}
           totalCount={sortedGroups.length}
         />
       }
