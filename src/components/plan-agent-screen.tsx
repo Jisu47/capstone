@@ -82,7 +82,6 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   const quickQuestions = [
     "진도표 기준으로 전체 계획 주차별 정리",
     "진도표 1주차 기준으로 이번주 계획 생성",
-    "저번주 미완료 계획 바탕으로 주간 계획 재조정",
   ] as const;
   const conversationSubject = activeGroup.subject.trim() || activeGroup.name.trim();
   const introMessage = `안녕하세요! ${conversationSubject} 학습 계획을 세워볼까요? 질문을 선택해 빠른 대화를 시작할 수 있고 직접 대화를 입력하실 수 있어요.`;
