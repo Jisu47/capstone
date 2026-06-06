@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { getMaterials } from "@/lib/server/prototype-store";
 import {
@@ -59,7 +60,7 @@ function shouldRetryLegacyMaterialInsert(message: string) {
 }
 
 async function saveMaterialMetadata(
-  adminClient: ReturnType<typeof getSupabaseAdminClient>,
+  databaseClient: SupabaseClient,
   row: {
     id: string;
     group_id: string;
@@ -73,7 +74,7 @@ async function saveMaterialMetadata(
     mime_type: string;
   },
 ) {
-  const insertResponse = await adminClient.from("materials").insert(row);
+  const insertResponse = await databaseClient.from("materials").insert(row);
 
   if (!insertResponse.error) {
     return;
@@ -93,7 +94,7 @@ async function saveMaterialMetadata(
     format: row.format,
     location_hint: row.location_hint,
   };
-  const legacyInsertResponse = await adminClient.from("materials").insert(legacyRow);
+  const legacyInsertResponse = await databaseClient.from("materials").insert(legacyRow);
 
   if (legacyInsertResponse.error) {
     throw new Error(
@@ -103,13 +104,13 @@ async function saveMaterialMetadata(
 }
 
 async function cleanupFailedUpload(
-  adminClient: ReturnType<typeof getSupabaseAdminClient>,
+  databaseClient: SupabaseClient,
   materialId: string,
   storagePath: string,
 ) {
   await Promise.allSettled([
-    adminClient.from("materials").delete().eq("id", materialId),
-    adminClient.storage.from(studyMaterialsBucket).remove([storagePath]),
+    databaseClient.from("materials").delete().eq("id", materialId),
+    databaseClient.storage.from(studyMaterialsBucket).remove([storagePath]),
   ]);
 }
 
@@ -167,8 +168,10 @@ export async function POST(
       );
     }
 
-    const adminClient = getSupabaseAdminClient();
-    const membershipResponse = await adminClient
+    const hasServiceRoleKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
+    const adminClient = hasServiceRoleKey ? getSupabaseAdminClient() : null;
+    const databaseClient = adminClient ?? getSupabaseServerClient();
+    const membershipResponse = await databaseClient
       .from("group_members")
       .select("member_id")
       .eq("group_id", id)
@@ -188,24 +191,27 @@ export async function POST(
       );
     }
 
-    await ensureStudyMaterialsBucket(adminClient);
-
     const buffer = Buffer.from(await file.arrayBuffer());
     const resolvedMimeType = inferMaterialMimeType(file.name, file.type);
     const format = inferMaterialFormat(file.name);
     const uploadedAt = new Date().toISOString();
     const materialId = `mat-${randomUUID()}`;
-    const storagePath = buildMaterialStoragePath(id, user.id, file.name);
+    let storagePath = "";
 
-    const uploadResponse = await adminClient.storage
-      .from(studyMaterialsBucket)
-      .upload(storagePath, buffer, {
-        contentType: resolvedMimeType,
-        upsert: false,
-      });
+    if (adminClient) {
+      await ensureStudyMaterialsBucket(adminClient);
+      storagePath = buildMaterialStoragePath(id, user.id, file.name);
 
-    if (uploadResponse.error) {
-      throw new Error(`자료 파일을 저장하지 못했어요: ${uploadResponse.error.message}`);
+      const uploadResponse = await adminClient.storage
+        .from(studyMaterialsBucket)
+        .upload(storagePath, buffer, {
+          contentType: resolvedMimeType,
+          upsert: false,
+        });
+
+      if (uploadResponse.error) {
+        throw new Error(`자료 파일을 저장하지 못했어요: ${uploadResponse.error.message}`);
+      }
     }
 
     const { summary, locationHint } = await extractMaterialSummary(
@@ -215,7 +221,7 @@ export async function POST(
     );
 
     try {
-      await saveMaterialMetadata(adminClient, {
+      await saveMaterialMetadata(databaseClient, {
         id: materialId,
         group_id: id,
         title: file.name,
@@ -228,7 +234,7 @@ export async function POST(
         mime_type: resolvedMimeType,
       });
 
-      const groupUpdateResponse = await adminClient
+      const groupUpdateResponse = await databaseClient
         .from("study_groups")
         .update({
           recent_update: `${file.name} 자료가 업로드되었습니다.`,
@@ -241,7 +247,9 @@ export async function POST(
         );
       }
     } catch (error) {
-      await cleanupFailedUpload(adminClient, materialId, storagePath);
+      if (storagePath && adminClient) {
+        await cleanupFailedUpload(adminClient, materialId, storagePath);
+      }
       throw error;
     }
 
