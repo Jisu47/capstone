@@ -115,6 +115,10 @@ function getTabs(navReady: boolean, navGroupId?: string | null): BottomTab[] {
 }
 
 function isActiveTab(pathname: string, tab: BottomTab) {
+  if (tab.id === "home" && pathname === "/mypage") {
+    return true;
+  }
+
   if (!tab.enabled) {
     return false;
   }
