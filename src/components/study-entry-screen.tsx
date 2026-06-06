@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { AppShell, SectionCard } from "@/components/mobile-shell";
-import { ProfileAvatar } from "@/components/profile-avatar";
 import { usePrototype } from "@/components/prototype-provider";
 import { getMemberGroups } from "@/lib/group-membership";
 import { formatExamDate, getDaysLeft, type StudyGroup } from "@/lib/mock-data";
@@ -82,14 +81,11 @@ function SplashScreen() {
           </Link>
 
           <div className="flex items-center justify-center gap-3 text-sm text-slate-500">
-            <Link
-              href="/signup"
-              className="font-medium text-[var(--brand)] transition hover:brightness-90"
-            >
+            <Link href="/signup" className="font-medium text-[var(--brand)] transition hover:brightness-90">
               계정 만들기
             </Link>
             <span className="text-slate-300">|</span>
-            <span>아이디/비밀번호 찾기</span>
+            <span>아이디 비밀번호 찾기</span>
           </div>
         </div>
       </div>
@@ -97,197 +93,438 @@ function SplashScreen() {
   );
 }
 
+function NotificationBellIcon() {
+  return (
+    <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M14.25 19.5a2.25 2.25 0 0 1-4.5 0M6 9.75a6 6 0 1 1 12 0v4.04c0 .52.21 1.02.59 1.38l.57.57a.75.75 0 0 1-.53 1.28H5.37a.75.75 0 0 1-.53-1.28l.57-.57A1.95 1.95 0 0 0 6 13.79V9.75Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function ArrowRightIcon() {
+  return (
+    <svg aria-hidden="true" className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M9 6L15 12L9 18"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M7 4.75v2.5M17 4.75v2.5M5.5 8.25h13M6.75 6.25h10.5A1.75 1.75 0 0 1 19 8v9.25A1.75 1.75 0 0 1 17.25 19H6.75A1.75 1.75 0 0 1 5 17.25V8A1.75 1.75 0 0 1 6.75 6.25Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.7"
+      />
+    </svg>
+  );
+}
+
+function MembersIcon() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M9 10.5a2.75 2.75 0 1 0 0-5.5 2.75 2.75 0 0 0 0 5.5ZM16.5 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5ZM4.5 18a4.5 4.5 0 0 1 9 0M14 18a3.5 3.5 0 0 1 6.5-1.8"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.7"
+      />
+    </svg>
+  );
+}
+
+function MaterialIcon() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M3.75 8.5A1.75 1.75 0 0 1 5.5 6.75h4.12l1.45 1.75h7.43A1.75 1.75 0 0 1 20.25 10v7.25A1.75 1.75 0 0 1 18.5 19H5.5a1.75 1.75 0 0 1-1.75-1.75V8.5Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.7"
+      />
+    </svg>
+  );
+}
+
+function MessageIcon() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M6.75 6.25h10.5A1.75 1.75 0 0 1 19 8v6.5a1.75 1.75 0 0 1-1.75 1.75h-5l-3.75 2v-2H6.75A1.75 1.75 0 0 1 5 14.5V8a1.75 1.75 0 0 1 1.75-1.75Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.7"
+      />
+    </svg>
+  );
+}
+
+function BookOpenIcon() {
+  return (
+    <svg aria-hidden="true" className="h-10 w-10" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M4.75 6.75A1.75 1.75 0 0 1 6.5 5h4a3 3 0 0 1 1.5.4 3 3 0 0 1 1.5-.4h4A1.75 1.75 0 0 1 19.25 6.75v10.5A1.75 1.75 0 0 1 17.5 19h-4a3 3 0 0 0-1.5.4 3 3 0 0 0-1.5-.4h-4a1.75 1.75 0 0 1-1.75-1.75V6.75Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+      <path
+        d="M12 5.4v14"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
+
+function PlaceholderSparkleIcon() {
+  return (
+    <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M12 4.5 13.7 8.8 18 10.5l-4.3 1.7L12 16.5l-1.7-4.3L6 10.5l4.3-1.7L12 4.5Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.7"
+      />
+    </svg>
+  );
+}
+
 function HomeHeader({ totalCount }: Readonly<{ totalCount: number }>) {
   return (
-    <section className="rounded-[28px] border border-[rgba(121,184,149,0.18)] bg-[linear-gradient(180deg,#ffffff_0%,#fbfdfb_100%)] px-4 pb-4 pt-4 shadow-[0_14px_32px_rgba(121,184,149,0.10)]">
+    <section className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <Link
           href="/"
-          className="inline-flex rounded-[999px] border border-[rgba(121,184,149,0.16)] bg-white px-4 py-2 text-[11px] font-semibold tracking-[0.06em] text-slate-700 shadow-[0_6px_16px_rgba(121,184,149,0.08)]"
+          className="inline-flex rounded-full bg-[linear-gradient(180deg,#F4FBF6_0%,#EBF6EE_100%)] px-5 py-2.5 text-[12px] font-semibold tracking-[0.12em] text-[#2D6B46] shadow-[0_8px_24px_rgba(76,175,122,0.10)]"
         >
           STUDY FLOW
         </Link>
-        <div className="rounded-full border border-[rgba(121,184,149,0.18)] bg-[var(--brand-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--brand)]">
-          내 그룹 {totalCount}개
+
+        <div className="flex items-center gap-3">
+          <div className="rounded-full bg-[linear-gradient(180deg,#F4FBF6_0%,#EBF6EE_100%)] px-4 py-2.5 text-[13px] font-semibold text-[#4CAF7A] shadow-[0_8px_24px_rgba(76,175,122,0.10)]">
+            내 그룹 {totalCount}개
+          </div>
+          <Link
+            href="/mypage"
+            aria-label="마이페이지로 이동"
+            className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_12px_28px_rgba(15,23,42,0.08)] transition hover:translate-y-[-1px]"
+          >
+            <NotificationBellIcon />
+          </Link>
         </div>
       </div>
 
-      <p className="mt-4 font-[family:var(--font-study-display)] text-[30px] leading-none tracking-[-0.05em] text-slate-950">
+      <h1 className="font-[family:var(--font-study-display)] text-[34px] leading-none tracking-[-0.06em] text-slate-950">
         그룹 선택
-      </p>
+      </h1>
     </section>
   );
 }
 
-function QuickActionLink({
-  href,
-  label,
-  caption,
-  strong = false,
-}: Readonly<{
-  href: string;
-  label: string;
-  caption: string;
-  strong?: boolean;
-}>) {
+function IllustrationPlaceholder() {
   return (
-    <Link
-      href={href}
-      className={`rounded-[20px] border px-4 py-4 transition ${
-        strong
-          ? "border-[rgba(121,184,149,0.24)] bg-[linear-gradient(180deg,#81b999_0%,#6ea584_100%)] text-white shadow-[0_18px_32px_rgba(121,184,149,0.22)] hover:brightness-[0.99]"
-          : "border-[rgba(121,184,149,0.14)] bg-white/92 text-slate-900 shadow-[0_10px_24px_rgba(121,184,149,0.08)] hover:border-[rgba(121,184,149,0.24)]"
-      }`}
-    >
-      <p className="text-sm font-semibold tracking-[-0.02em]">{label}</p>
-      <p className={`mt-1 text-xs leading-5 ${strong ? "text-white/78" : "text-slate-500"}`}>
-        {caption}
-      </p>
-    </Link>
-  );
-}
+    <div className="relative flex h-[248px] w-full items-center justify-center overflow-hidden rounded-[30px] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.72),transparent_40%),linear-gradient(180deg,rgba(255,255,255,0.32),rgba(255,255,255,0.12))]">
+      <div className="absolute left-7 top-7 h-24 w-24 rounded-[30px] bg-white/35 blur-2xl" />
+      <div className="absolute bottom-8 right-6 h-20 w-20 rounded-full bg-[rgba(121,184,149,0.18)] blur-2xl" />
 
-function FeaturedGroupCard({
-  group,
-  onOpen,
-}: Readonly<{
-  group: StudyGroup;
-  onOpen: (groupId: string) => void;
-}>) {
-  return (
-    <button
-      type="button"
-      onClick={() => onOpen(group.id)}
-      className="group relative w-full overflow-hidden rounded-[30px] border border-[rgba(121,184,149,0.2)] bg-[linear-gradient(160deg,#fffefd_0%,#f9fcfa_42%,#eef7f1_100%)] p-5 text-left shadow-[0_18px_40px_rgba(121,184,149,0.14)] transition hover:-translate-y-[1px] hover:shadow-[0_24px_48px_rgba(121,184,149,0.18)]"
-    >
-      <div className="pointer-events-none absolute inset-[1px] rounded-[29px] border border-white/70" />
-      <div className="pointer-events-none absolute -right-10 top-2 h-28 w-28 rounded-full bg-[rgba(121,184,149,0.12)] blur-3xl" />
-
-      <div className="relative mb-4 flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand)]">
-            Next Group
-          </p>
-          <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.04em] text-slate-950">
-            {group.name}
-          </h2>
-          <p className="mt-2 text-sm font-medium text-slate-500">{group.subject}</p>
+      <div className="relative flex h-[180px] w-[180px] items-center justify-center rounded-[40px] border border-white/70 bg-white/75 shadow-[0_18px_38px_rgba(76,175,122,0.10)]">
+        <div className="absolute inset-x-7 bottom-8 h-3 rounded-full bg-[rgba(76,175,122,0.18)] blur-sm" />
+        <div className="absolute left-6 top-6 rounded-full bg-[rgba(76,175,122,0.10)] p-2 text-[#4CAF7A]">
+          <PlaceholderSparkleIcon />
         </div>
-        <span className="rounded-full border border-white/80 bg-white/88 px-4 py-2 text-sm font-semibold text-[var(--brand)] shadow-[0_10px_20px_rgba(121,184,149,0.1)]">
-          {getGroupStatusLabel(group)}
-        </span>
-      </div>
 
-      <p className="relative max-w-[18rem] text-sm leading-6 text-slate-600">
-        {group.overallGoal}
-      </p>
-
-      <div className="relative mt-5 grid grid-cols-3 gap-3">
-        <div className="rounded-[18px] border border-[rgba(121,184,149,0.12)] bg-white/88 px-3 py-3 shadow-[0_8px_18px_rgba(121,184,149,0.06)]">
-          <p className="text-[11px] font-medium text-slate-500">목표 날짜</p>
-          <p className="mt-1 text-sm font-semibold text-slate-900">{formatExamDate(group.examDate)}</p>
-        </div>
-        <div className="rounded-[18px] border border-[rgba(121,184,149,0.12)] bg-white/88 px-3 py-3 shadow-[0_8px_18px_rgba(121,184,149,0.06)]">
-          <p className="text-[11px] font-medium text-slate-500">팀원 수</p>
-          <p className="mt-1 text-sm font-semibold text-slate-900">{group.members.length}명</p>
-        </div>
-        <div className="rounded-[18px] border border-[rgba(121,184,149,0.12)] bg-white/88 px-3 py-3 shadow-[0_8px_18px_rgba(121,184,149,0.06)]">
-          <p className="text-[11px] font-medium text-slate-500">자료 수</p>
-          <p className="mt-1 text-sm font-semibold text-slate-900">{group.materials.length}개</p>
-        </div>
-      </div>
-
-      <div className="relative mt-5 flex items-center justify-between">
-        <p className="text-xs font-medium text-slate-500">그룹 홈부터 바로 이어서 들어가기</p>
-        <span className="rounded-full bg-[linear-gradient(180deg,#81b999_0%,#6ea584_100%)] px-4 py-2 text-xs font-semibold text-white shadow-[0_10px_20px_rgba(121,184,149,0.18)] transition group-hover:brightness-[0.98]">
-          들어가기
-        </span>
-      </div>
-    </button>
-  );
-}
-
-function CompactGroupCard({
-  group,
-  onOpen,
-}: Readonly<{
-  group: StudyGroup;
-  onOpen: (groupId: string) => void;
-}>) {
-  return (
-    <button
-      type="button"
-      onClick={() => onOpen(group.id)}
-      className="w-full rounded-[22px] border border-[rgba(121,184,149,0.14)] bg-[linear-gradient(180deg,#ffffff,#fbfdfb)] px-4 py-4 text-left shadow-[0_10px_24px_rgba(121,184,149,0.08)] transition hover:border-[rgba(121,184,149,0.24)]"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-            {group.subject}
-          </p>
-          <p className="mt-1 text-base font-semibold tracking-[-0.02em] text-slate-950">
-            {group.name}
+        <div className="relative flex flex-col items-center gap-4 text-[#4CAF7A]">
+          <div className="rounded-[32px] bg-[linear-gradient(180deg,#F2FBF5_0%,#EAF6EE_100%)] p-6 shadow-[inset_0_0_0_1px_rgba(76,175,122,0.10)]">
+            <BookOpenIcon />
+          </div>
+          <p className="text-xs font-semibold tracking-[0.12em] text-slate-400">
+            ILLUSTRATION PLACEHOLDER
           </p>
         </div>
-        <span className="rounded-full border border-[rgba(121,184,149,0.12)] bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[var(--brand)]">
-          {getGroupStatusLabel(group)}
-        </span>
-      </div>
-
-      <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
-        <span>목표 날짜 {formatExamDate(group.examDate)}</span>
-        <span>{group.members.length}명</span>
-      </div>
-    </button>
-  );
-}
-
-function CompletedGroupCard({ group }: Readonly<{ group: StudyGroup }>) {
-  return (
-    <div className="rounded-[22px] border border-[rgba(121,184,149,0.14)] bg-[linear-gradient(180deg,#ffffff,#f8fbf9)] px-4 py-4 shadow-[0_10px_24px_rgba(121,184,149,0.06)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-            {group.subject}
-          </p>
-          <p className="mt-1 text-base font-semibold text-slate-900">{group.name}</p>
-        </div>
-        <span className="rounded-full border border-[rgba(121,184,149,0.14)] bg-white px-3 py-1 text-xs font-semibold text-slate-600">
-          운영 종료
-        </span>
-      </div>
-
-      <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
-        <span>마지막 목표 날짜 {formatExamDate(group.examDate)}</span>
-        <span>{group.members.length}명</span>
       </div>
     </div>
   );
 }
 
+function HeroActionCard({
+  href,
+  title,
+  description,
+  strong = false,
+}: Readonly<{
+  href: string;
+  title: string;
+  description: string;
+  strong?: boolean;
+}>) {
+  return (
+    <Link
+      href={href}
+      className={`group flex min-h-[208px] flex-col rounded-[28px] px-6 py-6 transition ${
+        strong
+          ? "bg-[linear-gradient(135deg,#7AC595_0%,#4CAF7A_100%)] text-white shadow-[0_18px_34px_rgba(76,175,122,0.22)] hover:brightness-[0.99]"
+          : "bg-white text-slate-900 shadow-[0_12px_28px_rgba(15,23,42,0.06)] hover:translate-y-[-1px]"
+      }`}
+    >
+      <div
+        className={`flex h-12 w-12 items-center justify-center rounded-full ${
+          strong ? "bg-white/14 text-white" : "bg-[rgba(76,175,122,0.08)] text-[#4CAF7A]"
+        }`}
+      >
+        <MembersIcon />
+      </div>
+
+      <div className="mt-8">
+        <p className="text-[20px] font-semibold tracking-[-0.03em]">{title}</p>
+        <p className={`mt-3 text-sm leading-7 ${strong ? "text-white/82" : "text-slate-500"}`}>
+          {description}
+        </p>
+      </div>
+
+      <div className="mt-auto flex justify-end">
+        <span
+          className={`inline-flex h-14 w-14 items-center justify-center rounded-full transition ${
+            strong
+              ? "bg-white/92 text-[#4CAF7A] group-hover:translate-x-0.5"
+              : "bg-[#F7FBF8] text-slate-700 group-hover:translate-x-0.5"
+          }`}
+        >
+          <ArrowRightIcon />
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+function GroupInfoCard({
+  icon,
+  label,
+  value,
+}: Readonly<{
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}>) {
+  return (
+    <div className="rounded-[22px] bg-[#FBFDFC] px-4 py-4 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.04)]">
+      <div className="flex items-center gap-2 text-[12px] font-medium text-slate-500">
+        <span className="text-[#69B486]">{icon}</span>
+        <span>{label}</span>
+      </div>
+      <p className="mt-3 text-[18px] font-semibold tracking-[-0.03em] text-slate-950">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function NextGroupCard({
+  group,
+  onOpen,
+}: Readonly<{
+  group: StudyGroup;
+  onOpen: (groupId: string) => void;
+}>) {
+  return (
+    <article className="rounded-[30px] bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[12px] font-semibold tracking-[0.18em] text-[#74B98D]">NEXT GROUP</p>
+
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <h2 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-950">
+              {group.name}
+            </h2>
+            <span className="rounded-full bg-[var(--brand-soft)] px-4 py-2 text-sm font-semibold text-[#4CAF7A]">
+              {getGroupStatusLabel(group)}
+            </span>
+          </div>
+
+          <div className="mt-5 space-y-3 text-sm text-slate-600">
+            <div className="flex items-center gap-3">
+              <span className="text-slate-400">
+                <MembersIcon />
+              </span>
+              <span>{group.subject}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-slate-400">
+                <MessageIcon />
+              </span>
+              <span>{group.recentUpdate}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_center,rgba(121,184,149,0.12),transparent_72%)]">
+          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[linear-gradient(180deg,#F7FBF8_0%,#EEF7F1_100%)] text-[#76B98E] shadow-[inset_0_0_0_1px_rgba(121,184,149,0.08)]">
+            <BookOpenIcon />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 grid grid-cols-3 gap-3">
+        <GroupInfoCard icon={<CalendarIcon />} label="목표 날짜" value={formatExamDate(group.examDate)} />
+        <GroupInfoCard icon={<MembersIcon />} label="팀원 수" value={`${group.members.length}명`} />
+        <GroupInfoCard icon={<MaterialIcon />} label="자료 수" value={`${group.materials.length}개`} />
+      </div>
+
+      <div className="mt-6 flex items-center justify-between gap-4">
+        <p className="text-sm font-medium text-slate-500">그룹 홈부터 바로 이어서 들어가기</p>
+        <button
+          type="button"
+          onClick={() => onOpen(group.id)}
+          className="inline-flex items-center gap-3 rounded-[18px] bg-[linear-gradient(135deg,#7AC595_0%,#4CAF7A_100%)] px-6 py-4 text-lg font-semibold text-white shadow-[0_18px_34px_rgba(76,175,122,0.22)] transition hover:brightness-[0.99]"
+        >
+          <span>들어가기</span>
+          <ArrowRightIcon />
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function ActiveGroupCard({
+  group,
+  onOpen,
+}: Readonly<{
+  group: StudyGroup;
+  onOpen: (groupId: string) => void;
+}>) {
+  return (
+    <article className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[12px] font-semibold tracking-[0.08em] text-slate-400">{group.subject}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <h3 className="text-[22px] font-semibold tracking-[-0.04em] text-slate-950">
+              {group.name}
+            </h3>
+            <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[#4CAF7A]">
+              {getGroupStatusLabel(group)}
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onOpen(group.id)}
+          className="inline-flex items-center gap-2 rounded-[18px] bg-white px-4 py-3 text-sm font-semibold text-[#4CAF7A] shadow-[inset_0_0_0_1px_rgba(76,175,122,0.22)]"
+        >
+          <span>그룹 바로가기</span>
+          <ArrowRightIcon />
+        </button>
+      </div>
+
+      <div className="mt-5 grid grid-cols-3 gap-3">
+        <GroupInfoCard icon={<CalendarIcon />} label="목표 날짜" value={formatExamDate(group.examDate)} />
+        <GroupInfoCard icon={<MembersIcon />} label="팀원 수" value={`${group.members.length}명`} />
+        <GroupInfoCard icon={<MaterialIcon />} label="자료 수" value={`${group.materials.length}개`} />
+      </div>
+    </article>
+  );
+}
+
+function ArchivedGroupCard({
+  group,
+  onOpen,
+}: Readonly<{
+  group: StudyGroup;
+  onOpen: (groupId: string) => void;
+}>) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(group.id)}
+      className="flex w-full items-center gap-4 rounded-[28px] bg-white px-5 py-5 text-left shadow-[0_8px_30px_rgba(15,23,42,0.05)] transition hover:translate-y-[-1px]"
+    >
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-[linear-gradient(135deg,#F3F6FA_0%,#E7EDF4_100%)] text-slate-500">
+        <svg aria-hidden="true" className="h-7 w-7" fill="none" viewBox="0 0 24 24">
+          <path
+            d="M4.5 9.5 12 5l7.5 4.5L12 14 4.5 9.5ZM7.5 11.5V15c0 .8 2 2.5 4.5 2.5s4.5-1.7 4.5-2.5v-3.5"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.7"
+          />
+        </svg>
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-[#F6F7F8] px-3 py-1 text-xs font-semibold text-slate-500">
+            {group.subject}
+          </span>
+          <span className="rounded-full bg-[#F3F5F7] px-3 py-1 text-xs font-semibold text-slate-500">
+            운영 종료
+          </span>
+        </div>
+
+        <p className="mt-3 text-[20px] font-semibold tracking-[-0.04em] text-slate-950">{group.name}</p>
+
+        <div className="mt-3 flex items-center justify-between gap-4 text-sm text-slate-500">
+          <div className="flex items-center gap-2">
+            <CalendarIcon />
+            <span>마지막 목표 날짜 {formatExamDate(group.examDate)}</span>
+          </div>
+          <span>{group.members.length}명</span>
+        </div>
+      </div>
+
+      <div className="shrink-0 text-slate-400">
+        <ArrowRightIcon />
+      </div>
+    </button>
+  );
+}
+
 function EmptyGroupState() {
   return (
-    <SectionCard title="첫 그룹부터 시작하기">
-      <div className="rounded-[24px] border border-[rgba(121,184,149,0.14)] bg-[linear-gradient(145deg,#fffefd_0%,#f8fbf8_50%,#eef7f1_100%)] p-5 shadow-[0_14px_30px_rgba(121,184,149,0.08)]">
-        <p className="text-lg font-semibold tracking-[-0.03em] text-slate-950">
+    <SectionCard title="내 그룹">
+      <div className="rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
+        <p className="text-[20px] font-semibold tracking-[-0.03em] text-slate-950">
           아직 참여 중인 그룹이 없어요.
         </p>
-        <p className="mt-2 max-w-[19rem] text-sm leading-6 text-slate-600">
-          새 그룹을 직접 만들거나 참여 코드로 바로 연결해서 스터디 흐름을 시작해 보세요.
+        <p className="mt-3 max-w-[19rem] text-sm leading-6 text-slate-600">
+          새 그룹을 만들거나 참여 코드로 합류하면 여기에서 바로 이어서 들어갈 수 있어요.
         </p>
 
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <QuickActionLink
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link
             href="/create"
-            label="그룹 만들기"
-            caption="목표 날짜와 전체 목표부터 설정"
-            strong
-          />
-          <QuickActionLink
+            className="inline-flex items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#7AC595_0%,#4CAF7A_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(76,175,122,0.20)]"
+          >
+            새 그룹 만들기
+          </Link>
+          <Link
             href="/group-setup"
-            label="코드로 참여"
-            caption="기존 그룹에 바로 합류"
-          />
+            className="inline-flex items-center justify-center rounded-[18px] bg-[#F5F7F6] px-5 py-3 text-sm font-semibold text-slate-700"
+          >
+            그룹 참여하기
+          </Link>
         </div>
       </div>
     </SectionCard>
@@ -303,68 +540,55 @@ function AuthenticatedHome() {
   const activeGroups = sortedGroups.filter((group) => group.status === "active");
   const completedGroups = sortedGroups.filter((group) => group.status === "completed");
   const featuredGroup = activeGroups[0] ?? null;
-  const secondaryGroups = activeGroups.slice(1);
+  const otherActiveGroups = activeGroups.slice(1);
+  const recentGroupId = currentUser?.joinedGroupId ?? featuredGroup?.id ?? null;
+  const displayName = currentUser?.displayName ?? sessionName ?? "스터디 메이트";
 
   return (
     <AppShell
       requireAuth={false}
-      showNavigation={false}
-      headerVariant="capsule"
+      showNavigation
+      navReady={Boolean(recentGroupId)}
+      navGroupId={recentGroupId}
       headerBehavior="fixed"
+      headerVariant="bare"
       title="그룹 선택"
-      headerContent={
-        <HomeHeader totalCount={sortedGroups.length} />
-      }
+      headerContent={<HomeHeader totalCount={sortedGroups.length} />}
     >
-      <section className="relative overflow-hidden rounded-[30px] border border-[rgba(121,184,149,0.18)] bg-[linear-gradient(145deg,#fffefd_0%,#fafcf9_52%,#f1f8f3_100%)] p-5 shadow-[0_18px_42px_rgba(121,184,149,0.12)]">
-        <div className="pointer-events-none absolute inset-[1px] rounded-[29px] border border-white/70" />
-        <div className="pointer-events-none absolute -right-16 -top-14 h-32 w-32 rounded-full bg-[rgba(121,184,149,0.12)] blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-12 left-10 h-28 w-28 rounded-full bg-[rgba(218,236,224,0.7)] blur-3xl" />
+      <section className="overflow-hidden rounded-[32px] bg-[linear-gradient(135deg,#F7FCF8_0%,#EEF8F1_45%,#FBFDFB_100%)] px-6 pb-6 pt-6 shadow-[0_10px_36px_rgba(76,175,122,0.10)]">
+        <div className="grid gap-6">
+          <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
+            <div className="min-w-0">
+              <h2 className="text-[30px] font-semibold leading-[1.22] tracking-[-0.055em] text-slate-950">
+                {displayName}님, 어디부터 들어갈까요?
+              </h2>
 
-        <div className="relative space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="rounded-[28px] border border-white/80 bg-white/82 p-2 shadow-[0_12px_24px_rgba(121,184,149,0.1)]">
-              <ProfileAvatar
-                name={currentUser?.displayName ?? sessionName ?? "S"}
-                avatarPreset={currentUser?.avatarPreset ?? "sky"}
-                size="lg"
-              />
+              <div className="mt-8 grid grid-cols-2 gap-4">
+                <HeroActionCard
+                  href="/create"
+                  title="새 그룹 만들기"
+                  description="내 목표 날짜와 팀 방향을 설정해보세요."
+                  strong
+                />
+                <HeroActionCard
+                  href="/group-setup"
+                  title="그룹 참여하기"
+                  description="참여 코드로 기존 그룹에 합류하세요."
+                />
+              </div>
             </div>
 
-            <Link
-              href="/mypage"
-              className="shrink-0 rounded-full border border-[rgba(121,184,149,0.16)] bg-white/90 px-4 py-2 text-sm font-semibold text-[var(--brand)] shadow-[0_8px_18px_rgba(121,184,149,0.08)]"
-            >
-              마이페이지
-            </Link>
+            <div className="flex items-center justify-end">
+              <IllustrationPlaceholder />
+            </div>
           </div>
-
-          <div className="min-w-0">
-            <h2 className="text-[24px] font-semibold leading-[1.25] tracking-[-0.045em] text-slate-950">
-              {sessionName}님, 어디부터 들어갈까요?
-            </h2>
-          </div>
-        </div>
-
-        <div className="relative mt-5 grid grid-cols-2 gap-3">
-          <QuickActionLink
-            href="/create"
-            label="새 그룹 만들기"
-            caption="내 목표 날짜와 팀 방향부터 설정"
-            strong
-          />
-          <QuickActionLink
-            href="/group-setup"
-            label="그룹 참여하기"
-            caption="참여 코드로 기존 흐름에 합류"
-          />
         </div>
       </section>
 
       {isLoading && sortedGroups.length === 0 ? (
         <SectionCard title="그룹 불러오는 중">
           <p className="text-sm leading-6 text-[var(--ink-soft)]">
-            참여 중인 스터디 흐름을 정리하고 있어요.
+            참여 중인 스터디 그룹을 정리하고 있어요.
           </p>
         </SectionCard>
       ) : null}
@@ -372,7 +596,7 @@ function AuthenticatedHome() {
       {!isLoading && sortedGroups.length === 0 ? <EmptyGroupState /> : null}
 
       {featuredGroup ? (
-        <FeaturedGroupCard
+        <NextGroupCard
           group={featuredGroup}
           onOpen={(groupId) => {
             router.push(`/group/${groupId}`);
@@ -380,10 +604,13 @@ function AuthenticatedHome() {
         />
       ) : null}
 
-      {secondaryGroups.length > 0 ? (
-        <SectionCard title="다른 진행 중 그룹">
-          {secondaryGroups.map((group) => (
-            <CompactGroupCard
+      {otherActiveGroups.length > 0 ? (
+        <section className="space-y-4">
+          <h3 className="px-1 text-[22px] font-semibold tracking-[-0.04em] text-slate-950">
+            다른 진행 중인 그룹
+          </h3>
+          {otherActiveGroups.map((group) => (
+            <ActiveGroupCard
               key={group.id}
               group={group}
               onOpen={(groupId) => {
@@ -391,15 +618,24 @@ function AuthenticatedHome() {
               }}
             />
           ))}
-        </SectionCard>
+        </section>
       ) : null}
 
       {completedGroups.length > 0 ? (
-        <SectionCard title="보관된 그룹">
+        <section className="space-y-4">
+          <h3 className="px-1 text-[22px] font-semibold tracking-[-0.04em] text-slate-950">
+            보관된 그룹
+          </h3>
           {completedGroups.map((group) => (
-            <CompletedGroupCard key={group.id} group={group} />
+            <ArchivedGroupCard
+              key={group.id}
+              group={group}
+              onOpen={(groupId) => {
+                router.push(`/group/${groupId}`);
+              }}
+            />
           ))}
-        </SectionCard>
+        </section>
       ) : null}
     </AppShell>
   );
