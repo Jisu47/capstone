@@ -223,8 +223,8 @@ export default function MyPage() {
       <AppShell
         requireAuth={false}
         showNavigation={false}
+        headerVariant="bare"
         title="마이페이지"
-        subtitle="계정 정보를 준비하고 있어요."
       >
         <LoadingState message="계정 상태를 확인하는 중입니다." />
       </AppShell>
@@ -236,12 +236,8 @@ export default function MyPage() {
       <AppShell
         requireAuth={false}
         showNavigation={false}
+        headerVariant="bare"
         title="마이페이지"
-        subtitle={
-          sortedGroups.length > 0
-            ? "계정 정보와 내가 참여 중인 그룹을 한 화면에서 관리해요."
-            : "계정 정보부터 확인하고 새 그룹을 시작할 준비를 해봐요."
-        }
       >
         <SectionCard
           title="내 계정"

@@ -309,8 +309,8 @@ function AuthenticatedHome() {
     <AppShell
       requireAuth={false}
       showNavigation={false}
+      headerVariant="bare"
       title="그룹 선택"
-      subtitle="내가 참여 중인 흐름을 고르고 이어서 들어가요."
       headerContent={
         <HomeHeader totalCount={sortedGroups.length} />
       }

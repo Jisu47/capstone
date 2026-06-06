@@ -10,8 +10,12 @@ const shellFrameClass = "mx-auto flex w-full max-w-[430px] flex-col";
 const shellHeaderClass = "sticky top-0 z-30 px-4 md:px-6 lg:px-8";
 const shellHeaderInnerClass =
   "mx-auto flex w-full max-w-[430px] flex-col gap-3 rounded-b-[14px] rounded-t-none border border-slate-200 bg-white px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.875rem)] shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
+const shellHeaderBareInnerClass =
+  "mx-auto flex w-full max-w-[430px] flex-col gap-3 px-0 pb-0 pt-[calc(env(safe-area-inset-top)+0.875rem)]";
 const shellMainClass = "space-y-4 px-4 pb-32 pt-4 md:px-6 md:pt-5 lg:px-8";
 const shellMainWithoutNavClass = "space-y-4 px-4 pb-10 pt-4 md:px-6 md:pt-5 lg:px-8";
+
+type HeaderVariant = "default" | "bare";
 
 export function SectionCard({
   title,
@@ -103,6 +107,7 @@ export function AppShell({
   navReady,
   requireAuth = true,
   showNavigation = true,
+  headerVariant = "default",
   headerContent,
   children,
 }: Readonly<{
@@ -113,6 +118,7 @@ export function AppShell({
   navReady?: boolean;
   requireAuth?: boolean;
   showNavigation?: boolean;
+  headerVariant?: HeaderVariant;
   headerContent?: React.ReactNode;
   children: React.ReactNode;
 }>) {
@@ -123,12 +129,14 @@ export function AppShell({
   const resolvedNavReady = navReady ?? (groupId ? true : !isLoading);
   const shouldShowNavigation =
     showNavigation && (!requireAuth || (isAuthReady && Boolean(sessionName)));
+  const resolvedHeaderInnerClass =
+    headerVariant === "bare" ? shellHeaderBareInnerClass : shellHeaderInnerClass;
 
   if (requireAuth && !isAuthReady) {
     return (
       <div className={shellRootClass}>
         <header className={shellHeaderClass}>
-          <div className={shellHeaderInnerClass}>
+          <div className={resolvedHeaderInnerClass}>
             <DefaultHeader title={title} subtitle={subtitle} />
           </div>
         </header>
@@ -146,7 +154,7 @@ export function AppShell({
     return (
       <div className={shellRootClass}>
         <header className={shellHeaderClass}>
-          <div className={shellHeaderInnerClass}>
+          <div className={resolvedHeaderInnerClass}>
             <DefaultHeader title={title} subtitle={subtitle} />
           </div>
         </header>
@@ -175,7 +183,7 @@ export function AppShell({
   return (
     <div className={shellRootClass}>
       <header className={shellHeaderClass}>
-        <div className={shellHeaderInnerClass}>
+        <div className={resolvedHeaderInnerClass}>
           {headerContent ? (
             headerContent
           ) : (
