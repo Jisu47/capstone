@@ -320,8 +320,8 @@ function AuthenticatedHome() {
         <div className="pointer-events-none absolute -right-16 -top-14 h-32 w-32 rounded-full bg-[rgba(121,184,149,0.12)] blur-3xl" />
         <div className="pointer-events-none absolute -bottom-12 left-10 h-28 w-28 rounded-full bg-[rgba(218,236,224,0.7)] blur-3xl" />
 
-        <div className="relative flex items-start justify-between gap-4">
-          <div className="flex min-w-0 items-start gap-4">
+        <div className="relative space-y-4">
+          <div className="flex items-start justify-between gap-4">
             <div className="rounded-[28px] border border-white/80 bg-white/82 p-2 shadow-[0_12px_24px_rgba(121,184,149,0.1)]">
               <ProfileAvatar
                 name={currentUser?.displayName ?? sessionName ?? "S"}
@@ -329,23 +329,20 @@ function AuthenticatedHome() {
                 size="lg"
               />
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-[var(--ink-soft)]">오늘의 스터디 흐름</p>
-              <h2 className="mt-1 text-[22px] font-semibold tracking-[-0.04em] text-slate-950">
-                {sessionName}님, 어디부터 들어갈까요?
-              </h2>
-              <p className="mt-2 max-w-[17rem] text-sm leading-6 text-slate-600">
-                진행 중인 그룹은 빠르게, 보관된 그룹은 기록처럼 정리해서 볼 수 있게 바꿨어요.
-              </p>
-            </div>
+
+            <Link
+              href="/mypage"
+              className="shrink-0 rounded-full border border-[rgba(121,184,149,0.16)] bg-white/90 px-4 py-2 text-sm font-semibold text-[var(--brand)] shadow-[0_8px_18px_rgba(121,184,149,0.08)]"
+            >
+              마이페이지
+            </Link>
           </div>
 
-          <Link
-            href="/mypage"
-            className="shrink-0 rounded-full border border-[rgba(121,184,149,0.16)] bg-white/90 px-4 py-2 text-sm font-semibold text-[var(--brand)] shadow-[0_8px_18px_rgba(121,184,149,0.08)]"
-          >
-            마이페이지
-          </Link>
+          <div className="min-w-0">
+            <h2 className="text-[24px] font-semibold leading-[1.25] tracking-[-0.045em] text-slate-950">
+              {sessionName}님, 어디부터 들어갈까요?
+            </h2>
+          </div>
         </div>
 
         <div className="relative mt-5 grid grid-cols-2 gap-3">
