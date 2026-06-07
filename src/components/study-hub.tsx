@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePrototype } from "@/components/prototype-provider";
 import { getCurrentUserPersonalPlanItems } from "@/lib/plan-flow";
 import {
@@ -72,6 +72,16 @@ function CheckIcon({ active }: Readonly<{ active: boolean }>) {
         />
       </svg>
     </div>
+  );
+}
+
+function MeatballIcon() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+      <circle cx="12" cy="5" r="1.8" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.8" fill="currentColor" />
+      <circle cx="12" cy="19" r="1.8" fill="currentColor" />
+    </svg>
   );
 }
 
@@ -189,6 +199,8 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
     null,
   );
   const [isStudyInfoEditOpen, setIsStudyInfoEditOpen] = useState(false);
+  const [isTeamMemberModalOpen, setIsTeamMemberModalOpen] = useState(false);
+  const [isStudyInfoMenuOpen, setIsStudyInfoMenuOpen] = useState(false);
   const [studyInfoError, setStudyInfoError] = useState<string | null>(null);
   const [studyInfoDraft, setStudyInfoDraft] = useState({
     name: "",
@@ -208,6 +220,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
   const teammateCount = Math.max(0, group.members.length - 1);
   const daysLeft = getDaysLeft(group.examDate);
   const ddayLabel = group.status === "completed" ? "수료함" : getDdayLabel(daysLeft, isDatePast(group.examDate));
+  const studyInfoMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!isTimerRunning) {
@@ -222,6 +235,23 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
       window.clearInterval(intervalId);
     };
   }, [isTimerRunning]);
+
+  useEffect(() => {
+    if (!isStudyInfoMenuOpen) {
+      return;
+    }
+
+    function handleOutsideClick(event: MouseEvent) {
+      if (!studyInfoMenuRef.current?.contains(event.target as Node)) {
+        setIsStudyInfoMenuOpen(false);
+      }
+    }
+
+    window.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      window.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [isStudyInfoMenuOpen]);
 
   function closeChecklistModal() {
     setPendingChecklistId(null);
@@ -297,20 +327,49 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
       <div className="space-y-4">
         <section className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.05)]">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <StudyInfoIcon type="members" />
-              <h2 className="text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
-                스터디 정보
-              </h2>
+            <h2 className="text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
+              {group.name}
+            </h2>
+            <div ref={studyInfoMenuRef} className="relative shrink-0">
+              <button
+                type="button"
+                aria-expanded={isStudyInfoMenuOpen}
+                aria-haspopup="menu"
+                onClick={() => setIsStudyInfoMenuOpen((previous) => !previous)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-[0_6px_14px_rgba(15,23,42,0.05)] transition hover:translate-y-[-1px]"
+              >
+                <MeatballIcon />
+              </button>
+
+              {isStudyInfoMenuOpen ? (
+                <div className="absolute right-0 top-[calc(100%+10px)] z-40 w-[180px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_18px_42px_rgba(15,23,42,0.14)]">
+                  <div className="space-y-1">
+                    {leaderMode ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsStudyInfoMenuOpen(false);
+                          openStudyInfoEditModal();
+                        }}
+                        className="flex w-full items-center rounded-[12px] px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                      >
+                        수정
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsStudyInfoMenuOpen(false);
+                        setIsTeamMemberModalOpen(true);
+                      }}
+                      className="flex w-full items-center rounded-[12px] px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      팀원 확인
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
-            <button
-              type="button"
-              onClick={openStudyInfoEditModal}
-              disabled={!leaderMode}
-              className="rounded-full border border-slate-200 bg-white px-3.5 py-2 text-[12px] font-semibold text-slate-700 shadow-[0_6px_14px_rgba(15,23,42,0.05)] disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              스터디 정보 수정
-            </button>
           </div>
 
           <div className="overflow-hidden rounded-[18px] border border-slate-200">
@@ -671,6 +730,55 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                 {isMutating ? "저장 중" : "저장하기"}
               </button>
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isTeamMemberModalOpen ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/24 px-6">
+          <div className="w-full max-w-[360px] rounded-[20px] border border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.10)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-base font-semibold text-slate-900">팀원 확인</p>
+                <p className="mt-1 text-sm text-slate-500">현재 그룹에 참여 중인 멤버예요.</p>
+              </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                총 {group.members.length}명
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {group.members.map((member) => (
+                <div
+                  key={member.id}
+                  className="rounded-[14px] border border-slate-200 bg-white px-4 py-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{member.name}</p>
+                      <p className="mt-1 text-xs text-slate-500">{member.focus}</p>
+                    </div>
+                    <span
+                      className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
+                        member.role === "팀장"
+                          ? "bg-[var(--brand-soft)] text-[var(--brand)]"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {member.role}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsTeamMemberModalOpen(false)}
+              className="mt-5 w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+            >
+              닫기
+            </button>
           </div>
         </div>
       ) : null}
