@@ -349,8 +349,6 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
     currentUserId,
     togglePlanItem,
     uploadPlanReference,
-    reanalyzePlanReferenceUploads,
-    replacePlanReferenceUpload,
     deletePlanReferenceUpload,
     updateReviewInterval,
     deleteReviewCandidates,
@@ -360,7 +358,6 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
   } = usePrototype();
   const group = getGroupById(groups, groupId);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const replaceFileInputRef = useRef<HTMLInputElement | null>(null);
   const [newPersonalDraft, setNewPersonalDraft] = useState<PersonalPlanItemDraft>({
     title: "",
     detail: "",
@@ -371,7 +368,6 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
     detail: "",
   });
   const [isReviewScheduleOpen, setIsReviewScheduleOpen] = useState(false);
-  const [replacingUploadId, setReplacingUploadId] = useState<string | null>(null);
   const [viewingUploadId, setViewingUploadId] = useState<string | null>(null);
 
   if (isLoading && !group) {
@@ -417,24 +413,6 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
       mimeType: file.type || "image/png",
       imageDataUrl,
     });
-    event.target.value = "";
-  }
-
-  async function handleReplaceUploadChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    const targetUploadId = replacingUploadId;
-
-    if (!file || !targetUploadId) {
-      return;
-    }
-
-    const imageDataUrl = await readFileAsDataUrl(file);
-    await replacePlanReferenceUpload(activeGroup.id, targetUploadId, {
-      fileName: file.name,
-      mimeType: file.type || "image/png",
-      imageDataUrl,
-    });
-    setReplacingUploadId(null);
     event.target.value = "";
   }
 
@@ -493,16 +471,6 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
               void handleUploadChange(event);
             }}
           />
-          <input
-            ref={replaceFileInputRef}
-            hidden
-            accept="image/*"
-            type="file"
-            onChange={(event) => {
-              void handleReplaceUploadChange(event);
-            }}
-          />
-
           {activeGroup.planReferenceUploads.length === 0 ? (
             <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
               {leaderMode
@@ -549,28 +517,6 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                             type="button"
                             disabled={isMutating}
                             onClick={() => {
-                              void reanalyzePlanReferenceUploads(activeGroup.id);
-                            }}
-                            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 disabled:opacity-60"
-                          >
-                            재분석
-                          </button>
-                          <button
-                            type="button"
-                            disabled={isMutating}
-                            onClick={() => {
-                              setReplacingUploadId(upload.id);
-                              replaceFileInputRef.current?.click();
-                            }}
-                            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 disabled:opacity-60"
-                          >
-                            사진 변경
-                          </button>
-                          <button
-                            type="button"
-                            disabled={isMutating}
-                            onClick={() => {
-                              setReplacingUploadId(null);
                               void deletePlanReferenceUpload(activeGroup.id, upload.id);
                             }}
                             className="rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-semibold text-rose-600 disabled:opacity-60"
