@@ -19,6 +19,9 @@ import {
   currentUserId,
   getAvatarPresetFromSeed,
   getInitialGroups,
+  getDefaultStudyRules,
+  normalizeStudyRules,
+  parseGroupDescription,
   type CreateGroupInput,
   type GroupDetailsInput,
   type GroupStatus,
@@ -341,6 +344,7 @@ function normalizeGroupDetailsInput(input: GroupDetailsInput) {
   const deadlineDate = input.deadlineDate.trim() || null;
   const weeklyGoal = input.weeklyGoal.trim();
   const overallGoal = input.overallGoal.trim();
+  const studyRules = normalizeStudyRules(input.studyRules);
 
   if (!name || !subject || !examDate || !weeklyGoal || !overallGoal) {
     throw new Error("Study group name, subject, exam date, weekly goal, and overall goal are required.");
@@ -354,6 +358,7 @@ function normalizeGroupDetailsInput(input: GroupDetailsInput) {
     deadlineDate,
     weeklyGoal,
     overallGoal,
+    studyRules,
   };
 }
 
@@ -424,7 +429,11 @@ function bundleGroup(group: StudyGroup, groupCreatedAt: string): GroupBundle {
     deadline_date: group.deadlineDate,
     weekly_goal: group.weeklyGoal,
     overall_goal: group.overallGoal,
-    description: group.description,
+    description: buildGroupDescription(
+      group.subject,
+      group.overallGoal,
+      group.studyRules ?? getDefaultStudyRules(),
+    ),
     recent_update: group.recentUpdate,
     review_days: group.reviewDays,
     created_at: groupCreatedAt,
@@ -875,6 +884,7 @@ function rowsToGroups({
   }
 
   return groups.map((group) => {
+    const parsedDescription = parseGroupDescription(group.description);
     const members = (groupMembersByGroup.get(group.id) ?? [])
       .sort((left, right) => left.sort_order - right.sort_order)
       .map((membership) => {
@@ -1047,7 +1057,8 @@ function rowsToGroups({
       deadlineDate: group.deadline_date ?? null,
       weeklyGoal: group.weekly_goal,
       overallGoal: group.overall_goal && group.overall_goal.trim() ? group.overall_goal : group.weekly_goal,
-      description: group.description,
+      description: parsedDescription.summary,
+      studyRules: parsedDescription.studyRules,
       recentUpdate: group.recent_update,
       members,
       materials: groupMaterials,
@@ -1399,8 +1410,44 @@ export async function updatePrototypeGroupDetails(groupId: string, updates: Grou
         deadline_date: normalized.deadlineDate,
         weekly_goal: normalized.weeklyGoal,
         overall_goal: normalized.overallGoal,
-        description: buildGroupDescription(normalized.subject, normalized.overallGoal),
+        description: buildGroupDescription(
+          normalized.subject,
+          normalized.overallGoal,
+          normalized.studyRules,
+        ),
         recent_update: buildRecentUpdateFromGoal(normalized.weeklyGoal),
+      })
+      .eq("id", groupId),
+  );
+}
+
+export async function updatePrototypeGroupStudyRules(groupId: string, studyRules: string[]) {
+  const client = getSupabaseBrowserClient();
+  const normalizedStudyRules = normalizeStudyRules(studyRules);
+
+  const existingGroup = unwrapNullableData(
+    "Failed to inspect study group before updating study rules",
+    await client
+      .from("study_groups")
+      .select("subject, overall_goal, weekly_goal")
+      .eq("id", groupId)
+      .maybeSingle(),
+  ) as { subject: string; overall_goal: string | null; weekly_goal: string } | null;
+
+  if (!existingGroup) {
+    throw new Error("수정할 그룹 정보를 찾지 못했어요.");
+  }
+
+  ensureSuccess(
+    "Failed to update study rules",
+    await client
+      .from("study_groups")
+      .update({
+        description: buildGroupDescription(
+          existingGroup.subject,
+          existingGroup.overall_goal?.trim() || existingGroup.weekly_goal,
+          normalizedStudyRules,
+        ),
       })
       .eq("id", groupId),
   );
@@ -1429,10 +1476,10 @@ export async function renewPrototypeGroupCycle(
     "Failed to inspect study group before renewal",
     await client
       .from("study_groups")
-      .select("subject, weekly_goal")
+      .select("subject, weekly_goal, description")
       .eq("id", groupId)
       .maybeSingle(),
-  ) as { subject: string; weekly_goal: string } | null;
+  ) as { subject: string; weekly_goal: string; description: string } | null;
 
   if (!existingGroup) {
     throw new Error("갱신할 그룹 정보를 찾지 못했어요.");
@@ -1447,7 +1494,11 @@ export async function renewPrototypeGroupCycle(
         exam_date: normalized.examDate,
         weekly_goal: existingGroup.weekly_goal,
         overall_goal: normalized.overallGoal,
-        description: buildGroupDescription(existingGroup.subject, normalized.overallGoal),
+        description: buildGroupDescription(
+          existingGroup.subject,
+          normalized.overallGoal,
+          parseGroupDescription(existingGroup.description).studyRules,
+        ),
         recent_update: "새 시험 일정과 목표로 다음 스터디 주기를 시작했어요.",
       })
       .eq("id", groupId),

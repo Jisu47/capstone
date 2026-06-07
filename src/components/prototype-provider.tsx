@@ -69,6 +69,7 @@ import {
   togglePrototypePlanItem,
   transferPrototypeGroupLeadership,
   updatePrototypeGroupDetails,
+  updatePrototypeGroupStudyRules,
   updatePrototypePersonalPlanItem,
   updatePrototypePersonalTaskLibraryItem,
   updatePrototypePlanItem,
@@ -98,6 +99,7 @@ type PrototypeContextValue = {
   ) => Promise<void>;
   syncCurrentUserProfile: () => Promise<void>;
   updateGroupDetails: (groupId: string, updates: GroupDetailsInput) => Promise<void>;
+  updateGroupStudyRules: (groupId: string, studyRules: string[]) => Promise<void>;
   togglePlanItem: (groupId: string, itemId: string) => Promise<void>;
   clearPlanItemCompletion: (groupId: string, itemId: string) => Promise<void>;
   completePlanItemWithFeedback: (
@@ -741,6 +743,13 @@ export function PrototypeProvider({
     });
   }
 
+  async function updateGroupStudyRules(groupId: string, studyRules: string[]) {
+    await runMutation(async () => {
+      await updatePrototypeGroupStudyRules(groupId, studyRules);
+      await refreshGroups();
+    });
+  }
+
   async function togglePlanItem(_groupId: string, itemId: string) {
     await runMutation(async () => {
       await togglePrototypePlanItem(itemId, resolvedCurrentUserId);
@@ -1259,6 +1268,7 @@ export function PrototypeProvider({
     renewGroupCycle,
     syncCurrentUserProfile,
     updateGroupDetails,
+    updateGroupStudyRules,
     togglePlanItem,
     clearPlanItemCompletion,
     completePlanItemWithFeedback,

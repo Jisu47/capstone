@@ -8,11 +8,13 @@ import { GroupHomeTutorial } from "@/components/group-home-tutorial";
 import { AppShell, LoadingState, MissingGroupState } from "@/components/mobile-shell";
 import { GroupPageHeader } from "@/components/group-page-header";
 import { usePrototype } from "@/components/prototype-provider";
+import { StudyRulesModal } from "@/components/study-rules-modal";
 import { createGroupJoinCode } from "@/lib/group-join-code";
 import { clearPendingGroupHomeTour, hasPendingGroupHomeTour } from "@/lib/group-home-tour";
 import { getGroupMembership } from "@/lib/group-membership";
 import {
   formatExamDate,
+  getDefaultStudyRules,
   getDaysLeft,
   getMemberProgress,
   isDatePast,
@@ -169,6 +171,38 @@ function HeroIllustration() {
   );
 }
 
+function StudyRuleIcon() {
+  return (
+    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF8F1] text-[#57AE79]">
+      <svg aria-hidden="true" className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M12 3.75 5.75 6.5v5.25c0 3.7 2.55 7.1 6.25 8.5 3.7-1.4 6.25-4.8 6.25-8.5V6.5L12 3.75Z"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.8"
+        />
+      </svg>
+    </span>
+  );
+}
+
+function StudyRuleCheckIcon() {
+  return (
+    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#EAF7EE] text-[#48A96D]">
+      <svg aria-hidden="true" className="h-3 w-3" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M5 12.5L9.5 17L19 7.5"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+        />
+      </svg>
+    </span>
+  );
+}
+
 function ProgressBar({
   value,
   trackClassName,
@@ -265,6 +299,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     leaveGroup,
     togglePersonalPlanItem,
     transferGroupLeadership,
+    updateGroupStudyRules,
     isLoading,
     isMutating,
   } = usePrototype();
@@ -284,6 +319,8 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     examDate: "",
     overallGoal: "",
   });
+  const [isStudyRulesOpen, setIsStudyRulesOpen] = useState(false);
+  const [startStudyRulesInEditMode, setStartStudyRulesInEditMode] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const group = getGroupById(groups, groupId);
@@ -331,6 +368,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   }
 
   const activeGroup = group;
+  const studyRules = activeGroup.studyRules ?? getDefaultStudyRules();
   const inviteCode = createGroupJoinCode(activeGroup.id);
   const currentMember = activeGroup.members.find((member) => member.id === currentUserId) ?? null;
   const leaderMode = currentMember?.role === "팀장";
@@ -497,6 +535,16 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     }
   }
 
+  async function handleSaveStudyRules(nextRules: string[]) {
+    try {
+      await updateGroupStudyRules(activeGroup.id, nextRules);
+      setIsStudyRulesOpen(false);
+      setStartStudyRulesInEditMode(false);
+    } catch {
+      // AppShell error banner handles the message.
+    }
+  }
+
   return (
     <AppShell
       groupId={groupId}
@@ -504,7 +552,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
       headerBehavior="fixed"
       headerContent={<GroupPageHeader groupId={activeGroup.id} groupName={activeGroup.name} />}
     >
-      <div className="space-y-3.5 pb-1">
+      <div className="space-y-3.5 pt-2 pb-1">
         <section className="flex items-start justify-between gap-3 px-1">
           <div className="space-y-1">
             <p className="text-[13px] font-medium text-slate-500">안녕하세요, {greetingName}님</p>
@@ -574,7 +622,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
           </div>
         </section>
 
-        <section className="relative overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,#7FCB95_0%,#67B884_56%,#56AA79_100%)] px-4 pb-4 pt-4 text-white shadow-[0_18px_36px_rgba(76,175,122,0.20)]">
+        <section className="relative overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,#7FCB95_0%,#67B884_56%,#56AA79_100%)] px-4 pb-4 pt-4 text-white shadow-[0_6px_16px_rgba(15,23,42,0.05)]">
           <div className="absolute inset-x-0 bottom-0 h-20 bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.18),transparent_58%)]" />
           <div className="absolute right-[-38px] top-[-34px] h-28 w-28 rounded-full bg-white/10 blur-2xl" />
 
@@ -779,7 +827,77 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
             </div>
           )}
         </section>
+
+        <section className="relative overflow-hidden rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,42,0.05)]">
+          <div className="absolute bottom-3 right-3 opacity-90">
+            <div className="rounded-[18px] bg-[linear-gradient(180deg,#EBF8EF_0%,#F7FCF8_100%)] p-3 shadow-[0_8px_18px_rgba(121,184,149,0.08)]">
+              <svg aria-hidden="true" className="h-14 w-14 text-[#62B57F]" fill="none" viewBox="0 0 64 64">
+                <path
+                  d="M13 18.5c0-2.49 2.01-4.5 4.5-4.5h26c2.49 0 4.5 2.01 4.5 4.5v27.5c0 2.21-1.79 4-4 4H18c-2.76 0-5-2.24-5-5V18.5Z"
+                  fill="currentColor"
+                  fillOpacity="0.15"
+                  stroke="currentColor"
+                  strokeWidth="2.25"
+                />
+                <path
+                  d="M20 18h24v28H20a4 4 0 0 0-4 4V22a4 4 0 0 1 4-4Z"
+                  stroke="currentColor"
+                  strokeLinejoin="round"
+                  strokeWidth="2.25"
+                />
+                <path d="M27 23h10" stroke="currentColor" strokeLinecap="round" strokeWidth="2.25" />
+                <path d="M26 52 20 46" stroke="currentColor" strokeLinecap="round" strokeWidth="2.25" />
+              </svg>
+            </div>
+          </div>
+
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <StudyRuleIcon />
+              <h2 className="text-[16px] font-semibold tracking-[-0.03em] text-slate-950">
+                스터디 규칙
+              </h2>
+            </div>
+
+            <button
+              type="button"
+              disabled={!leaderMode}
+              onClick={() => {
+                setStartStudyRulesInEditMode(true);
+                setIsStudyRulesOpen(true);
+              }}
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-[var(--brand)] shadow-[0_4px_12px_rgba(15,23,42,0.04)] disabled:cursor-not-allowed disabled:text-slate-300"
+            >
+              수정하기
+            </button>
+          </div>
+
+          <div className="max-w-[78%] space-y-2.5">
+            {studyRules.map((rule, index) => (
+              <div key={`${rule}-${index + 1}`} className="flex items-start gap-3">
+                <StudyRuleCheckIcon />
+                <p className="text-[14px] leading-6 text-slate-700">{rule}</p>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
+
+      {isStudyRulesOpen ? (
+        <StudyRulesModal
+          key={`${activeGroup.id}:${startStudyRulesInEditMode ? "edit" : "view"}:${studyRules.join("|")}`}
+          canEdit={leaderMode}
+          isOpen
+          isSaving={isMutating}
+          startInEditMode={startStudyRulesInEditMode}
+          studyRules={studyRules}
+          onClose={() => {
+            setIsStudyRulesOpen(false);
+            setStartStudyRulesInEditMode(false);
+          }}
+          onSave={handleSaveStudyRules}
+        />
+      ) : null}
 
       <GroupHomeTutorial
         key={showTutorial ? `${activeGroup.id}:open` : `${activeGroup.id}:closed`}

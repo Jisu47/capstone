@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { usePrototype } from "@/components/prototype-provider";
 import { getCurrentUserPersonalPlanItems } from "@/lib/plan-flow";
+import { StudyRulesModal } from "@/components/study-rules-modal";
 import {
   formatExamDate,
+  getDefaultStudyRules,
   getDaysLeft,
   isDatePast,
   type StudyGroup,
@@ -291,6 +293,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
     isMutating,
     togglePersonalPlanItem,
     updateGroupDetails,
+    updateGroupStudyRules,
   } = usePrototype();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -308,6 +311,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
   );
   const [isStudyInfoEditOpen, setIsStudyInfoEditOpen] = useState(false);
   const [isTeamMemberModalOpen, setIsTeamMemberModalOpen] = useState(false);
+  const [isStudyRulesModalOpen, setIsStudyRulesModalOpen] = useState(false);
   const [isStudyInfoMenuOpen, setIsStudyInfoMenuOpen] = useState(false);
   const [studyInfoError, setStudyInfoError] = useState<string | null>(null);
   const [studyInfoDraft, setStudyInfoDraft] = useState({
@@ -325,6 +329,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
   const pendingChecklistChecked = pendingChecklistItem?.memberStatus[currentUserId] ?? false;
   const completedCount = group.plan.filter((item) => item.memberStatus[currentUserId]).length;
   const personalPlanItems = getCurrentUserPersonalPlanItems(group, currentUserId);
+  const studyRules = group.studyRules ?? getDefaultStudyRules();
   const teammateCount = Math.max(0, group.members.length - 1);
   const daysLeft = getDaysLeft(group.examDate);
   const ddayLabel = group.status === "completed" ? "수료함" : getDdayLabel(daysLeft, isDatePast(group.examDate));
@@ -484,9 +489,15 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
       deadlineDate: group.deadlineDate ?? "",
       weeklyGoal: group.weeklyGoal,
       overallGoal: studyInfoDraft.overallGoal,
+      studyRules,
     });
 
     setIsStudyInfoEditOpen(false);
+  }
+
+  async function handleSaveStudyRules(nextRules: string[]) {
+    await updateGroupStudyRules(group.id, nextRules);
+    setIsStudyRulesModalOpen(false);
   }
 
   async function confirmChecklistAction() {
@@ -594,6 +605,16 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                     >
                       팀원 확인
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsStudyInfoMenuOpen(false);
+                        setIsStudyRulesModalOpen(true);
+                      }}
+                      className="flex w-full items-center rounded-[12px] px-3 py-2 text-left text-[13px] font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      스터디 규칙
+                    </button>
                   </div>
                 </div>
               ) : null}
@@ -697,7 +718,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                     background: `conic-gradient(#8ED2A4 ${timerProgress * 360}deg, rgba(142,210,164,0.16) 0deg)`,
                   }}
                 >
-                  <div className="flex h-[216px] w-[216px] flex-col items-center justify-center rounded-full bg-white px-4 text-center">
+                  <div className="flex h-[228px] w-[228px] flex-col items-center justify-center rounded-full bg-white px-4 text-center">
                     <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EEF8F1] text-[var(--brand)]">
                       <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
                         <path
@@ -937,6 +958,18 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
           </div>
         </section>
       </div>
+
+      {isStudyRulesModalOpen ? (
+        <StudyRulesModal
+          key={`${group.id}:${studyRules.join("|")}`}
+          canEdit={leaderMode}
+          isOpen
+          isSaving={isMutating}
+          studyRules={studyRules}
+          onClose={() => setIsStudyRulesModalOpen(false)}
+          onSave={handleSaveStudyRules}
+        />
+      ) : null}
 
       {pendingChecklistItem ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/24 px-6">

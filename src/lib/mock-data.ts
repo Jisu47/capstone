@@ -134,6 +134,7 @@ export type StudyGroup = {
   weeklyGoal: string;
   overallGoal: string;
   description: string;
+  studyRules?: string[];
   recentUpdate: string;
   members: Member[];
   materials: Material[];
@@ -160,6 +161,7 @@ export type GroupDetailsInput = {
   deadlineDate: string;
   weeklyGoal: string;
   overallGoal: string;
+  studyRules?: string[];
 };
 
 export type CreateGroupInput = {
@@ -171,6 +173,14 @@ export type CreateGroupInput = {
 
 export const currentUserId = "member-jiyoon";
 const avatarPresetOrder: AvatarPreset[] = ["sky", "emerald", "rose", "amber"];
+const studyRulesMarkerPrefix = "\n<!--study-rules:";
+const studyRulesMarkerSuffix = "-->";
+
+const defaultStudyRules = [
+  "매일 최소 30분 이상 학습해요.",
+  "모르는 것은 적극적으로 질문해요.",
+  "서로 존중하고 함께 성장해요.",
+] as const;
 
 export function getAvatarPresetFromSeed(seed: string) {
   const normalized = seed.trim();
@@ -266,8 +276,65 @@ function parseGoals(weeklyGoal: string) {
     .filter(Boolean);
 }
 
-export function buildGroupDescription(subject: string, overallGoal: string) {
-  return `${subject} 학습 범위를 함께 관리하고 ${overallGoal.trim()}을 준비하는 스터디 모임`;
+export function normalizeStudyRules(studyRules?: string[]) {
+  const normalized = (studyRules ?? [...defaultStudyRules])
+    .map((rule) => rule.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+
+  return normalized.length > 0 ? normalized : [...defaultStudyRules];
+}
+
+export function getDefaultStudyRules() {
+  return [...defaultStudyRules];
+}
+
+export function parseGroupDescription(description: string | null | undefined) {
+  const raw = (description ?? "").trim();
+  const markerIndex = raw.indexOf(studyRulesMarkerPrefix);
+
+  if (markerIndex === -1) {
+    return {
+      summary: raw,
+      studyRules: getDefaultStudyRules(),
+    };
+  }
+
+  const summary = raw.slice(0, markerIndex).trim();
+  const payloadStart = markerIndex + studyRulesMarkerPrefix.length;
+  const payloadEnd = raw.indexOf(studyRulesMarkerSuffix, payloadStart);
+
+  if (payloadEnd === -1) {
+    return {
+      summary: raw,
+      studyRules: getDefaultStudyRules(),
+    };
+  }
+
+  const encodedPayload = raw.slice(payloadStart, payloadEnd);
+
+  try {
+    const parsed = JSON.parse(decodeURIComponent(encodedPayload));
+    return {
+      summary,
+      studyRules: normalizeStudyRules(Array.isArray(parsed) ? parsed : undefined),
+    };
+  } catch {
+    return {
+      summary,
+      studyRules: getDefaultStudyRules(),
+    };
+  }
+}
+
+export function buildGroupDescription(
+  subject: string,
+  overallGoal: string,
+  studyRules?: string[],
+) {
+  const summary = `${subject} 학습 범위를 함께 관리하고 ${overallGoal.trim()}을 준비하는 스터디 모임`;
+  const encodedRules = encodeURIComponent(JSON.stringify(normalizeStudyRules(studyRules)));
+  return `${summary}${studyRulesMarkerPrefix}${encodedRules}${studyRulesMarkerSuffix}`;
 }
 
 export function buildRecentUpdateFromGoal(weeklyGoal: string) {
