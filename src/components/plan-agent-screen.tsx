@@ -88,6 +88,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   const [draftQuestion, setDraftQuestion] = useState("");
   const [previewDraftState, setPreviewDraftState] = useState<PreviewDraftState | null>(null);
   const [editingPreviewItemId, setEditingPreviewItemId] = useState<string | null>(null);
+  const [editingWeeklyGoal, setEditingWeeklyGoal] = useState(false);
   const latestChatMessageRef = useRef<HTMLDivElement | null>(null);
   const [viewingUploadId, setViewingUploadId] = useState<string | null>(null);
 
@@ -159,7 +160,9 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   const effectivePreviewState =
     previewDraftState?.groupId === activeGroup.id ? previewDraftState : fallbackPreviewState;
   const previewDraft = effectivePreviewState.draft;
-  const effectiveEditingItemId = previewDraft.weeklyPlan.some((item) => item.id === editingPreviewItemId)
+  const effectiveEditingItemId = previewDraft.weeklyPlan.some(
+    (item) => item.id === editingPreviewItemId,
+  )
     ? editingPreviewItemId
     : null;
   const isManualPreview =
@@ -199,6 +202,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
       sourceQuestion,
     });
     setEditingPreviewItemId(null);
+    setEditingWeeklyGoal(false);
   }
 
   function updatePreviewDraftItem(
@@ -208,7 +212,9 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   ) {
     setPreviewDraftState((previous) => {
       const baseState =
-        previous && previous.groupId === activeGroup.id ? previous : createManualPreviewState(activeGroup);
+        previous && previous.groupId === activeGroup.id
+          ? previous
+          : createManualPreviewState(activeGroup);
 
       return {
         ...baseState,
@@ -222,10 +228,29 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
     });
   }
 
+  function updatePreviewWeeklyGoal(value: string) {
+    setPreviewDraftState((previous) => {
+      const baseState =
+        previous && previous.groupId === activeGroup.id
+          ? previous
+          : createManualPreviewState(activeGroup);
+
+      return {
+        ...baseState,
+        draft: {
+          ...baseState.draft,
+          weeklyGoal: value,
+        },
+      };
+    });
+  }
+
   function deletePreviewDraftItem(itemId: string) {
     setPreviewDraftState((previous) => {
       const baseState =
-        previous && previous.groupId === activeGroup.id ? previous : createManualPreviewState(activeGroup);
+        previous && previous.groupId === activeGroup.id
+          ? previous
+          : createManualPreviewState(activeGroup);
 
       return {
         ...baseState,
@@ -246,7 +271,9 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
 
     setPreviewDraftState((previous) => {
       const baseState =
-        previous && previous.groupId === activeGroup.id ? previous : createManualPreviewState(activeGroup);
+        previous && previous.groupId === activeGroup.id
+          ? previous
+          : createManualPreviewState(activeGroup);
 
       return {
         ...baseState,
@@ -461,10 +488,47 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
             </div>
 
             <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4">
-              <p className="text-xs font-medium text-slate-500">이번 주 목표</p>
-              <p className="mt-2 text-base font-semibold text-slate-900">
-                {previewDraft.weeklyGoal}
-              </p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-slate-500">이번 주 목표</p>
+                  {editingWeeklyGoal && leaderMode ? (
+                    <div className="mt-2 flex items-start gap-2">
+                      <input
+                        value={previewDraft.weeklyGoal}
+                        onChange={(event) => {
+                          updatePreviewWeeklyGoal(event.target.value);
+                        }}
+                        placeholder="이번 주 목표를 입력해 주세요."
+                        className="w-full rounded-[12px] border border-slate-200 bg-white px-3 py-2 text-[14px] font-semibold text-slate-900 outline-none focus:border-[var(--brand)]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingWeeklyGoal(false);
+                        }}
+                        className="shrink-0 rounded-full border border-slate-200 px-3 py-2 text-[11px] font-semibold text-slate-500"
+                      >
+                        완료
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-base font-semibold text-slate-900">
+                      {previewDraft.weeklyGoal || "아직 설정된 이번 주 목표가 없습니다."}
+                    </p>
+                  )}
+                </div>
+                {leaderMode && !editingWeeklyGoal ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingWeeklyGoal(true);
+                    }}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
+                  >
+                    수정
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             <WeeklyPlanTabs
@@ -483,8 +547,8 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
             />
 
             <div className="rounded-[16px] border border-dashed border-[var(--line)] bg-[var(--surface)] px-4 py-4 text-xs leading-6 text-slate-500">
-              이 단계는 미리보기입니다. 항목을 직접 수정하거나 AI 초안을 반영한 뒤, 아래
-              계획 적용하기를 눌러야 계획 탭에 최종 저장됩니다.
+              이 단계는 미리보기입니다. 항목과 이번 주 목표를 직접 수정하거나 AI 초안을
+              반영한 뒤, 아래 계획 적용하기를 눌러야 계획 탭에 최종 저장됩니다.
             </div>
 
             <button
