@@ -11,7 +11,6 @@ import { usePrototype } from "@/components/prototype-provider";
 import { createGroupJoinCode } from "@/lib/group-join-code";
 import { clearPendingGroupHomeTour, hasPendingGroupHomeTour } from "@/lib/group-home-tour";
 import { getGroupMembership } from "@/lib/group-membership";
-import type { PersonalPlanItemDraft } from "@/lib/plan-flow";
 import {
   formatExamDate,
   getDaysLeft,
@@ -19,6 +18,7 @@ import {
   isDatePast,
   type Member,
   type StudyGroup,
+  type UnderstandingLevel,
 } from "@/lib/mock-data";
 
 const memberAccents = [
@@ -40,6 +40,32 @@ const memberAccents = [
 ];
 
 const weekdayMap = ["일", "월", "화", "수", "목", "금", "토"] as const;
+
+const understandingOptions: Array<{
+  value: UnderstandingLevel;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "low",
+    label: "낮음",
+    description: "다시 복습이 필요해요. 복습 예정 항목으로 저장됩니다.",
+  },
+  {
+    value: "medium",
+    label: "보통",
+    description: "한 번 더 보면 안정적으로 기억할 수 있어요.",
+  },
+  {
+    value: "high",
+    label: "높음",
+    description: "지금 바로 설명하거나 문제를 풀 수 있는 상태예요.",
+  },
+];
+
+function getStudyManagementHref(groupId: string) {
+  return `/group/${groupId}/plan#study-management`;
+}
 
 type GroupActionModal = "invite" | "leave" | "delete" | "transfer" | null;
 type PostExamModal = "decision" | "renew" | null;
@@ -232,11 +258,11 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     renewGroupCycle,
     groups,
     currentUserId,
-    addPersonalPlanItem,
+    clearPlanItemCompletion,
+    completePlanItemWithFeedback,
     deleteGroup,
     deletePersonalPlanItem,
     leaveGroup,
-    togglePlanItem,
     togglePersonalPlanItem,
     transferGroupLeadership,
     isLoading,
@@ -249,12 +275,10 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   const [selectedLeaderId, setSelectedLeaderId] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [, bumpTutorialState] = useState(0);
-  const [isAddTodoOpen, setIsAddTodoOpen] = useState(false);
-  const [personalTaskError, setPersonalTaskError] = useState<string | null>(null);
-  const [personalTaskDraft, setPersonalTaskDraft] = useState<PersonalPlanItemDraft>({
-    title: "",
-    detail: "",
-  });
+  const [pendingChecklistId, setPendingChecklistId] = useState<string | null>(null);
+  const [selectedUnderstanding, setSelectedUnderstanding] = useState<UnderstandingLevel | null>(
+    null,
+  );
   const [renewalError, setRenewalError] = useState<string | null>(null);
   const [renewalDraft, setRenewalDraft] = useState({
     examDate: "",
@@ -324,6 +348,8 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   }));
   const todayTasks = getTodayFocusTasks(activeGroup, currentUserId);
   const personalTasks = activeGroup.personalPlanItems.filter((item) => item.memberId === currentUserId);
+  const pendingChecklistItem = todayTasks.find((item) => item.id === pendingChecklistId) ?? null;
+  const pendingChecklistChecked = pendingChecklistItem?.memberStatus[currentUserId] ?? false;
   const completedTodayTasks = todayTasks.filter((item) => item.memberStatus[currentUserId]).length;
   const completedPersonalTasks = personalTasks.filter((item) => item.completed).length;
   const totalTaskCount = todayTasks.length + personalTasks.length;
@@ -366,26 +392,9 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     setPostExamModal("renew");
   }
 
-  function openAddTodoModal() {
-    setPersonalTaskDraft({
-      title: "",
-      detail: "",
-    });
-    setPersonalTaskError(null);
-    setIsAddTodoOpen(true);
-  }
-
-  function closeAddTodoModal() {
-    setIsAddTodoOpen(false);
-    setPersonalTaskError(null);
-  }
-
-  function handlePersonalTaskDraftChange(key: keyof PersonalPlanItemDraft, value: string) {
-    setPersonalTaskDraft((previous) => ({
-      ...previous,
-      [key]: value,
-    }));
-    setPersonalTaskError(null);
+  function closeChecklistModal() {
+    setPendingChecklistId(null);
+    setSelectedUnderstanding(null);
   }
 
   async function handleCopyInviteCode() {
@@ -451,26 +460,27 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     }
   }
 
-  async function handleAddPersonalTask() {
-    const normalizedTitle = personalTaskDraft.title.trim();
-    const normalizedDetail = personalTaskDraft.detail.trim();
-
-    if (!normalizedTitle) {
-      setPersonalTaskError("할 일 제목을 먼저 적어주세요.");
+  async function confirmChecklistAction() {
+    if (!pendingChecklistItem) {
       return;
     }
 
-    try {
-      await addPersonalPlanItem(activeGroup.id, {
-        title: normalizedTitle,
-        detail: normalizedDetail,
-      });
-      closeAddTodoModal();
-    } catch (error) {
-      setPersonalTaskError(
-        error instanceof Error ? error.message : "새 할 일을 추가하지 못했어요.",
-      );
+    if (pendingChecklistChecked) {
+      await clearPlanItemCompletion(activeGroup.id, pendingChecklistItem.id);
+      closeChecklistModal();
+      return;
     }
+
+    if (!selectedUnderstanding) {
+      return;
+    }
+
+    await completePlanItemWithFeedback(
+      activeGroup.id,
+      pendingChecklistItem.id,
+      selectedUnderstanding,
+    );
+    closeChecklistModal();
   }
 
   async function handleDeletePersonalTask(itemId: string) {
@@ -648,7 +658,9 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
               </span>
               <button
                 type="button"
-                onClick={openAddTodoModal}
+                onClick={() => {
+                  void router.push(getStudyManagementHref(activeGroup.id));
+                }}
                 className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-[0_6px_18px_rgba(15,23,42,0.08)]"
               >
                 <span className="text-base leading-none text-slate-500">+</span>
@@ -671,7 +683,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                     key={item.id}
                     type="button"
                     onClick={() => {
-                      void togglePlanItem(activeGroup.id, item.id);
+                      setPendingChecklistId(item.id);
                     }}
                     className={`flex w-full items-center gap-3 rounded-[18px] px-3 py-3 text-left transition ${
                       checked
@@ -866,16 +878,16 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
         </GroupActionModalShell>
       ) : null}
 
-      {isAddTodoOpen ? (
+      {pendingChecklistItem ? (
         <GroupActionModalShell
-          title="오늘 할 일 추가"
-          description="홈 화면에서 바로 체크할 개인 할 일을 추가해보세요."
-          onClose={closeAddTodoModal}
+          title={pendingChecklistChecked ? "체크 해제" : "이해도 체크"}
+          description={pendingChecklistItem.title}
+          onClose={closeChecklistModal}
           footer={
             <>
               <button
                 type="button"
-                onClick={closeAddTodoModal}
+                onClick={closeChecklistModal}
                 className="flex-1 rounded-[16px] bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.26)]"
               >
                 취소
@@ -883,42 +895,52 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
               <button
                 type="button"
                 onClick={() => {
-                  void handleAddPersonalTask();
+                  void confirmChecklistAction();
                 }}
-                disabled={isMutating}
+                disabled={isMutating || (!pendingChecklistChecked && !selectedUnderstanding)}
                 className="flex-1 rounded-[16px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-70"
               >
-                추가하기
+                {isMutating ? "처리 중" : pendingChecklistChecked ? "해제하기" : "완료"}
               </button>
             </>
           }
         >
           <div className="space-y-3">
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold text-slate-800">할 일 제목</span>
-              <input
-                type="text"
-                value={personalTaskDraft.title}
-                onChange={(event) => handlePersonalTaskDraftChange("title", event.target.value)}
-                placeholder="예: 스택과 큐 복습하기"
-                className="w-full rounded-[16px] bg-white px-4 py-3 text-sm text-slate-900 outline-none shadow-[inset_0_0_0_1px_rgba(148,163,184,0.20)] transition focus:ring-4 focus:ring-[rgba(76,175,122,0.16)]"
-              />
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold text-slate-800">메모</span>
-              <textarea
-                rows={3}
-                value={personalTaskDraft.detail}
-                onChange={(event) => handlePersonalTaskDraftChange("detail", event.target.value)}
-                placeholder="필요하면 간단한 메모를 남겨주세요."
-                className="w-full rounded-[16px] bg-white px-4 py-3 text-sm text-slate-900 outline-none shadow-[inset_0_0_0_1px_rgba(148,163,184,0.20)] transition focus:ring-4 focus:ring-[rgba(76,175,122,0.16)]"
-              />
-            </label>
-            {personalTaskError ? (
-              <p className="rounded-[14px] bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-                {personalTaskError}
+            {pendingChecklistChecked ? (
+              <p className="rounded-[14px] bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-500">
+                완료 체크를 해제할까요? 이미 저장된 복습 예정 항목이나 현재 개인 할 일은 그대로 유지됩니다.
               </p>
-            ) : null}
+            ) : (
+              <>
+                <p className="rounded-[14px] bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-500">
+                  이 할 일을 어느 정도 이해했는지 선택해 주세요. 이해도가 낮으면 복습 예정 항목으로 저장되고,
+                  복습 간격이 지나면 개인 할 일로 자동 추가됩니다.
+                </p>
+                <div className="space-y-2">
+                  {understandingOptions.map((option) => {
+                    const active = selectedUnderstanding === option.value;
+
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setSelectedUnderstanding(option.value)}
+                        className={`w-full rounded-[14px] border px-4 py-3 text-left transition ${
+                          active
+                            ? "border-[var(--brand)] bg-[var(--brand-soft)] shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
+                            : "border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
+                        <p className="text-sm font-semibold text-slate-900">{option.label}</p>
+                        <p className="mt-1 text-xs leading-5 text-slate-500">
+                          {option.description}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </GroupActionModalShell>
       ) : null}

@@ -854,8 +854,9 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
           />
         </ExpandableSection>
 
-        <SectionCard title="나의 학습 관리">
-          <div className="space-y-6">
+        <div id="study-management" className="scroll-mt-28">
+          <SectionCard title="나의 학습 관리">
+            <div className="space-y-6">
             <div className="space-y-4">
               <p className="text-[17px] font-semibold tracking-[-0.03em] text-slate-950">
                 복습 설정
@@ -1076,8 +1077,9 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                 </div>
               )}
             </div>
-          </div>
-        </SectionCard>
+            </div>
+          </SectionCard>
+        </div>
 
         <div className="hidden">
 
