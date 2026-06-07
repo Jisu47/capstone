@@ -252,7 +252,7 @@ function ReviewScheduleDialog({
           </div>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto px-5 py-4">
+        <div className="max-h-[70vh] overflow-x-hidden overflow-y-auto px-5 py-4">
           {pendingReviewCandidates.length === 0 ? (
             <div className="rounded-[16px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
               아직 예정된 복습 항목이 없습니다.
@@ -288,11 +288,11 @@ function ReviewScheduleDialog({
                         : "border-slate-200 bg-white"
                     } ${!deleteMode ? "cursor-default" : "disabled:opacity-60"}`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900">{candidate.title}</p>
+                    <div className="flex items-start justify-between gap-3 overflow-hidden">
+                      <div className="min-w-0 flex-1 overflow-hidden">
+                        <p className="break-words text-sm font-semibold leading-6 text-slate-900">{candidate.title}</p>
                         {candidate.detail ? (
-                          <p className="mt-1 text-xs leading-5 text-[var(--ink-soft)]">
+                          <p className="mt-1 break-words text-xs leading-5 text-[var(--ink-soft)]">
                             {candidate.detail}
                           </p>
                         ) : null}
@@ -313,7 +313,7 @@ function ReviewScheduleDialog({
                         </span>
                       )}
                     </div>
-                    <p className="mt-2 text-xs font-medium text-slate-500">
+                    <p className="mt-2 break-words text-xs font-medium leading-5 text-slate-500">
                       {scheduledDate
                         ? `${formatReviewDate(scheduledDate)}에 개인 할 일로 추가 예정`
                         : "복습 간격을 설정하면 예정일이 계산됩니다."}
