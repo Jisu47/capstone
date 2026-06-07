@@ -763,7 +763,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                   onClick={configureCustomTarget}
                   className="rounded-[14px] border border-slate-200 bg-white px-2.5 py-2.5 text-[13px] font-semibold whitespace-nowrap text-slate-700"
                 >
-                  사용자 설정
+                  기타
                 </button>
               </div>
             </>
