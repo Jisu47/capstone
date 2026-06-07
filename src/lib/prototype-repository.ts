@@ -2058,6 +2058,19 @@ export async function updatePrototypeReviewInterval(
   );
 }
 
+export async function deletePrototypeReviewCandidates(candidateIds: string[]) {
+  if (candidateIds.length === 0) {
+    return;
+  }
+
+  const client = getSupabaseBrowserClient();
+
+  ensureSuccess(
+    "Failed to delete review candidates",
+    await client.from("review_candidates").delete().in("id", candidateIds),
+  );
+}
+
 export async function addPrototypeDueReviewCandidateTodos(groups: StudyGroup[]) {
   const client = getSupabaseBrowserClient();
   let createdCount = 0;

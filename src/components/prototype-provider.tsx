@@ -51,6 +51,7 @@ import {
   deletePrototypePlanReferenceUpload,
   deletePrototypePersonalPlanItem,
   deletePrototypePersonalTaskLibraryItem,
+  deletePrototypeReviewCandidates,
   applyPrototypePlanAgentDraft,
   bootstrapPrototypeGroups,
   clearPrototypePlanItemCompletion,
@@ -132,6 +133,7 @@ type PrototypeContextValue = {
     groupId: string,
     reviewIntervalDays: ReviewIntervalDays | null,
   ) => Promise<void>;
+  deleteReviewCandidates: (candidateIds: string[]) => Promise<void>;
   addPersonalPlanItem: (groupId: string, item: PersonalPlanItemDraft) => Promise<void>;
   updatePersonalPlanItem: (itemId: string, item: PersonalPlanItemDraft) => Promise<void>;
   togglePersonalPlanItem: (itemId: string, completed: boolean) => Promise<void>;
@@ -945,6 +947,13 @@ export function PrototypeProvider({
     });
   }
 
+  async function deleteReviewCandidates(candidateIds: string[]) {
+    await runMutation(async () => {
+      await deletePrototypeReviewCandidates(candidateIds);
+      await refreshGroups();
+    });
+  }
+
   async function addPersonalPlanItem(groupId: string, item: PersonalPlanItemDraft) {
     const group = getGroupById(groups, groupId);
 
@@ -1265,6 +1274,7 @@ export function PrototypeProvider({
     deletePlanReferenceUpload,
     updateReviewDays,
     updateReviewInterval,
+    deleteReviewCandidates,
     addPersonalPlanItem,
     updatePersonalPlanItem,
     togglePersonalPlanItem,
