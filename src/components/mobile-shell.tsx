@@ -43,14 +43,14 @@ export function SectionCard({
   children: React.ReactNode;
 }>) {
   return (
-    <section className="rounded-[16px] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[0_6px_16px_rgba(15,23,42,0.04)]">
-      <div className="mb-2.5 flex items-center justify-between gap-3">
-        <h2 className="text-[14px] font-semibold tracking-[-0.02em] text-slate-900">
+    <section className="min-w-0 rounded-[16px] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[0_6px_16px_rgba(15,23,42,0.04)]">
+      <div className="mb-2.5 flex min-w-0 items-center justify-between gap-3">
+        <h2 className="min-w-0 flex-1 text-[14px] font-semibold tracking-[-0.02em] text-slate-900">
           {title}
         </h2>
-        {action}
+        {action ? <div className="shrink-0 ui-nowrap-label">{action}</div> : null}
       </div>
-      <div className="space-y-2.5">{children}</div>
+      <div className="min-w-0 space-y-2.5">{children}</div>
     </section>
   );
 }
@@ -62,7 +62,7 @@ export function LoadingState({
 }>) {
   return (
     <SectionCard title="불러오는 중">
-      <p className="text-sm leading-6 text-[var(--ink-soft)]">{message}</p>
+      <p className="ui-copy text-sm leading-6 text-[var(--ink-soft)]">{message}</p>
     </SectionCard>
   );
 }
@@ -72,12 +72,12 @@ export function MissingGroupState() {
     <SectionCard
       title="그룹을 찾을 수 없어요"
       action={
-        <Link href="/" className="text-sm font-semibold text-[var(--brand)]">
+        <Link href="/" className="ui-nowrap-label text-sm font-semibold text-[var(--brand)]">
           그룹 선택
         </Link>
       }
     >
-      <p className="text-sm leading-6 text-[var(--ink-soft)]">
+      <p className="ui-copy text-sm leading-6 text-[var(--ink-soft)]">
         새로 만든 그룹이 아직 동기화되지 않았거나 접근할 수 없는 그룹입니다.
         메인화면에서 다시 선택해 주세요.
       </p>
@@ -98,12 +98,12 @@ function DefaultHeader({
     return (
       <section className="rounded-[28px] border border-[rgba(121,184,149,0.18)] bg-[linear-gradient(180deg,#ffffff_0%,#fbfdfb_100%)] px-4 pb-4 pt-4 shadow-[0_14px_32px_rgba(121,184,149,0.10)]">
         <div className="space-y-4">
-          <Link
-            href="/"
-            className="inline-flex rounded-[999px] border border-[rgba(121,184,149,0.16)] bg-white px-4 py-2 text-[11px] font-semibold tracking-[0.06em] text-slate-700 shadow-[0_6px_16px_rgba(121,184,149,0.08)]"
-          >
-            STUDY FLOW
-          </Link>
+        <Link
+          href="/"
+          className="ui-nowrap-label inline-flex rounded-[999px] border border-[rgba(121,184,149,0.16)] bg-white px-4 py-2 text-[11px] font-semibold tracking-[0.06em] text-slate-700 shadow-[0_6px_16px_rgba(121,184,149,0.08)]"
+        >
+          STUDY FLOW
+        </Link>
 
           <p className="font-[family:var(--font-study-display)] text-[30px] leading-none tracking-[-0.05em] text-slate-950">
             {title}
@@ -118,7 +118,7 @@ function DefaultHeader({
       <div className="flex items-center justify-between gap-3">
         <Link
           href="/"
-          className="inline-flex rounded-[999px] border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-700"
+          className="ui-nowrap-label inline-flex rounded-[999px] border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-700"
         >
           STUDY FLOW
         </Link>
@@ -129,7 +129,7 @@ function DefaultHeader({
           {title}
         </p>
         {subtitle ? (
-          <p className="text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
+          <p className="ui-copy text-sm leading-5 text-[var(--ink-soft)]">{subtitle}</p>
         ) : null}
       </div>
     </>
@@ -219,7 +219,7 @@ export function AppShell({
                 </Link>
               }
             >
-              <p className="text-sm leading-6 text-[var(--ink-soft)]">
+              <p className="ui-copy text-sm leading-6 text-[var(--ink-soft)]">
                 로그인 후 그룹을 선택하면 홈, 스터디, 계획, 자료 화면을 이어서 사용할 수
                 있습니다.
               </p>

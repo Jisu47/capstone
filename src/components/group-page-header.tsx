@@ -153,15 +153,15 @@ export function GroupPageHeader({
                 <Link
                   key={group.id}
                   href={resolveGroupHref(pathname, group.id)}
-                  className={`flex items-center justify-between rounded-[14px] px-4 py-3 text-sm font-medium transition ${
+                  className={`flex min-w-0 items-center justify-between gap-3 rounded-[14px] px-4 py-3 text-sm font-medium transition ${
                     active
                       ? "bg-[var(--brand-soft)] text-[var(--brand)]"
                       : "text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  <span className="truncate">{group.name}</span>
+                  <span className="min-w-0 flex-1 truncate">{group.name}</span>
                   {active ? (
-                    <span className="text-xs font-semibold">현재</span>
+                    <span className="ui-nowrap-label shrink-0 text-xs font-semibold">현재</span>
                   ) : null}
                 </Link>
               );

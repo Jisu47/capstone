@@ -68,6 +68,30 @@ select {
   font: inherit;
 }
 
+button {
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+.ui-nowrap-label {
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+.ui-copy {
+  min-width: 0;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.ui-copy-preline {
+  min-width: 0;
+  white-space: pre-line;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
 input::placeholder,
 textarea::placeholder {
   color: rgba(91, 112, 142, 0.75);
