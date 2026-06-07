@@ -552,7 +552,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
       headerBehavior="fixed"
       headerContent={<GroupPageHeader groupId={activeGroup.id} groupName={activeGroup.name} />}
     >
-      <div className="space-y-3.5 -mt-5 md:mt-9 pb-1">
+      <div className="space-y-3.5 -mt-5 md:mt-20 pb-1">
         <section className="flex items-start justify-between gap-3 px-1">
           <div className="space-y-1">
             <p className="text-[13px] font-medium text-slate-500">안녕하세요, {greetingName}님</p>
