@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePrototype } from "@/components/prototype-provider";
-import { getCurrentUserPersonalPlanItems } from "@/lib/plan-flow";
+import { getCurrentUserPersonalPlanItems, orderedWeekdays } from "@/lib/plan-flow";
 import { StudyRulesModal } from "@/components/study-rules-modal";
 import {
   formatExamDate,
@@ -11,6 +11,8 @@ import {
   isDatePast,
   type StudyGroup,
   type UnderstandingLevel,
+  type Weekday,
+  type WeeklyPlanItem,
 } from "@/lib/mock-data";
 
 type StudyHubProps = {
@@ -53,6 +55,39 @@ type ActiveTimerMember = {
 };
 
 const timerPresetOptions = [25, 50, 75, 100] as const;
+const weekdayFromDateMap: Weekday[] = ["일", "월", "화", "수", "목", "금", "토"];
+
+function getTodayWeekday() {
+  return weekdayFromDateMap[new Date().getDay()] ?? "월";
+}
+
+function getStudyChecklistItemsForToday(
+  plan: WeeklyPlanItem[],
+  memberId: string,
+): Array<{
+  item: WeeklyPlanItem;
+  isMissed: boolean;
+}> {
+  const today = getTodayWeekday();
+  const todayItems = plan
+    .filter((item) => item.day === today)
+    .map((item) => ({ item, isMissed: false }));
+  const todayIndex = orderedWeekdays.indexOf(today);
+
+  if (todayIndex <= 0) {
+    return todayItems;
+  }
+
+  const missedItems = orderedWeekdays
+    .slice(0, todayIndex)
+    .flatMap((day) =>
+      plan
+        .filter((item) => item.day === day && !item.memberStatus[memberId])
+        .map((item) => ({ item, isMissed: true })),
+    );
+
+  return [...todayItems, ...missedItems];
+}
 
 function formatTimer(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600)
@@ -327,7 +362,11 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
     activeTimerMembers.find((entry) => entry.member.id === selectedMemberId)?.member ?? null;
   const pendingChecklistItem = group.plan.find((item) => item.id === pendingChecklistId) ?? null;
   const pendingChecklistChecked = pendingChecklistItem?.memberStatus[currentUserId] ?? false;
-  const completedCount = group.plan.filter((item) => item.memberStatus[currentUserId]).length;
+  const todayChecklistItems = getStudyChecklistItemsForToday(group.plan, currentUserId);
+  const completedCount = todayChecklistItems.filter(
+    ({ item }) => item.memberStatus[currentUserId],
+  ).length;
+  const visibleChecklistCount = todayChecklistItems.length;
   const personalPlanItems = getCurrentUserPersonalPlanItems(group, currentUserId);
   const studyRules = group.studyRules ?? getDefaultStudyRules();
   const teammateCount = Math.max(0, group.members.length - 1);
@@ -867,18 +906,18 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
               오늘 할 일
             </h2>
             <span className="text-[11px] font-semibold text-slate-500">
-              {completedCount}/{group.plan.length}
+              {completedCount}/{visibleChecklistCount}
             </span>
           </div>
 
           <div className="rounded-[16px] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[0_6px_16px_rgba(15,23,42,0.04)]">
-            {group.plan.length === 0 ? (
+            {todayChecklistItems.length === 0 ? (
               <div className="rounded-[13px] border border-dashed border-slate-200 bg-white px-3.5 py-3.5 text-[13px] leading-5 text-[var(--ink-soft)]">
                 아직 등록된 공동 계획이 없습니다. 계획 탭에서 할 일을 추가하면 여기에서 바로 체크할 수 있어요.
               </div>
             ) : (
               <div className="space-y-1.5">
-                {group.plan.map((item) => {
+                {todayChecklistItems.map(({ item, isMissed }) => {
                   const checked = item.memberStatus[currentUserId];
 
                   return (
@@ -900,7 +939,14 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="truncate text-[13px] font-semibold text-slate-900">{item.title}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="truncate text-[13px] font-semibold text-slate-900">{item.title}</p>
+                                {isMissed ? (
+                                  <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-600">
+                                    놓친 할 일
+                                  </span>
+                                ) : null}
+                              </div>
                               <p className="mt-1 truncate text-[11px] leading-5 text-slate-500">
                                 {item.detail}
                               </p>
