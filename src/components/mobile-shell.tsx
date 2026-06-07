@@ -15,8 +15,8 @@ const shellHeaderBareInnerClass =
   "mx-auto flex w-full max-w-[430px] flex-col gap-3 px-0 pb-0 pt-[calc(env(safe-area-inset-top)+0.875rem)]";
 const shellHeaderCapsuleInnerClass =
   "mx-auto flex w-full max-w-[430px] flex-col gap-3 px-0 pb-0 pt-[calc(env(safe-area-inset-top)+0.875rem)]";
-const shellMainClass = "min-w-0 space-y-4 px-4 pb-32 pt-4 md:px-6 md:pt-5 lg:px-8";
-const shellMainWithoutNavClass = "min-w-0 space-y-4 px-4 pb-10 pt-4 md:px-6 md:pt-5 lg:px-8";
+const shellMainClass = "min-w-0 space-y-3 px-3.5 pb-32 pt-3.5 md:px-5 md:pt-4 lg:px-7";
+const shellMainWithoutNavClass = "min-w-0 space-y-3 px-3.5 pb-10 pt-3.5 md:px-5 md:pt-4 lg:px-7";
 
 type HeaderVariant = "default" | "bare" | "capsule";
 type HeaderBehavior = "sticky" | "fixed";
@@ -43,14 +43,14 @@ export function SectionCard({
   children: React.ReactNode;
 }>) {
   return (
-    <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-slate-900">
+    <section className="rounded-[16px] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[0_6px_16px_rgba(15,23,42,0.04)]">
+      <div className="mb-2.5 flex items-center justify-between gap-3">
+        <h2 className="text-[14px] font-semibold tracking-[-0.02em] text-slate-900">
           {title}
         </h2>
         {action}
       </div>
-      <div className="space-y-3">{children}</div>
+      <div className="space-y-2.5">{children}</div>
     </section>
   );
 }

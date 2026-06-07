@@ -225,7 +225,7 @@ function getPlanVisualType(title: string, detail: string) {
 
 function PlanTypeIcon({ type }: Readonly<{ type: "book" | "video" | "pencil" }>) {
   return (
-    <span className="inline-flex h-12 w-12 items-center justify-center rounded-[16px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] text-slate-900 shadow-[0_8px_18px_rgba(15,23,42,0.05)]">
+    <span className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] text-slate-900 shadow-[0_6px_14px_rgba(15,23,42,0.05)]">
       {type === "video" ? <VideoIcon /> : type === "pencil" ? <PencilIcon /> : <BookIcon />}
     </span>
   );
@@ -249,7 +249,7 @@ function WeeklyPlanTabs({
     plansByDay.find((entry) => entry.day === activeDay)?.items ?? [];
 
   return (
-    <div className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+    <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
       <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fcfdfc_100%)]">
         <div className="grid grid-cols-5">
           {plansByDay.map(({ day, items }) => {
@@ -267,7 +267,7 @@ function WeeklyPlanTabs({
                 key={day}
                 type="button"
                 onClick={() => setActiveDay(day)}
-                className={`relative flex flex-col items-center gap-2 px-2 pb-4 pt-4 text-sm transition ${
+                className={`relative flex flex-col items-center gap-1.5 px-1.5 pb-3 pt-3 text-[13px] transition ${
                   active ? "font-semibold text-slate-950" : "font-medium text-slate-500"
                 }`}
                 aria-pressed={active}
@@ -275,13 +275,13 @@ function WeeklyPlanTabs({
                 <span className="flex items-center gap-1.5">
                   <span>{day}</span>
                   <span
-                    className={`inline-flex min-w-8 items-center justify-center rounded-full px-2 py-1 text-xs font-semibold ${countClass}`}
+                    className={`inline-flex min-w-7 items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${countClass}`}
                   >
                     {count}
                   </span>
                 </span>
                 {active ? (
-                  <span className="absolute inset-x-3 bottom-0 h-[3px] rounded-full bg-[var(--brand)]" />
+                  <span className="absolute inset-x-3 bottom-0 h-[2px] rounded-full bg-[var(--brand)]" />
                 ) : null}
               </button>
             );
@@ -289,9 +289,9 @@ function WeeklyPlanTabs({
         </div>
       </div>
 
-      <div className="space-y-3 px-4 py-4">
+      <div className="space-y-2.5 px-3.5 py-3.5">
         {activeDayItems.length === 0 ? (
-          <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50/70 px-4 py-8 text-center text-sm text-slate-400">
+          <div className="rounded-[14px] border border-dashed border-slate-200 bg-slate-50/70 px-3.5 py-6 text-center text-[13px] text-slate-400">
             선택한 요일에 등록된 계획이 없습니다.
           </div>
         ) : (
@@ -305,7 +305,7 @@ function WeeklyPlanTabs({
                 key={item.id}
                 type="button"
                 onClick={() => onTogglePlanItem(item.id)}
-                className={`flex w-full items-center gap-4 rounded-[18px] border px-4 py-4 text-left transition ${
+                className={`flex w-full items-center gap-3 rounded-[16px] border px-3.5 py-3 text-left transition ${
                   checked
                     ? "border-[var(--brand)] bg-[linear-gradient(180deg,#ffffff_0%,#f8fdf9_100%)] shadow-[0_10px_22px_rgba(121,184,149,0.10)]"
                     : "border-slate-200 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.04)] hover:border-slate-300"
@@ -313,10 +313,10 @@ function WeeklyPlanTabs({
               >
                 <PlanTypeIcon type={visualType} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[19px] font-semibold tracking-[-0.03em] text-slate-950">
+                  <p className="truncate text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
                     {item.title}
                   </p>
-                  <p className="mt-1 text-[15px] font-medium text-slate-600">{timeRangeLabel}</p>
+                  <p className="mt-1 text-[12px] font-medium text-slate-600">{timeRangeLabel}</p>
                 </div>
               </button>
             );
@@ -342,7 +342,7 @@ function RoadmapTabs({
   }
 
   return (
-    <div className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+    <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
       <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fcfdfc_100%)]">
         <div
           className="flex gap-1 overflow-x-auto px-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
@@ -363,7 +363,7 @@ function RoadmapTabs({
                 key={item.id}
                 type="button"
                 onClick={() => setActiveRoadmapId(item.id)}
-                className={`relative shrink-0 flex min-w-[102px] flex-col items-center gap-2 px-3 pb-4 pt-4 text-sm transition ${
+                className={`relative shrink-0 flex min-w-[94px] flex-col items-center gap-1.5 px-2.5 pb-3 pt-3 text-[13px] transition ${
                   active ? "font-semibold text-slate-950" : "font-medium text-slate-500"
                 }`}
                 aria-pressed={active}
@@ -371,13 +371,13 @@ function RoadmapTabs({
                 <span className="flex items-center gap-1.5 whitespace-nowrap">
                   <span>{item.weekNumber}주차</span>
                   <span
-                    className={`inline-flex min-w-8 items-center justify-center rounded-full px-2 py-1 text-xs font-semibold ${countClass}`}
+                    className={`inline-flex min-w-7 items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${countClass}`}
                   >
                     {coveredUnitCount}
                   </span>
                 </span>
                 {active ? (
-                  <span className="absolute inset-x-3 bottom-0 h-[3px] rounded-full bg-[var(--brand)]" />
+                  <span className="absolute inset-x-3 bottom-0 h-[2px] rounded-full bg-[var(--brand)]" />
                 ) : null}
               </button>
             );
@@ -385,25 +385,25 @@ function RoadmapTabs({
         </div>
       </div>
 
-      <div className="px-4 py-4">
-        <article className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
-          <div className="flex items-start gap-4">
+      <div className="px-3.5 py-3.5">
+        <article className="rounded-[16px] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[0_6px_14px_rgba(15,23,42,0.04)]">
+          <div className="flex items-start gap-3">
             <PlanTypeIcon type="book" />
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[19px] font-semibold tracking-[-0.03em] text-slate-950">
+                  <p className="truncate text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
                     {activeItem.title}
                   </p>
-                  <p className="mt-1 text-[15px] font-medium text-slate-600">
+                  <p className="mt-1 text-[12px] font-medium text-slate-600">
                     {activeItem.weekNumber}주차 학습 범위
                   </p>
                 </div>
-                <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
                   {activeItem.unitStartSequence} ~ {activeItem.unitEndSequence}
                 </span>
               </div>
-              <p className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">{activeItem.summary}</p>
+              <p className="mt-2.5 text-[13px] leading-5 text-[var(--ink-soft)]">{activeItem.summary}</p>
             </div>
           </div>
         </article>
@@ -420,9 +420,9 @@ function SummaryChip({
   value: string;
 }>) {
   return (
-    <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-slate-900">{value}</p>
+    <div className="rounded-[14px] border border-slate-200 bg-white px-3.5 py-3 shadow-[0_4px_12px_rgba(15,23,42,0.03)]">
+      <p className="text-[11px] font-medium text-slate-500">{label}</p>
+      <p className="mt-1.5 text-[13px] font-semibold text-slate-900">{value}</p>
     </div>
   );
 }
@@ -873,7 +873,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                       onClick={() => {
                         void updateReviewInterval(activeGroup.id, active ? null : option.days);
                       }}
-                      className={`rounded-full border px-5 py-2.5 text-sm font-semibold transition ${
+                      className={`rounded-full border px-4 py-2 text-[13px] font-semibold transition ${
                         active
                           ? "border-[var(--brand)] bg-[var(--brand)] text-white shadow-[0_8px_18px_rgba(121,184,149,0.18)]"
                           : "border-slate-200 bg-white text-slate-600"
@@ -885,8 +885,8 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                 })}
               </div>
 
-              <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#f3f4f6_100%)]">
-                <div className="space-y-2 px-4 py-4 text-sm font-semibold text-slate-800">
+              <div className="overflow-hidden rounded-[16px] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#f3f4f6_100%)]">
+                <div className="space-y-1.5 px-3.5 py-3.5 text-[13px] font-semibold text-slate-800">
                   <p>현재 설정: {getReviewIntervalLabel(reviewInterval)}</p>
                   <p>다음 예정일: {nextPendingReviewLabel}</p>
                   <p>예정 항목 수: {pendingReviewCandidates.length}개</p>
@@ -894,7 +894,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                 <button
                   type="button"
                   onClick={() => setIsReviewScheduleOpen(true)}
-                  className="flex w-full items-center justify-center border-t border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  className="flex w-full items-center justify-center border-t border-slate-200 bg-white px-3.5 py-2.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   예정 항목 보기
                   <span className="ml-1 text-base">→</span>
@@ -904,8 +904,8 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
 
             <div className="h-px bg-slate-200" />
 
-            <div className="space-y-4">
-              <p className="text-[17px] font-semibold tracking-[-0.03em] text-slate-950">
+            <div className="space-y-3.5">
+              <p className="text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
                 개인 할 일 추가
               </p>
 
@@ -920,7 +920,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                       }))
                     }
                     placeholder="추가할 할 일 제목"
-                    className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 pr-12 text-sm outline-none placeholder:text-slate-400"
+                    className="w-full rounded-[14px] border border-slate-200 bg-white px-3.5 py-2.5 pr-11 text-[13px] outline-none placeholder:text-slate-400"
                   />
                   <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">
                     <PencilIcon />
@@ -938,7 +938,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                       }))
                     }
                     placeholder="메모"
-                    className="w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 pr-12 text-sm outline-none placeholder:text-slate-400"
+                    className="w-full rounded-[14px] border border-slate-200 bg-white px-3.5 py-2.5 pr-11 text-[13px] outline-none placeholder:text-slate-400"
                   />
                   <span className="pointer-events-none absolute right-4 top-3 text-slate-400">
                     <BookIcon />
@@ -951,18 +951,18 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                     void handleAddPersonalItem();
                   }}
                   disabled={isMutating || !newPersonalDraft.title.trim()}
-                  className="w-full rounded-[16px] bg-[var(--brand)] px-4 py-3.5 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(121,184,149,0.18)] disabled:opacity-70"
+                  className="w-full rounded-[14px] bg-[var(--brand)] px-4 py-3 text-[13px] font-semibold text-white shadow-[0_8px_18px_rgba(121,184,149,0.16)] disabled:opacity-70"
                 >
                   개인 할 일 추가
                 </button>
               </div>
 
               {personalPlanItems.length === 0 ? (
-                <div className="px-2 py-1 text-center text-sm text-[var(--ink-soft)]">
+                <div className="px-2 py-1 text-center text-[13px] text-[var(--ink-soft)]">
                   아직 추가된 할 일이 없습니다...
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {personalPlanItems.map((item) => {
                     const editing = editingPersonalItemId === item.id;
                     const isReviewTask =
@@ -971,7 +971,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                     return (
                       <div
                         key={item.id}
-                        className="rounded-[16px] border border-slate-200 bg-white px-4 py-4"
+                        className="rounded-[14px] border border-slate-200 bg-white px-3.5 py-3.5"
                       >
                         {editing ? (
                           <div className="space-y-3">
@@ -1023,7 +1023,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                                  <p className="truncate text-[13px] font-semibold text-slate-900">{item.title}</p>
                                   {isReviewTask ? (
                                     <span className="rounded-full bg-[var(--brand-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--brand)]">
                                       복습
@@ -1035,7 +1035,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                                   )}
                                 </div>
                                 {item.detail ? (
-                                  <p className="mt-1 text-xs leading-5 text-[var(--ink-soft)]">
+                                  <p className="mt-1 truncate text-[11px] leading-5 text-[var(--ink-soft)]">
                                     {item.detail}
                                   </p>
                                 ) : null}

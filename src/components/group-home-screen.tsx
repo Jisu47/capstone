@@ -156,14 +156,14 @@ function CheckIcon({ active }: Readonly<{ active: boolean }>) {
 
 function HeroIllustration() {
   return (
-    <div className="relative flex h-[148px] w-[140px] shrink-0 items-end justify-end">
+    <div className="relative flex h-[126px] w-[118px] shrink-0 items-end justify-end">
       <Image
         src="/hero-study-illustration.svg"
         alt=""
         aria-hidden="true"
         width={132}
         height={144}
-        className="h-[144px] w-[132px] object-contain drop-shadow-[0_18px_30px_rgba(35,73,51,0.18)]"
+        className="h-[122px] w-[112px] object-contain drop-shadow-[0_14px_24px_rgba(35,73,51,0.16)]"
       />
     </div>
   );
@@ -504,11 +504,11 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
       headerBehavior="fixed"
       headerContent={<GroupPageHeader groupId={activeGroup.id} groupName={activeGroup.name} />}
     >
-      <div className="space-y-5 pb-1">
+      <div className="space-y-3.5 pb-1">
         <section className="flex items-start justify-between gap-3 px-1">
           <div className="space-y-1">
             <p className="text-[13px] font-medium text-slate-500">안녕하세요, {greetingName}님</p>
-            <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-950">
+            <h1 className="text-[24px] font-semibold tracking-[-0.05em] text-slate-950">
               오늘도 화이팅이에요 💪
             </h1>
           </div>
@@ -519,13 +519,13 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
               aria-expanded={isMenuOpen}
               aria-haspopup="menu"
               onClick={() => setIsMenuOpen((previous) => !previous)}
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-500 shadow-[0_10px_26px_rgba(15,23,42,0.08)] transition hover:translate-y-[-1px]"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-500 shadow-[0_8px_20px_rgba(15,23,42,0.07)] transition hover:translate-y-[-1px]"
             >
               <MeatballIcon />
             </button>
 
             {isMenuOpen ? (
-              <div className="absolute right-0 top-[calc(100%+10px)] z-40 w-[220px] rounded-[22px] bg-white p-2 shadow-[0_18px_42px_rgba(15,23,42,0.14)]">
+              <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-[204px] rounded-[18px] bg-white p-1.5 shadow-[0_16px_34px_rgba(15,23,42,0.12)]">
                 <div className="space-y-1">
                   <MenuActionButton
                     onClick={() => {
@@ -574,9 +574,9 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
           </div>
         </section>
 
-        <section className="relative overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,#7FCB95_0%,#67B884_56%,#56AA79_100%)] px-5 pb-5 pt-5 text-white shadow-[0_22px_48px_rgba(76,175,122,0.24)]">
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.18),transparent_58%)]" />
-          <div className="absolute right-[-38px] top-[-34px] h-36 w-36 rounded-full bg-white/10 blur-2xl" />
+        <section className="relative overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,#7FCB95_0%,#67B884_56%,#56AA79_100%)] px-4 pb-4 pt-4 text-white shadow-[0_18px_36px_rgba(76,175,122,0.20)]">
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.18),transparent_58%)]" />
+          <div className="absolute right-[-38px] top-[-34px] h-28 w-28 rounded-full bg-white/10 blur-2xl" />
 
           <div className="relative flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -585,24 +585,24 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                 {formatExamDate(activeGroup.examDate)}
               </p>
             </div>
-            <span className="inline-flex shrink-0 rounded-full bg-white/88 px-3 py-2 text-sm font-semibold text-[#4A9568] shadow-[0_10px_20px_rgba(20,60,38,0.12)]">
+            <span className="inline-flex shrink-0 rounded-full bg-white/88 px-3 py-1.5 text-[13px] font-semibold text-[#4A9568] shadow-[0_8px_16px_rgba(20,60,38,0.12)]">
               {ddayLabel}
             </span>
           </div>
 
-          <div className="relative mt-5 flex items-end justify-between gap-4">
-            <div className="max-w-[205px]">
+          <div className="relative mt-4 flex items-end justify-between gap-3">
+            <div className="min-w-0 max-w-[190px]">
               <p className="text-sm font-medium text-white/88">오늘 진행률</p>
-              <p className="mt-2 text-[46px] font-semibold leading-none tracking-[-0.06em] text-white">
+              <p className="mt-2 text-[40px] font-semibold leading-none tracking-[-0.06em] text-white">
                 {todayProgress}%
               </p>
 
-              <div className="mt-4">
+              <div className="mt-3.5">
                 <ProgressBar
                   value={todayProgress}
                   trackClassName="bg-white/30"
                   fillClassName="bg-white"
-                  heightClassName="h-2.5"
+                  heightClassName="h-2"
                 />
               </div>
 
@@ -613,25 +613,25 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
           </div>
         </section>
 
-        <section className="rounded-[24px] bg-white p-5 shadow-[0_4px_20px_rgba(15,23,42,0.06)]">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-[18px] font-semibold tracking-[-0.03em] text-slate-950">
+        <section className="rounded-[18px] bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,42,0.05)]">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-[16px] font-semibold tracking-[-0.03em] text-slate-950">
               팀원 진행 현황
             </h2>
             <span className="text-xs font-medium text-slate-400">전체 {activeGroup.members.length}명</span>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {memberProgresses.map(({ member, progress, accent }) => (
               <div key={member.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
                 <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold ${accent.avatar}`}
+                  className={`flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-semibold ${accent.avatar}`}
                 >
                   {(member.name.trim().charAt(0) || "?").toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-900">{member.name}</p>
-                  <div className="mt-2">
+                  <p className="truncate text-[13px] font-semibold text-slate-900">{member.name}</p>
+                  <div className="mt-1.5">
                     <ProgressBar
                       value={progress}
                       trackClassName={accent.track}
@@ -639,14 +639,14 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                     />
                   </div>
                 </div>
-                <span className="text-sm font-semibold text-slate-500">{progress}%</span>
+                <span className="text-[13px] font-semibold text-slate-500">{progress}%</span>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="rounded-[24px] bg-white p-5 shadow-[0_4px_20px_rgba(15,23,42,0.06)]">
-          <div className="mb-4 flex items-center justify-between gap-3">
+        <section className="rounded-[18px] bg-white px-4 py-4 shadow-[0_4px_16px_rgba(15,23,42,0.05)]">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-[18px] font-semibold tracking-[-0.03em] text-slate-950">오늘 할 일</h2>
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-slate-400">
@@ -657,7 +657,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                 onClick={() => {
                   void router.push(getStudyManagementHref(activeGroup.id));
                 }}
-                className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-[0_6px_18px_rgba(15,23,42,0.08)]"
+                className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-[13px] font-semibold text-slate-700 shadow-[0_4px_14px_rgba(15,23,42,0.08)]"
               >
                 <span className="text-base leading-none text-slate-500">+</span>
                 <span>추가</span>
@@ -666,7 +666,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
           </div>
 
           {totalTaskCount === 0 ? (
-            <div className="rounded-[20px] bg-[#F7FAF8] px-4 py-5 text-sm leading-6 text-slate-500">
+            <div className="rounded-[16px] bg-[#F7FAF8] px-3.5 py-4 text-[13px] leading-5 text-slate-500">
               오늘 표시할 할 일이 없어요. 계획 탭에서 새 일정을 추가해보세요.
             </div>
           ) : (
@@ -681,7 +681,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                     onClick={() => {
                       setPendingChecklistId(item.id);
                     }}
-                    className={`flex w-full items-center gap-3 rounded-[18px] px-3 py-3 text-left transition ${
+                    className={`flex w-full items-center gap-3 rounded-[15px] px-3 py-2.5 text-left transition ${
                       checked
                         ? "bg-[#F3FAF5]"
                         : "bg-[#FAFCFA] hover:bg-[#F5FBF7]"
@@ -690,7 +690,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                     <CheckIcon active={checked} />
                     <div className="min-w-0 flex-1">
                       <p
-                        className={`truncate text-[15px] font-medium ${
+                        className={`truncate text-[13px] font-medium ${
                           checked ? "text-slate-400 line-through" : "text-slate-900"
                         }`}
                       >
@@ -718,7 +718,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
               {personalTasks.map((item) => (
                 <div
                   key={item.id}
-                  className={`flex items-center gap-3 rounded-[18px] px-3 py-3 transition ${
+                  className={`flex items-center gap-3 rounded-[15px] px-3 py-2.5 transition ${
                     item.completed
                       ? "bg-[#F3FAF5]"
                       : "bg-[#FAFCFA] hover:bg-[#F5FBF7]"
@@ -741,7 +741,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                     className="min-w-0 flex-1 text-left"
                   >
                     <p
-                      className={`truncate text-[15px] font-medium ${
+                      className={`truncate text-[13px] font-medium ${
                         item.completed ? "text-slate-400 line-through" : "text-slate-900"
                       }`}
                     >
@@ -749,7 +749,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                     </p>
                     {item.detail ? (
                       <p
-                        className={`mt-1 truncate text-xs ${
+                        className={`mt-1 truncate text-[11px] ${
                           item.completed ? "text-slate-300" : "text-slate-400"
                         }`}
                       >

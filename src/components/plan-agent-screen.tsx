@@ -149,25 +149,25 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
       title="계획 에이전트"
       headerContent={<GroupPageHeader groupId={activeGroup.id} groupName={activeGroup.name} />}
     >
-      <div className="space-y-4">
+      <div className="space-y-3">
         <SectionCard title="진도표">
           {activeGroup.planReferenceUploads.length === 0 ? (
-            <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+            <div className="rounded-[13px] border border-dashed border-slate-200 bg-white px-3.5 py-3.5 text-[13px] leading-5 text-[var(--ink-soft)]">
               계획 화면에서 진도표를 먼저 올려 주세요.
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {activeGroup.planReferenceUploads.map((upload) => (
                 <div
                   key={upload.id}
-                  className="rounded-[16px] border border-slate-200 bg-white px-4 py-4"
+                  className="rounded-[14px] border border-slate-200 bg-white px-3.5 py-3.5"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{upload.fileName}</p>
-                      <p className="mt-1 text-xs text-slate-500">{upload.summary}</p>
+                      <p className="truncate text-[13px] font-semibold text-slate-900">{upload.fileName}</p>
+                      <p className="mt-1 truncate text-[11px] text-slate-500">{upload.summary}</p>
                     </div>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
                       {activeGroup.planReferenceUnits.length}개 단위
                     </span>
                   </div>
@@ -178,22 +178,22 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
         </SectionCard>
 
         <SectionCard title="계획 참고 정보">
-          <div className="space-y-3">
-            <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
+          <div className="space-y-2.5">
+            <div className="rounded-[14px] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[0_4px_12px_rgba(15,23,42,0.03)]">
               <p className="text-xs font-medium text-slate-500">이번 주 목표</p>
-              <p className="mt-2 text-base font-semibold text-slate-900">{activeGroup.weeklyGoal}</p>
+              <p className="mt-1.5 text-[14px] font-semibold text-slate-900">{activeGroup.weeklyGoal}</p>
             </div>
-            <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4 shadow-[0_6px_16px_rgba(15,23,42,0.03)]">
+            <div className="rounded-[14px] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[0_4px_12px_rgba(15,23,42,0.03)]">
               <p className="text-xs font-medium text-slate-500">전체 목표</p>
-              <p className="mt-2 text-sm leading-6 text-slate-900">{activeGroup.overallGoal}</p>
+              <p className="mt-1.5 text-[13px] leading-5 text-slate-900">{activeGroup.overallGoal}</p>
             </div>
           </div>
         </SectionCard>
 
         <SectionCard title="채팅">
-          <div className="space-y-3">
-            <div className="max-w-[88%] rounded-[18px] rounded-bl-[6px] border border-slate-200 bg-slate-50 px-4 py-4">
-              <p className="whitespace-pre-line text-sm leading-6 text-slate-800">{introMessage}</p>
+          <div className="space-y-2.5">
+            <div className="max-w-[88%] rounded-[16px] rounded-bl-[6px] border border-slate-200 bg-slate-50 px-3.5 py-3.5">
+              <p className="whitespace-pre-line text-[13px] leading-5 text-slate-800">{introMessage}</p>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -205,7 +205,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                   onClick={() => {
                     void sendPlanAgentMessage(activeGroup.id, question);
                   }}
-                  className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)] transition hover:border-[var(--brand)] hover:text-[var(--brand)] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-full border border-[var(--line)] bg-white px-3.5 py-1.5 text-[13px] font-semibold text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)] transition hover:border-[var(--brand)] hover:text-[var(--brand)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {question}
                 </button>
@@ -228,13 +228,13 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                   >
                     <div className="max-w-[88%]">
                       <div
-                        className={`rounded-[18px] px-4 py-4 ${
+                        className={`rounded-[16px] px-3.5 py-3.5 ${
                           isAssistant
                             ? "rounded-bl-[6px] border border-slate-200 bg-white"
                             : "rounded-br-[6px] border border-[var(--brand)] bg-[var(--brand-soft)] text-slate-900"
                         }`}
                       >
-                        <p className="whitespace-pre-line text-sm leading-6">{message.text}</p>
+                        <p className="whitespace-pre-line text-[13px] leading-5">{message.text}</p>
 
                         <div
                           className={`mt-3 flex items-center justify-between gap-3 ${
@@ -278,7 +278,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                 );
               })
             ) : (
-              <div className="rounded-[16px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+            <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-3.5 py-3.5 text-[13px] leading-5 text-[var(--ink-soft)]">
                 빠른 질문을 누르거나 직접 입력해서 계획 초안을 시작해 보세요.
               </div>
             )}
@@ -287,7 +287,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
           </div>
 
           <form
-            className="rounded-[18px] border border-slate-200 bg-slate-50/80 p-3"
+            className="rounded-[16px] border border-slate-200 bg-slate-50/80 p-2.5"
             onSubmit={handleSubmit}
           >
             <div className="flex items-end gap-3">
@@ -296,12 +296,12 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                 value={draftQuestion}
                 onChange={(event) => setDraftQuestion(event.target.value)}
                 placeholder="질문을 입력하면 계획 에이전트가 바로 이어서 답변합니다."
-                className="min-h-[76px] flex-1 resize-none rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+                className="min-h-[68px] flex-1 resize-none rounded-[13px] border border-slate-200 bg-white px-3.5 py-2.5 text-[13px] outline-none transition focus:border-[var(--brand)]"
               />
               <button
                 type="submit"
                 disabled={!draftQuestion.trim() || planAgentBusy}
-                className="inline-flex h-[76px] shrink-0 items-center justify-center rounded-[14px] bg-[var(--brand)] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-[68px] shrink-0 items-center justify-center rounded-[13px] bg-[var(--brand)] px-4 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 보내기
               </button>
@@ -311,7 +311,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
 
         <SectionCard title="미리보기">
           {!previewDraft ? (
-            <div className="space-y-3 rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+            <div className="space-y-2.5 rounded-[13px] border border-dashed border-slate-200 bg-white px-3.5 py-3.5 text-[13px] leading-5 text-[var(--ink-soft)]">
               <p>채팅 답변 아래의 계획 반영 버튼을 눌러야 미리보기에 반영됩니다.</p>
               <p>미리보기만으로는 실제 계획이 바뀌지 않고, 아래 계획 적용하기를 눌러야 최종 반영됩니다.</p>
             </div>
