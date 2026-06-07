@@ -415,6 +415,67 @@ function ArchivedGroupCard({
   );
 }
 
+function JoinedGroupListCard({
+  group,
+  onOpen,
+}: Readonly<{
+  group: StudyGroup;
+  onOpen: (groupId: string) => void;
+}>) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(group.id)}
+      className="flex w-full min-w-0 items-start gap-4 rounded-[24px] bg-white px-5 py-4 text-left shadow-[0_8px_30px_rgba(15,23,42,0.05)] transition hover:translate-y-[-1px]"
+    >
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#F3FBF6_0%,#E8F5EC_100%)] text-[#4CAF7A]">
+        <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+          <path
+            d="M12 5.75a3.25 3.25 0 1 0 0 6.5 3.25 3.25 0 0 0 0-6.5ZM6 18c0-2.761 2.686-5 6-5s6 2.239 6 5"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.7"
+          />
+        </svg>
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[#4CAF7A]">
+            {group.subject}
+          </span>
+          <span className="rounded-full bg-[#F5FBF7] px-3 py-1 text-xs font-semibold text-[#4CAF7A]">
+            {getGroupStatusLabel(group)}
+          </span>
+        </div>
+
+        <p className="mt-2.5 min-w-0 whitespace-normal text-[18px] font-semibold tracking-[-0.04em] text-slate-950">
+          {group.name}
+        </p>
+
+        <p className="mt-1.5 min-w-0 whitespace-normal text-sm leading-6 text-slate-500">
+          {group.recentUpdate}
+        </p>
+
+        <div className="mt-3 flex min-w-0 flex-col gap-2 text-sm text-slate-500 min-[390px]:flex-row min-[390px]:items-center min-[390px]:justify-between">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0">
+              <CalendarIcon />
+            </span>
+            <span className="min-w-0 whitespace-normal">{formatExamDate(group.examDate)}</span>
+          </div>
+          <span className="shrink-0">{group.members.length}명</span>
+        </div>
+      </div>
+
+      <div className="shrink-0 pt-1 text-slate-400">
+        <ArrowRightIcon />
+      </div>
+    </button>
+  );
+}
+
 function EmptyGroupState() {
   return (
     <SectionCard title="내 그룹">
@@ -454,6 +515,9 @@ function AuthenticatedHome() {
   const activeGroups = sortedGroups.filter((group) => group.status === "active");
   const completedGroups = sortedGroups.filter((group) => group.status === "completed");
   const featuredGroup = activeGroups[0] ?? null;
+  const secondaryActiveGroups = featuredGroup
+    ? activeGroups.filter((group) => group.id !== featuredGroup.id)
+    : activeGroups;
   const recentGroupId = currentUser?.joinedGroupId ?? featuredGroup?.id ?? null;
   const displayName = currentUser?.displayName ?? sessionName ?? "스터디 메이트";
 
@@ -508,6 +572,23 @@ function AuthenticatedHome() {
             router.push(`/group/${groupId}`);
           }}
         />
+      ) : null}
+
+      {secondaryActiveGroups.length > 0 ? (
+        <section className="space-y-4">
+          <h3 className="px-1 text-[20px] font-semibold tracking-[-0.04em] text-slate-950">
+            가입한 다른 그룹
+          </h3>
+          {secondaryActiveGroups.map((group) => (
+            <JoinedGroupListCard
+              key={group.id}
+              group={group}
+              onOpen={(groupId) => {
+                router.push(`/group/${groupId}`);
+              }}
+            />
+          ))}
+        </section>
       ) : null}
 
       {completedGroups.length > 0 ? (
