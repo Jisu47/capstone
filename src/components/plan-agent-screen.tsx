@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { GroupPageHeader } from "@/components/group-page-header";
 import {
   AppShell,
@@ -17,11 +17,7 @@ import {
   isLeader,
   type PlanAgentDraft,
 } from "@/lib/plan-flow";
-import { type StudyGroup } from "@/lib/mock-data";
-
-function getGroupById(groups: StudyGroup[], groupId: string) {
-  return groups.find((group) => group.id === groupId);
-}
+import { type StudyGroup, type Weekday, type WeeklyPlanItem } from "@/lib/mock-data";
 
 type PreviewDraftState = {
   groupId: string;
@@ -29,6 +25,52 @@ type PreviewDraftState = {
   sourceMessageId: string;
   sourceQuestion: string;
 };
+
+const MANUAL_PREVIEW_SOURCE_ID = "manual-preview";
+const MANUAL_PREVIEW_SOURCE_QUESTION = "직접 편집";
+
+function getGroupById(groups: StudyGroup[], groupId: string) {
+  return groups.find((group) => group.id === groupId);
+}
+
+function cloneWeeklyPlanItem(item: WeeklyPlanItem): WeeklyPlanItem {
+  return {
+    ...item,
+    memberStatus: { ...item.memberStatus },
+    referenceUnitSequence: item.referenceUnitSequence ?? null,
+  };
+}
+
+function buildManualPreviewDraft(group: StudyGroup): PlanAgentDraft {
+  return {
+    scope: "weekly-plan",
+    weeklyGoal: group.weeklyGoal.trim() || `${group.subject || group.name} 이번 주 학습`,
+    recentUpdate: "직접 편집 중인 이번 주 계획입니다.",
+    roadmap: [],
+    weeklyPlan: group.plan.map(cloneWeeklyPlanItem),
+  };
+}
+
+function createManualPreviewState(group: StudyGroup): PreviewDraftState {
+  return {
+    groupId: group.id,
+    draft: buildManualPreviewDraft(group),
+    sourceMessageId: `${MANUAL_PREVIEW_SOURCE_ID}-${group.id}`,
+    sourceQuestion: MANUAL_PREVIEW_SOURCE_QUESTION,
+  };
+}
+
+function createManualPreviewItem(group: StudyGroup, day: Weekday): WeeklyPlanItem {
+  return {
+    id: `manual-plan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    day,
+    title: "",
+    detail: "",
+    duration: "60분",
+    memberStatus: Object.fromEntries(group.members.map((member) => [member.id, false])),
+    referenceUnitSequence: null,
+  };
+}
 
 export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   const {
@@ -45,9 +87,10 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   const group = getGroupById(groups, groupId);
   const [draftQuestion, setDraftQuestion] = useState("");
   const [previewDraftState, setPreviewDraftState] = useState<PreviewDraftState | null>(null);
-  const [previewEditMode, setPreviewEditMode] = useState(false);
+  const [editingPreviewItemId, setEditingPreviewItemId] = useState<string | null>(null);
   const latestChatMessageRef = useRef<HTMLDivElement | null>(null);
   const [viewingUploadId, setViewingUploadId] = useState<string | null>(null);
+
   const planAgentChatLength = group?.planAgentChat.length ?? 0;
   const planAgentStatus = group ? getPlanAgentStatus(group.id) : null;
 
@@ -112,8 +155,15 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
           : null,
     };
   });
-  const previewDraft =
-    previewDraftState?.groupId === activeGroup.id ? previewDraftState.draft : null;
+  const fallbackPreviewState = createManualPreviewState(activeGroup);
+  const effectivePreviewState =
+    previewDraftState?.groupId === activeGroup.id ? previewDraftState : fallbackPreviewState;
+  const previewDraft = effectivePreviewState.draft;
+  const effectiveEditingItemId = previewDraft.weeklyPlan.some((item) => item.id === editingPreviewItemId)
+    ? editingPreviewItemId
+    : null;
+  const isManualPreview =
+    effectivePreviewState.sourceQuestion === MANUAL_PREVIEW_SOURCE_QUESTION;
   const lastPlanAgentMessage = activeGroup.planAgentChat.at(-1) ?? null;
   const retryQuestion =
     !planAgentBusy &&
@@ -122,7 +172,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
       ? lastPlanAgentMessage.text.trim()
       : "";
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const question = draftQuestion.trim();
@@ -148,7 +198,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
       sourceMessageId,
       sourceQuestion,
     });
-    setPreviewEditMode(false);
+    setEditingPreviewItemId(null);
   }
 
   function updatePreviewDraftItem(
@@ -157,20 +207,56 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
     value: string,
   ) {
     setPreviewDraftState((previous) => {
-      if (!previous || previous.groupId !== activeGroup.id) {
-        return previous;
-      }
+      const baseState =
+        previous && previous.groupId === activeGroup.id ? previous : createManualPreviewState(activeGroup);
 
       return {
-        ...previous,
+        ...baseState,
         draft: {
-          ...previous.draft,
-          weeklyPlan: previous.draft.weeklyPlan.map((item) =>
+          ...baseState.draft,
+          weeklyPlan: baseState.draft.weeklyPlan.map((item) =>
             item.id === itemId ? { ...item, [field]: value } : item,
           ),
         },
       };
     });
+  }
+
+  function deletePreviewDraftItem(itemId: string) {
+    setPreviewDraftState((previous) => {
+      const baseState =
+        previous && previous.groupId === activeGroup.id ? previous : createManualPreviewState(activeGroup);
+
+      return {
+        ...baseState,
+        draft: {
+          ...baseState.draft,
+          weeklyPlan: baseState.draft.weeklyPlan.filter((item) => item.id !== itemId),
+        },
+      };
+    });
+
+    if (editingPreviewItemId === itemId) {
+      setEditingPreviewItemId(null);
+    }
+  }
+
+  function addPreviewDraftItem(day: Weekday) {
+    const nextItem = createManualPreviewItem(activeGroup, day);
+
+    setPreviewDraftState((previous) => {
+      const baseState =
+        previous && previous.groupId === activeGroup.id ? previous : createManualPreviewState(activeGroup);
+
+      return {
+        ...baseState,
+        draft: {
+          ...baseState.draft,
+          weeklyPlan: [...baseState.draft.weeklyPlan, nextItem],
+        },
+      };
+    });
+    setEditingPreviewItemId(nextItem.id);
   }
 
   return (
@@ -193,8 +279,10 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                   className="rounded-[14px] border border-slate-200 bg-white px-3.5 py-3.5"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="truncate text-[13px] font-semibold text-slate-900">{upload.fileName}</p>
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-semibold text-slate-900">
+                        {upload.fileName}
+                      </p>
                       <p className="mt-1 truncate text-[11px] text-slate-500">{upload.summary}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
@@ -233,7 +321,9 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
         <SectionCard title="채팅">
           <div className="space-y-2.5">
             <div className="max-w-[88%] rounded-[16px] rounded-bl-[6px] border border-slate-200 bg-slate-50 px-3.5 py-3.5">
-              <p className="whitespace-pre-line text-[13px] leading-5 text-slate-800">{introMessage}</p>
+              <p className="whitespace-pre-line text-[13px] leading-5 text-slate-800">
+                {introMessage}
+              </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -258,8 +348,8 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                   const { message, previewDraft: draftForMessage, sourceQuestion } = entry;
                   const isAssistant = message.role === "assistant";
                   const isSelectedPreview =
-                    previewDraftState?.groupId === activeGroup.id &&
-                    previewDraftState.sourceMessageId === message.id;
+                    effectivePreviewState.groupId === activeGroup.id &&
+                    effectivePreviewState.sourceMessageId === message.id;
                   const isLastMessage = index === chatEntries.length - 1;
 
                   return (
@@ -293,7 +383,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                                 }}
                                 className="rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-[var(--brand)] hover:text-[var(--brand)] disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                {isSelectedPreview ? "미리보기에 반영됨" : leaderMode ? "계획 반영" : "팀장만 반영 가능"}
+                                {isSelectedPreview ? "미리보기에 반영됨" : "계획 반영"}
                               </button>
                             ) : null}
                           </div>
@@ -351,73 +441,63 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
         </SectionCard>
 
         <SectionCard title="미리보기">
-          {!previewDraft ? (
-            <div className="space-y-2.5 rounded-[13px] border border-dashed border-slate-200 bg-white px-3.5 py-3.5 text-[13px] leading-5 text-[var(--ink-soft)]">
-              <p>채팅 답변 아래의 계획 반영 버튼을 눌러야 미리보기에 반영됩니다.</p>
-              <p>미리보기만으로는 실제 계획이 바뀌지 않고, 아래 계획 적용하기를 눌러야 최종 반영됩니다.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-medium text-slate-500">반영한 질문</p>
-                    <p className="mt-2 text-sm font-semibold text-slate-900">
-                      {previewDraftState?.sourceQuestion}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[var(--brand)]">
-                      이번 주 계획 미리보기
-                    </span>
-                    <button
-                      type="button"
-                      disabled={!leaderMode || !previewDraft}
-                      onClick={() => {
-                        setPreviewEditMode((previous) => !previous);
-                      }}
-                      className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {previewEditMode ? "수정 완료" : "직접 수정"}
-                    </button>
-                  </div>
+          <div className="space-y-4">
+            <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium text-slate-500">
+                    {isManualPreview ? "현재 상태" : "반영한 질문"}
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">
+                    {isManualPreview
+                      ? "AI 초안 전에도 여기서 직접 이번 주 계획을 구성할 수 있어요."
+                      : effectivePreviewState.sourceQuestion}
+                  </p>
                 </div>
+                <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[var(--brand)]">
+                  이번 주 계획 미리보기
+                </span>
               </div>
-
-              <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4">
-                <p className="text-xs font-medium text-slate-500">이번 주 목표</p>
-                <p className="mt-2 text-base font-semibold text-slate-900">
-                  {previewDraft.weeklyGoal}
-                </p>
-              </div>
-
-              <WeeklyPlanTabs
-                items={previewDraft.weeklyPlan}
-                editMode={previewEditMode}
-                onUpdateDraftItem={updatePreviewDraftItem}
-                emptyMessage="미리볼 이번 주 계획이 아직 없습니다."
-              />
-
-              <div className="rounded-[16px] border border-dashed border-[var(--line)] bg-[var(--surface)] px-4 py-4 text-xs leading-6 text-slate-500">
-                이 단계는 미리보기입니다. 아래 계획 적용하기를 눌러야 계획 탭에 최종 반영됩니다.
-              </div>
-
-              <button
-                type="button"
-                disabled={!leaderMode || !previewDraft || isMutating}
-                onClick={() => {
-                  if (!previewDraft) {
-                    return;
-                  }
-
-                  void applyPlanAgentDraft(activeGroup.id, previewDraft);
-                }}
-                className="w-full rounded-[16px] bg-slate-950 px-4 py-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {leaderMode ? "계획 적용하기" : "팀장만 적용 가능"}
-              </button>
             </div>
-          )}
+
+            <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4">
+              <p className="text-xs font-medium text-slate-500">이번 주 목표</p>
+              <p className="mt-2 text-base font-semibold text-slate-900">
+                {previewDraft.weeklyGoal}
+              </p>
+            </div>
+
+            <WeeklyPlanTabs
+              items={previewDraft.weeklyPlan}
+              editable={leaderMode}
+              editingItemId={effectiveEditingItemId}
+              onStartEditItem={setEditingPreviewItemId}
+              onDeleteDraftItem={deletePreviewDraftItem}
+              onAddDraftItem={addPreviewDraftItem}
+              onUpdateDraftItem={updatePreviewDraftItem}
+              emptyMessage={
+                leaderMode
+                  ? "아직 추가된 계획이 없습니다. 아래 + 버튼으로 이번 주 계획을 직접 추가해 보세요."
+                  : "아직 추가된 계획이 없습니다."
+              }
+            />
+
+            <div className="rounded-[16px] border border-dashed border-[var(--line)] bg-[var(--surface)] px-4 py-4 text-xs leading-6 text-slate-500">
+              이 단계는 미리보기입니다. 항목을 직접 수정하거나 AI 초안을 반영한 뒤, 아래
+              계획 적용하기를 눌러야 계획 탭에 최종 저장됩니다.
+            </div>
+
+            <button
+              type="button"
+              disabled={!leaderMode || previewDraft.weeklyPlan.length === 0 || isMutating}
+              onClick={() => {
+                void applyPlanAgentDraft(activeGroup.id, previewDraft);
+              }}
+              className="w-full rounded-[16px] bg-slate-950 px-4 py-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {leaderMode ? "계획 적용하기" : "팀장만 적용 가능"}
+            </button>
+          </div>
         </SectionCard>
 
         <Link

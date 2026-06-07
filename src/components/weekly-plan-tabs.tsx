@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { orderedWeekdays } from "@/lib/plan-flow";
-import { type WeeklyPlanItem } from "@/lib/mock-data";
+import { type Weekday, type WeeklyPlanItem } from "@/lib/mock-data";
 
 type WeeklyPlanDraftItem = Pick<
   WeeklyPlanItem,
@@ -63,7 +63,7 @@ function VideoIcon() {
 
 function PencilIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6">
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
       <path
         d="m4.75 16.5 8.8-8.8a2.3 2.3 0 1 1 3.25 3.25L8 19.75l-3.25.75.75-4Z"
         fill="none"
@@ -83,9 +83,45 @@ function PencilIcon() {
   );
 }
 
+function TrashIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
+      <path
+        d="M5.75 7.25h12.5M9.25 4.75h5.5m-7 2.5 1 11a1.75 1.75 0 0 0 1.74 1.59h3.52a1.75 1.75 0 0 0 1.74-1.59l1-11"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M10 10.25v5.5M14 10.25v5.5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
+      <path
+        d="M12 5.5v13M5.5 12h13"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
 function parseDurationMinutes(duration: string) {
   const matched = duration.match(/(\d+)/);
-  const parsed = matched ? Number.parseInt(matched[1], 10) : NaN;
+  const parsed = matched ? Number.parseInt(matched[1], 10) : Number.NaN;
 
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return 60;
@@ -115,7 +151,7 @@ function getPlanVisualType(title: string, detail: string) {
     return "video";
   }
 
-  if (/문제|풀이|연습|필기|발표|질문|실습|코딩|작성|정리/.test(normalized)) {
+  if (/문제|코드|연습|필기|발표|질문|학습|코딩|작성|정리/.test(normalized)) {
     return "pencil";
   }
 
@@ -130,18 +166,53 @@ function PlanTypeIcon({ type }: Readonly<{ type: "book" | "video" | "pencil" }>)
   );
 }
 
+function ActionIconButton({
+  label,
+  onClick,
+  children,
+  tone = "default",
+}: Readonly<{
+  label: string;
+  onClick: () => void;
+  children: ReactNode;
+  tone?: "default" | "danger";
+}>) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={`inline-flex h-8 w-8 items-center justify-center rounded-full border text-slate-500 transition hover:border-slate-300 hover:text-slate-900 ${
+        tone === "danger"
+          ? "border-rose-100 bg-rose-50 text-rose-500 hover:border-rose-200 hover:text-rose-600"
+          : "border-slate-200 bg-white"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function WeeklyPlanTabs({
   items,
   currentUserId,
   onTogglePlanItem,
-  editMode = false,
+  editable = false,
+  editingItemId = null,
+  onStartEditItem,
+  onDeleteDraftItem,
+  onAddDraftItem,
   onUpdateDraftItem,
   emptyMessage = "선택한 요일에 등록된 계획이 없습니다.",
 }: Readonly<{
   items: WeeklyPlanDraftItem[];
   currentUserId?: string;
   onTogglePlanItem?: (itemId: string) => void;
-  editMode?: boolean;
+  editable?: boolean;
+  editingItemId?: string | null;
+  onStartEditItem?: (itemId: string | null) => void;
+  onDeleteDraftItem?: (itemId: string) => void;
+  onAddDraftItem?: (day: Weekday) => void;
   onUpdateDraftItem?: (
     itemId: string,
     field: "title" | "detail" | "duration",
@@ -149,7 +220,7 @@ export function WeeklyPlanTabs({
   ) => void;
   emptyMessage?: string;
 }>) {
-  const [activeDay, setActiveDay] = useState(orderedWeekdays[0]);
+  const [activeDay, setActiveDay] = useState<Weekday>(orderedWeekdays[0]);
   const plansByDay = useMemo(
     () =>
       orderedWeekdays.map((day) => ({
@@ -158,8 +229,7 @@ export function WeeklyPlanTabs({
       })),
     [items],
   );
-  const activeDayItems =
-    plansByDay.find((entry) => entry.day === activeDay)?.items ?? [];
+  const activeDayItems = plansByDay.find((entry) => entry.day === activeDay)?.items ?? [];
 
   return (
     <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
@@ -215,26 +285,40 @@ export function WeeklyPlanTabs({
             const cardClass = checked
               ? "border-[var(--brand)] bg-[linear-gradient(180deg,#ffffff_0%,#f8fdf9_100%)] shadow-[0_10px_22px_rgba(121,184,149,0.10)]"
               : "border-slate-200 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.04)]";
+            const isEditing = editable && editingItemId === item.id;
 
             const inner = (
               <>
                 <PlanTypeIcon type={visualType} />
                 <div className="min-w-0 flex-1">
-                  {editMode ? (
+                  {isEditing ? (
                     <div className="space-y-2.5">
-                      <input
-                        value={item.title}
-                        onChange={(event) => {
-                          onUpdateDraftItem?.(item.id, "title", event.target.value);
-                        }}
-                        className="w-full rounded-[12px] border border-slate-200 bg-white px-3 py-2 text-[14px] font-semibold text-slate-950 outline-none focus:border-[var(--brand)]"
-                      />
+                      <div className="flex items-start justify-between gap-2">
+                        <input
+                          value={item.title}
+                          onChange={(event) => {
+                            onUpdateDraftItem?.(item.id, "title", event.target.value);
+                          }}
+                          placeholder="계획 제목"
+                          className="w-full rounded-[12px] border border-slate-200 bg-white px-3 py-2 text-[14px] font-semibold text-slate-950 outline-none focus:border-[var(--brand)]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onStartEditItem?.(null);
+                          }}
+                          className="shrink-0 rounded-full border border-slate-200 px-3 py-2 text-[11px] font-semibold text-slate-500"
+                        >
+                          완료
+                        </button>
+                      </div>
                       <div className="grid gap-2 sm:grid-cols-[160px_minmax(0,1fr)]">
                         <input
                           value={item.duration}
                           onChange={(event) => {
                             onUpdateDraftItem?.(item.id, "duration", event.target.value);
                           }}
+                          placeholder="60분"
                           className="w-full rounded-[12px] border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium text-slate-600 outline-none focus:border-[var(--brand)]"
                         />
                         <p className="self-center text-[12px] font-medium text-slate-500">
@@ -247,15 +331,48 @@ export function WeeklyPlanTabs({
                         onChange={(event) => {
                           onUpdateDraftItem?.(item.id, "detail", event.target.value);
                         }}
+                        placeholder="세부 내용"
                         className="w-full resize-none rounded-[12px] border border-slate-200 bg-white px-3 py-2 text-[13px] leading-5 text-slate-700 outline-none focus:border-[var(--brand)]"
                       />
                     </div>
                   ) : (
                     <>
-                      <p className="truncate text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
-                        {item.title}
-                      </p>
-                      <p className="mt-1 text-[12px] font-medium text-slate-600">{timeRangeLabel}</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
+                            {item.title || "새 계획"}
+                          </p>
+                          <p className="mt-1 text-[12px] font-medium text-slate-600">
+                            {timeRangeLabel}
+                          </p>
+                        </div>
+                        {editable ? (
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <ActionIconButton
+                              label="계획 수정"
+                              onClick={() => {
+                                onStartEditItem?.(item.id);
+                              }}
+                            >
+                              <PencilIcon />
+                            </ActionIconButton>
+                            <ActionIconButton
+                              label="계획 삭제"
+                              onClick={() => {
+                                onDeleteDraftItem?.(item.id);
+                              }}
+                              tone="danger"
+                            >
+                              <TrashIcon />
+                            </ActionIconButton>
+                          </div>
+                        ) : null}
+                      </div>
+                      {item.detail ? (
+                        <p className="mt-2 whitespace-pre-line text-[12px] leading-5 text-slate-500">
+                          {item.detail}
+                        </p>
+                      ) : null}
                     </>
                   )}
                 </div>
@@ -285,6 +402,19 @@ export function WeeklyPlanTabs({
             );
           })
         )}
+
+        {editable ? (
+          <button
+            type="button"
+            onClick={() => {
+              onAddDraftItem?.(activeDay);
+            }}
+            className="flex w-full items-center justify-center gap-2 rounded-[15px] border border-dashed border-[var(--line)] bg-[var(--surface)] px-3.5 py-3 text-[13px] font-semibold text-[var(--brand)] transition hover:border-[var(--brand)]"
+          >
+            <PlusIcon />
+            <span>새 계획 추가</span>
+          </button>
+        ) : null}
       </div>
     </div>
   );
