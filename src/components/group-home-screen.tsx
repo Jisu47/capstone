@@ -132,83 +132,6 @@ function MeatballIcon() {
   );
 }
 
-function StudyInfoIcon({
-  type,
-}: Readonly<{
-  type: "leader" | "members" | "subject" | "time";
-}>) {
-  return (
-    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF8F1] text-[#57AE79]">
-      <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
-        {type === "leader" ? (
-          <>
-            <path
-              d="M12 12a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z"
-              stroke="currentColor"
-              strokeWidth="1.8"
-            />
-            <path
-              d="M5.5 19.25a6.5 6.5 0 0 1 13 0"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeWidth="1.8"
-            />
-          </>
-        ) : null}
-        {type === "members" ? (
-          <>
-            <path
-              d="M9 10.25a2.75 2.75 0 1 0 0-5.5 2.75 2.75 0 0 0 0 5.5Z"
-              stroke="currentColor"
-              strokeWidth="1.8"
-            />
-            <path
-              d="M15.5 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z"
-              stroke="currentColor"
-              strokeWidth="1.8"
-            />
-            <path
-              d="M4.75 18a4.25 4.25 0 0 1 8.5 0"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeWidth="1.8"
-            />
-            <path
-              d="M13 18a3.5 3.5 0 0 1 6.25-2.15"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeWidth="1.8"
-            />
-          </>
-        ) : null}
-        {type === "subject" ? (
-          <>
-            <path
-              d="M6.25 6.75a2 2 0 0 1 2-2h9.5v14.5h-9.5a2 2 0 0 0-2 2V6.75Z"
-              stroke="currentColor"
-              strokeLinejoin="round"
-              strokeWidth="1.8"
-            />
-            <path
-              d="M17.75 19.25h-9.5a2 2 0 0 0-2 2M9 8.5h5.75M9 11.5h5.75"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="1.8"
-            />
-          </>
-        ) : null}
-        {type === "time" ? (
-          <>
-            <circle cx="12" cy="12" r="7.25" stroke="currentColor" strokeWidth="1.8" />
-            <path d="M12 8.75v3.5l2.5 1.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
-          </>
-        ) : null}
-      </svg>
-    </span>
-  );
-}
-
 function CheckIcon({ active }: Readonly<{ active: boolean }>) {
   return (
     <span
@@ -411,13 +334,11 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   const inviteCode = createGroupJoinCode(activeGroup.id);
   const currentMember = activeGroup.members.find((member) => member.id === currentUserId) ?? null;
   const leaderMode = currentMember?.role === "팀장";
-  const leaderMember = activeGroup.members.find((member) => member.role === "팀장") ?? currentMember;
   const showTutorial = leaderMode && hasPendingGroupHomeTour(currentUserId, activeGroup.id);
   const shouldPromptPostExamDecision =
     leaderMode && activeGroup.status === "active" && isDatePast(activeGroup.examDate);
   const resolvedPostExamModal = postExamModal ?? (shouldPromptPostExamDecision ? "decision" : null);
   const transferableMembers = activeGroup.members.filter((member) => member.id !== currentUserId);
-  const teammateCount = Math.max(0, activeGroup.members.length - 1);
   const daysLeft = getDaysLeft(activeGroup.examDate);
   const ddayLabel = getDdayLabel(daysLeft, shouldPromptPostExamDecision);
   const memberProgresses = activeGroup.members.map((member, index) => ({
@@ -583,8 +504,8 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
       headerBehavior="fixed"
       headerContent={<GroupPageHeader groupId={activeGroup.id} groupName={activeGroup.name} />}
     >
-      <div className="flex flex-col space-y-5 pb-1">
-        <section className="px-1">
+      <div className="space-y-5 pb-1">
+        <section className="flex items-start justify-between gap-3 px-1">
           <div className="space-y-1">
             <p className="text-[13px] font-medium text-slate-500">안녕하세요, {greetingName}님</p>
             <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-950">
@@ -592,7 +513,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
             </h1>
           </div>
 
-          <div className="relative hidden shrink-0">
+          <div ref={menuRef} className="relative shrink-0">
             <button
               type="button"
               aria-expanded={isMenuOpen}
@@ -650,119 +571,6 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                 </div>
               </div>
             ) : null}
-          </div>
-        </section>
-
-        <section className="order-first rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.05)]">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <StudyInfoIcon type="members" />
-              <h2 className="text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
-                스터디 정보
-              </h2>
-            </div>
-            <div ref={menuRef} className="relative shrink-0">
-              <button
-                type="button"
-                aria-expanded={isMenuOpen}
-                aria-haspopup="menu"
-                onClick={() => setIsMenuOpen((previous) => !previous)}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-[0_8px_18px_rgba(15,23,42,0.06)] transition hover:translate-y-[-1px]"
-              >
-                <MeatballIcon />
-              </button>
-
-              {isMenuOpen ? (
-                <div className="absolute right-0 top-[calc(100%+10px)] z-40 w-[220px] rounded-[22px] bg-white p-2 shadow-[0_18px_42px_rgba(15,23,42,0.14)]">
-                  <div className="space-y-1">
-                    <MenuActionButton
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        setActiveModal("invite");
-                      }}
-                    >
-                      <span>초대 코드 확인</span>
-                    </MenuActionButton>
-
-                    {leaderMode ? (
-                      <>
-                        <MenuActionButton
-                          disabled={transferableMembers.length === 0}
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            setActiveModal("transfer");
-                          }}
-                        >
-                          <span>팀장권한 넘기기</span>
-                        </MenuActionButton>
-                        <MenuActionButton
-                          destructive
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            setActiveModal("delete");
-                          }}
-                        >
-                          <span>그룹 삭제</span>
-                        </MenuActionButton>
-                      </>
-                    ) : (
-                      <MenuActionButton
-                        destructive
-                        onClick={() => {
-                          setIsMenuOpen(false);
-                          setActiveModal("leave");
-                        }}
-                      >
-                        <span>그룹 탈퇴하기</span>
-                      </MenuActionButton>
-                    )}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="overflow-hidden rounded-[18px] border border-slate-200">
-            <div className="grid grid-cols-2 divide-x divide-slate-200">
-              <div className="flex items-center gap-2.5 px-3.5 py-3">
-                <StudyInfoIcon type="leader" />
-                <div>
-                  <p className="text-[12px] font-medium text-slate-500">팀장</p>
-                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
-                    {leaderMember?.name ?? "-"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5 px-3.5 py-3">
-                <StudyInfoIcon type="members" />
-                <div>
-                  <p className="text-[12px] font-medium text-slate-500">팀원</p>
-                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
-                    {teammateCount}명
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 divide-x divide-slate-200 border-t border-slate-200">
-              <div className="flex items-center gap-2.5 px-3.5 py-3">
-                <StudyInfoIcon type="subject" />
-                <div>
-                  <p className="text-[12px] font-medium text-slate-500">과목</p>
-                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
-                    {activeGroup.subject}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5 px-3.5 py-3">
-                <StudyInfoIcon type="time" />
-                <div>
-                  <p className="text-[12px] font-medium text-slate-500">남은 기간</p>
-                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-[var(--brand)]">
-                    {ddayLabel}
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 

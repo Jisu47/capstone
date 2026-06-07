@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { usePrototype } from "@/components/prototype-provider";
 import { getCurrentUserPersonalPlanItems } from "@/lib/plan-flow";
-import { type StudyGroup, type UnderstandingLevel } from "@/lib/mock-data";
+import {
+  formatExamDate,
+  getDaysLeft,
+  isDatePast,
+  type StudyGroup,
+  type UnderstandingLevel,
+} from "@/lib/mock-data";
 
 type StudyHubProps = {
   group: StudyGroup;
@@ -69,6 +75,103 @@ function CheckIcon({ active }: Readonly<{ active: boolean }>) {
   );
 }
 
+function StudyInfoIcon({
+  type,
+}: Readonly<{
+  type: "leader" | "members" | "date" | "time";
+}>) {
+  return (
+    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF8F1] text-[#57AE79]">
+      <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+        {type === "leader" ? (
+          <>
+            <path
+              d="M12 12a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            />
+            <path
+              d="M5.5 19.25a6.5 6.5 0 0 1 13 0"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="1.8"
+            />
+          </>
+        ) : null}
+        {type === "members" ? (
+          <>
+            <path
+              d="M9 10.25a2.75 2.75 0 1 0 0-5.5 2.75 2.75 0 0 0 0 5.5Z"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            />
+            <path
+              d="M15.5 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            />
+            <path
+              d="M4.75 18a4.25 4.25 0 0 1 8.5 0"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="1.8"
+            />
+            <path
+              d="M13 18a3.5 3.5 0 0 1 6.25-2.15"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="1.8"
+            />
+          </>
+        ) : null}
+        {type === "date" ? (
+          <>
+            <rect
+              x="4.75"
+              y="6.5"
+              width="14.5"
+              height="12.75"
+              rx="2.25"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            />
+            <path
+              d="M8 4.75v3.5M16 4.75v3.5M4.75 9.75h14.5"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="1.8"
+            />
+          </>
+        ) : null}
+        {type === "time" ? (
+          <>
+            <circle cx="12" cy="12" r="7.25" stroke="currentColor" strokeWidth="1.8" />
+            <path
+              d="M12 8.75v3.5l2.5 1.75"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.8"
+            />
+          </>
+        ) : null}
+      </svg>
+    </span>
+  );
+}
+
+function getDdayLabel(daysLeft: number, isPast: boolean) {
+  if (isPast) {
+    return "마감 지남";
+  }
+
+  if (daysLeft === 0) {
+    return "D-day";
+  }
+
+  return `D-${daysLeft}`;
+}
+
 export function StudyHub({ group }: Readonly<StudyHubProps>) {
   const {
     clearPlanItemCompletion,
@@ -76,6 +179,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
     currentUserId,
     isMutating,
     togglePersonalPlanItem,
+    updateGroupDetails,
   } = usePrototype();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -84,12 +188,26 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
   const [selectedUnderstanding, setSelectedUnderstanding] = useState<UnderstandingLevel | null>(
     null,
   );
+  const [isStudyInfoEditOpen, setIsStudyInfoEditOpen] = useState(false);
+  const [studyInfoError, setStudyInfoError] = useState<string | null>(null);
+  const [studyInfoDraft, setStudyInfoDraft] = useState({
+    name: "",
+    subject: "",
+    examDate: "",
+    overallGoal: "",
+  });
+  const currentMember = group.members.find((member) => member.id === currentUserId) ?? null;
+  const leaderMode = currentMember?.role === "팀장";
+  const leaderMember = group.members.find((member) => member.role === "팀장") ?? currentMember;
   const teammates = group.members.filter((member) => member.id !== currentUserId).slice(0, 2);
   const selectedMember = teammates.find((member) => member.id === selectedMemberId) ?? null;
   const pendingChecklistItem = group.plan.find((item) => item.id === pendingChecklistId) ?? null;
   const pendingChecklistChecked = pendingChecklistItem?.memberStatus[currentUserId] ?? false;
   const completedCount = group.plan.filter((item) => item.memberStatus[currentUserId]).length;
   const personalPlanItems = getCurrentUserPersonalPlanItems(group, currentUserId);
+  const teammateCount = Math.max(0, group.members.length - 1);
+  const daysLeft = getDaysLeft(group.examDate);
+  const ddayLabel = group.status === "completed" ? "수료함" : getDdayLabel(daysLeft, isDatePast(group.examDate));
 
   useEffect(() => {
     if (!isTimerRunning) {
@@ -108,6 +226,51 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
   function closeChecklistModal() {
     setPendingChecklistId(null);
     setSelectedUnderstanding(null);
+  }
+
+  function openStudyInfoEditModal() {
+    if (!leaderMode) {
+      return;
+    }
+
+    setStudyInfoDraft({
+      name: group.name,
+      subject: group.subject,
+      examDate: group.examDate,
+      overallGoal: group.overallGoal,
+    });
+    setStudyInfoError(null);
+    setIsStudyInfoEditOpen(true);
+  }
+
+  async function saveStudyInfo() {
+    if (!leaderMode) {
+      return;
+    }
+
+    if (
+      !studyInfoDraft.name.trim() ||
+      !studyInfoDraft.subject.trim() ||
+      !studyInfoDraft.examDate ||
+      !studyInfoDraft.overallGoal.trim()
+    ) {
+      setStudyInfoError("그룹명, 과목, 목표일, 전체 목표를 모두 입력해 주세요.");
+      return;
+    }
+
+    setStudyInfoError(null);
+
+    await updateGroupDetails(group.id, {
+      name: studyInfoDraft.name,
+      subject: studyInfoDraft.subject,
+      examDate: studyInfoDraft.examDate,
+      presentationDate: group.presentationDate ?? "",
+      deadlineDate: group.deadlineDate ?? "",
+      weeklyGoal: group.weeklyGoal,
+      overallGoal: studyInfoDraft.overallGoal,
+    });
+
+    setIsStudyInfoEditOpen(false);
   }
 
   async function confirmChecklistAction() {
@@ -132,6 +295,68 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
   return (
     <>
       <div className="space-y-4">
+        <section className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.05)]">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <StudyInfoIcon type="members" />
+              <h2 className="text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
+                스터디 정보
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={openStudyInfoEditModal}
+              disabled={!leaderMode}
+              className="rounded-full border border-slate-200 bg-white px-3.5 py-2 text-[12px] font-semibold text-slate-700 shadow-[0_6px_14px_rgba(15,23,42,0.05)] disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              스터디 정보 수정
+            </button>
+          </div>
+
+          <div className="overflow-hidden rounded-[18px] border border-slate-200">
+            <div className="grid grid-cols-2 divide-x divide-slate-200">
+              <div className="flex items-center gap-2.5 px-3.5 py-3">
+                <StudyInfoIcon type="leader" />
+                <div>
+                  <p className="text-[12px] font-medium text-slate-500">팀장</p>
+                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
+                    {leaderMember?.name ?? "-"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 px-3.5 py-3">
+                <StudyInfoIcon type="members" />
+                <div>
+                  <p className="text-[12px] font-medium text-slate-500">팀원</p>
+                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
+                    {teammateCount}명
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 divide-x divide-slate-200 border-t border-slate-200">
+              <div className="flex items-center gap-2.5 px-3.5 py-3">
+                <StudyInfoIcon type="date" />
+                <div>
+                  <p className="text-[12px] font-medium text-slate-500">목표일</p>
+                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
+                    {formatExamDate(group.examDate)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 px-3.5 py-3">
+                <StudyInfoIcon type="time" />
+                <div>
+                  <p className="text-[12px] font-medium text-slate-500">남은 기간</p>
+                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-[var(--brand)]">
+                    {ddayLabel}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
           <div>
             <div className="flex h-[88px] w-full flex-col items-center justify-center rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-center shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
@@ -366,6 +591,84 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                 className="rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-70"
               >
                 {isMutating ? "저장 중" : pendingChecklistChecked ? "해제하기" : "완료"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isStudyInfoEditOpen ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/24 px-6">
+          <div className="w-full max-w-[360px] rounded-[20px] border border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.10)]">
+            <p className="text-base font-semibold text-slate-900">스터디 정보 수정</p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              그룹명, 과목, 목표일, 전체 목표를 수정할 수 있어요.
+            </p>
+
+            <div className="mt-4 space-y-3">
+              <input
+                value={studyInfoDraft.name}
+                onChange={(event) =>
+                  setStudyInfoDraft((previous) => ({ ...previous, name: event.target.value }))
+                }
+                className="w-full rounded-[14px] border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[var(--brand)]"
+                placeholder="그룹명"
+                type="text"
+              />
+              <input
+                value={studyInfoDraft.subject}
+                onChange={(event) =>
+                  setStudyInfoDraft((previous) => ({ ...previous, subject: event.target.value }))
+                }
+                className="w-full rounded-[14px] border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[var(--brand)]"
+                placeholder="과목"
+                type="text"
+              />
+              <input
+                value={studyInfoDraft.examDate}
+                onChange={(event) =>
+                  setStudyInfoDraft((previous) => ({ ...previous, examDate: event.target.value }))
+                }
+                className="w-full rounded-[14px] border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[var(--brand)]"
+                type="date"
+              />
+              <textarea
+                value={studyInfoDraft.overallGoal}
+                onChange={(event) =>
+                  setStudyInfoDraft((previous) => ({
+                    ...previous,
+                    overallGoal: event.target.value,
+                  }))
+                }
+                className="min-h-[96px] w-full rounded-[14px] border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[var(--brand)]"
+                placeholder="전체 목표"
+              />
+            </div>
+
+            {studyInfoError ? (
+              <p className="mt-3 text-sm font-medium text-rose-500">{studyInfoError}</p>
+            ) : null}
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsStudyInfoEditOpen(false);
+                  setStudyInfoError(null);
+                }}
+                className="rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void saveStudyInfo();
+                }}
+                disabled={isMutating}
+                className="rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-70"
+              >
+                {isMutating ? "저장 중" : "저장하기"}
               </button>
             </div>
           </div>
