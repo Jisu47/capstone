@@ -13,7 +13,6 @@ type PlanReferenceViewerDialogProps = {
 export function PlanReferenceViewerDialog({
   fileName,
   imageDataUrl,
-  summary,
   isOpen,
   onClose,
 }: Readonly<PlanReferenceViewerDialogProps>) {
@@ -23,22 +22,22 @@ export function PlanReferenceViewerDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/42 px-4">
-      <div className="w-full max-w-[520px] overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
-        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
-          <div className="min-w-0">
-            <p className="truncate text-base font-semibold text-slate-950">{fileName}</p>
-            {summary ? (
-              <p className="mt-1 text-sm leading-6 text-slate-500">{summary}</p>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600"
-          >
-            닫기
-          </button>
-        </div>
+      <div className="relative w-full max-w-[520px] overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="진도표 보기 닫기"
+          className="absolute right-4 top-4 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/92 text-slate-600 shadow-[0_8px_20px_rgba(15,23,42,0.08)] backdrop-blur-sm"
+        >
+          <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <path
+              d="M6 6L18 18M18 6L6 18"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="1.8"
+            />
+          </svg>
+        </button>
 
         <div className="bg-slate-50 px-4 py-4">
           <div className="relative aspect-[4/5] overflow-hidden rounded-[18px] border border-slate-200 bg-white">
