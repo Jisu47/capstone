@@ -573,7 +573,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
       headerContent={<GroupPageHeader groupId={activeGroup.id} groupName={activeGroup.name} />}
     >
       <div className="space-y-5 pb-1">
-        <section className="flex items-start justify-between gap-3 px-1">
+        <section className="px-1">
           <div className="space-y-1">
             <p className="text-[13px] font-medium text-slate-500">안녕하세요, {greetingName}님</p>
             <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-950">
@@ -581,7 +581,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
             </h1>
           </div>
 
-          <div ref={menuRef} className="relative shrink-0">
+          <div className="relative hidden shrink-0">
             <button
               type="button"
               aria-expanded={isMenuOpen}
@@ -642,7 +642,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
           </div>
         </section>
 
-        <section className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+        <section className="order-first rounded-[26px] border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <StudyInfoIcon type="members" />
@@ -650,20 +650,65 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                 스터디 정보
               </h2>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (!leaderMode) {
-                  return;
-                }
+            <div ref={menuRef} className="relative shrink-0">
+              <button
+                type="button"
+                aria-expanded={isMenuOpen}
+                aria-haspopup="menu"
+                onClick={() => setIsMenuOpen((previous) => !previous)}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-[0_10px_26px_rgba(15,23,42,0.08)] transition hover:translate-y-[-1px]"
+              >
+                <MeatballIcon />
+              </button>
 
-                openRenewGroupCycleModal();
-              }}
-              disabled={!leaderMode}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_6px_16px_rgba(15,23,42,0.06)] disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              수정하기
-            </button>
+              {isMenuOpen ? (
+                <div className="absolute right-0 top-[calc(100%+10px)] z-40 w-[220px] rounded-[22px] bg-white p-2 shadow-[0_18px_42px_rgba(15,23,42,0.14)]">
+                  <div className="space-y-1">
+                    <MenuActionButton
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setActiveModal("invite");
+                      }}
+                    >
+                      <span>초대 코드 확인</span>
+                    </MenuActionButton>
+
+                    {leaderMode ? (
+                      <>
+                        <MenuActionButton
+                          disabled={transferableMembers.length === 0}
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            setActiveModal("transfer");
+                          }}
+                        >
+                          <span>팀장권한 넘기기</span>
+                        </MenuActionButton>
+                        <MenuActionButton
+                          destructive
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            setActiveModal("delete");
+                          }}
+                        >
+                          <span>그룹 삭제</span>
+                        </MenuActionButton>
+                      </>
+                    ) : (
+                      <MenuActionButton
+                        destructive
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          setActiveModal("leave");
+                        }}
+                      >
+                        <span>그룹 탈퇴하기</span>
+                      </MenuActionButton>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <div className="overflow-hidden rounded-[22px] border border-slate-200">
