@@ -4,7 +4,12 @@ import type {
   AiChatRequest,
   AiChatScope,
 } from "@/lib/ai-chat";
-import type { PlanReferenceAnalysisResult } from "@/lib/plan-flow";
+import {
+  normalizePlanAgentDraftPayload,
+  planAgentDraftMarker,
+  type PlanAgentDraft,
+  type PlanReferenceAnalysisResult,
+} from "@/lib/plan-flow";
 
 type GeminiTextPart = {
   text: string;
@@ -50,6 +55,7 @@ export type GeminiAnswerResult = {
   finishMessage: string | null;
   isComplete: boolean;
   model: string;
+  planAgentDraft: PlanAgentDraft | null;
 };
 
 export type PlanReferenceAnalysisRequest = {
@@ -466,6 +472,10 @@ function buildSystemInstruction(scope: AiChatScope) {
     "The provided context may be compacted or partially truncated for speed, so prioritize the most relevant details and briefly say what extra information would help if needed.",
     "Do not claim that changes were already applied.",
     "Treat review management as a personal setting outside this shared planning conversation.",
+    "After the visible Korean answer, append a new line with the exact marker <<PLAN_AGENT_DRAFT>> and then output one JSON object only.",
+    'The JSON object must include: {"scope":"weekly-plan","weeklyGoal":"...","recentUpdate":"...","weeklyPlan":[{"day":"월","title":"...","detail":"...","duration":"60분"}]}.',
+    "Use only the weekdays 월, 화, 수, 목, 금 in the weeklyPlan array, and repeat a day when there are multiple study items on that day.",
+    "Do not wrap the JSON in markdown code fences and do not mention the marker or JSON in the visible answer.",
     "Keep the answer concise enough for a mobile chat UI.",
   ].join(" ");
 }
@@ -666,23 +676,59 @@ function sanitizePlanReferenceAnalysis(payload: unknown, fileName: string) {
   } satisfies PlanReferenceAnalysisResult;
 }
 
-function extractAnswerResult(response: GeminiResponse, model: string): GeminiAnswerResult {
+function extractPlanAgentDraftFromAnswer(text: string) {
+  const marker = `\n${planAgentDraftMarker}\n`;
+  const markerIndex = text.lastIndexOf(marker);
+
+  if (markerIndex < 0) {
+    return {
+      visibleText: text.trim(),
+      draft: null as PlanAgentDraft | null,
+    };
+  }
+
+  const visibleText = text.slice(0, markerIndex).trim();
+  const payloadText = stripJsonCodeFence(text.slice(markerIndex + marker.length).trim());
+
+  try {
+    return {
+      visibleText,
+      draft: normalizePlanAgentDraftPayload(JSON.parse(payloadText)),
+    };
+  } catch {
+    return {
+      visibleText,
+      draft: null as PlanAgentDraft | null,
+    };
+  }
+}
+
+function extractAnswerResult(
+  response: GeminiResponse,
+  model: string,
+  scope: AiChatScope,
+): GeminiAnswerResult {
   const primaryCandidate = response.candidates?.[0];
-  const text = primaryCandidate?.content?.parts
+  const rawText = primaryCandidate?.content?.parts
     ?.map((part) => part.text ?? "")
     .join("")
     .trim();
 
-  if (text) {
+  if (rawText) {
     const finishReason = primaryCandidate?.finishReason ?? null;
     const finishMessage = primaryCandidate?.finishMessage ?? null;
+    const parsedPlanAgentAnswer =
+      scope === "plan-agent"
+        ? extractPlanAgentDraftFromAnswer(rawText)
+        : { visibleText: rawText, draft: null as PlanAgentDraft | null };
 
     return {
-      text,
+      text: parsedPlanAgentAnswer.visibleText,
       finishReason,
       finishMessage,
       isComplete: finishReason === null || finishReason === "STOP",
       model,
+      planAgentDraft: parsedPlanAgentAnswer.draft,
     };
   }
 
@@ -768,7 +814,7 @@ async function requestGeminiContent(
 
       if (response.ok) {
         const payload = (await response.json()) as GeminiResponse;
-        return extractAnswerResult(payload, model);
+        return extractAnswerResult(payload, model, scope);
       }
 
       let detail = response.statusText;
@@ -874,7 +920,7 @@ async function requestPlanReferenceAnalysis(
 
       if (response.ok) {
         const payload = (await response.json()) as GeminiResponse;
-        const answer = extractAnswerResult(payload, model);
+        const answer = extractAnswerResult(payload, model, "materials");
 
         try {
           return parsePlanReferenceAnalysisText(answer.text, request.fileName);
@@ -979,10 +1025,16 @@ export async function generateGeminiAnswer({
     throw new Error("Gemini API returned an empty response.");
   }
 
+  const finalPlanAgentAnswer =
+    scope === "plan-agent"
+      ? extractPlanAgentDraftFromAnswer(combinedText)
+      : { visibleText: combinedText, draft: null as PlanAgentDraft | null };
+
   return {
     ...lastResult,
-    text: combinedText,
+    text: finalPlanAgentAnswer.visibleText,
     isComplete: lastResult.finishReason === null || lastResult.finishReason === "STOP",
+    planAgentDraft: finalPlanAgentAnswer.draft ?? lastResult.planAgentDraft,
   };
 }
 

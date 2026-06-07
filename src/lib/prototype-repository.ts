@@ -3,6 +3,7 @@ import {
   buildPlanReferenceUnitsFromAnalysis,
   buildPlanAgentDraft,
   buildPlanAgentAnswer,
+  buildStoredPlanAgentMessage,
   isReviewCandidateDue,
   type PersonalPlanItemDraft,
   type PlanReferenceAnalysisResult,
@@ -2482,15 +2483,21 @@ export async function addPrototypeAssistantAnswer(
   question: string,
   scope: "materials" | "plan-agent" = "materials",
   answerTextOverride?: string,
+  planAgentDraftOverride?: PlanAgentDraft | null,
 ) {
   const client = getSupabaseBrowserClient();
   const mockMaterialsAnswer = scope === "materials" ? buildMockAnswer(group, question) : null;
+  const fallbackDraft = scope === "plan-agent" ? buildPlanAgentDraft(group, question) : null;
   const fallbackText =
     scope === "materials"
       ? mockMaterialsAnswer?.text ?? ""
-      : buildPlanAgentAnswer(group, buildPlanAgentDraft(group, question), question).text;
+      : buildPlanAgentAnswer(group, fallbackDraft, question).text;
   const messageId = createId("chat-assistant");
   const answerText = answerTextOverride?.trim() || fallbackText;
+  const storedAnswerText =
+    scope === "plan-agent"
+      ? buildStoredPlanAgentMessage(answerText, planAgentDraftOverride ?? fallbackDraft)
+      : answerText;
 
   ensureSuccess(
     "Failed to save assistant answer",
@@ -2499,7 +2506,7 @@ export async function addPrototypeAssistantAnswer(
       group_id: group.id,
       role: "assistant",
       scope,
-      text: answerText,
+      text: storedAnswerText,
       created_at: new Date().toISOString(),
     }),
   );

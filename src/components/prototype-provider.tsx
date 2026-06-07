@@ -1212,6 +1212,7 @@ export function PrototypeProvider({
       finishReason?: string | null;
       finishMessage?: string | null;
       isComplete?: boolean;
+      planAgentDraft?: PlanAgentDraft | null;
     };
 
     if (!response.ok || !data.text?.trim()) {
@@ -1223,6 +1224,7 @@ export function PrototypeProvider({
       finishReason: data.finishReason ?? null,
       finishMessage: data.finishMessage ?? null,
       isComplete: data.isComplete ?? true,
+      planAgentDraft: data.planAgentDraft ?? null,
     };
   }
 
@@ -1275,7 +1277,13 @@ export function PrototypeProvider({
               ? await ensurePlanReferenceCoverage(group, trimmedQuestion)
               : group;
           const answer = await requestAiAnswer(requestGroup, trimmedQuestion, scope);
-          await addPrototypeAssistantAnswer(requestGroup, trimmedQuestion, scope, answer.text);
+          await addPrototypeAssistantAnswer(
+            requestGroup,
+            trimmedQuestion,
+            scope,
+            answer.text,
+            answer.planAgentDraft ?? null,
+          );
           await refreshGroups();
           if (scope === "plan-agent") {
             clearPlanAgentStatusSequence(groupId);

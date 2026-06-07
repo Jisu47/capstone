@@ -15,6 +15,7 @@ import { WeeklyPlanTabs } from "@/components/weekly-plan-tabs";
 import {
   buildPlanAgentDraft,
   isLeader,
+  parseStoredPlanAgentMessage,
   type PlanAgentDraft,
 } from "@/lib/plan-flow";
 import { type StudyGroup, type Weekday, type WeeklyPlanItem } from "@/lib/mock-data";
@@ -134,6 +135,10 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   const conversationSubject = activeGroup.subject.trim() || activeGroup.name.trim();
   const introMessage = `안녕하세요! ${conversationSubject} 학습 계획을 세워볼까요? 질문을 선택해 빠른 대화를 시작할 수 있고 직접 대화를 입력하실 수 있어요.`;
   const chatEntries = activeGroup.planAgentChat.map((message, index, messages) => {
+    const parsedMessage =
+      message.role === "assistant"
+        ? parseStoredPlanAgentMessage(message.text)
+        : { visibleText: message.text, draft: null as PlanAgentDraft | null };
     let sourceQuestion = "";
 
     if (message.role === "assistant") {
@@ -149,10 +154,11 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
 
     return {
       message,
+      visibleText: parsedMessage.visibleText,
       sourceQuestion,
       previewDraft:
-        message.role === "assistant" && sourceQuestion
-          ? buildPlanAgentDraft(activeGroup, sourceQuestion)
+        message.role === "assistant"
+          ? parsedMessage.draft ?? (sourceQuestion ? buildPlanAgentDraft(activeGroup, sourceQuestion) : null)
           : null,
     };
   });
@@ -188,8 +194,12 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
     setDraftQuestion("");
   }
 
-  function handleReflectDraft(sourceMessageId: string, sourceQuestion: string) {
-    const draft = buildPlanAgentDraft(activeGroup, sourceQuestion);
+  function handleReflectDraft(
+    sourceMessageId: string,
+    sourceQuestion: string,
+    draftOverride?: PlanAgentDraft | null,
+  ) {
+    const draft = draftOverride ?? buildPlanAgentDraft(activeGroup, sourceQuestion);
 
     if (!draft) {
       return;
@@ -372,7 +382,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
             <div className="max-h-[420px] overflow-y-auto rounded-[18px] border border-slate-200 bg-slate-50/55 px-2.5 py-2.5">
               {chatEntries.length > 0 ? (
                 chatEntries.map((entry, index) => {
-                  const { message, previewDraft: draftForMessage, sourceQuestion } = entry;
+                  const { message, visibleText, previewDraft: draftForMessage, sourceQuestion } = entry;
                   const isAssistant = message.role === "assistant";
                   const isSelectedPreview =
                     effectivePreviewState.groupId === activeGroup.id &&
@@ -393,7 +403,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                               : "rounded-br-[6px] border border-[var(--brand)] bg-[var(--brand-soft)] text-slate-900"
                           }`}
                         >
-                          <p className="whitespace-pre-line text-[13px] leading-5">{message.text}</p>
+                          <p className="whitespace-pre-line text-[13px] leading-5">{visibleText}</p>
 
                           <div
                             className={`mt-3 flex items-center justify-between gap-3 ${
@@ -406,7 +416,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                                 type="button"
                                 disabled={!leaderMode || !sourceQuestion || !draftForMessage || planAgentBusy}
                                 onClick={() => {
-                                  handleReflectDraft(message.id, sourceQuestion);
+                                  handleReflectDraft(message.id, sourceQuestion, draftForMessage);
                                 }}
                                 className="rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-[var(--brand)] hover:text-[var(--brand)] disabled:cursor-not-allowed disabled:opacity-50"
                               >

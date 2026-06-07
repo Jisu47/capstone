@@ -22,6 +22,8 @@ export type PlanAgentDraft = {
   weeklyPlan: WeeklyPlanItem[];
 };
 
+export const planAgentDraftMarker = "<<PLAN_AGENT_DRAFT>>";
+
 export type PlanReferenceUploadDraft = {
   fileName: string;
   mimeType: string;
@@ -49,6 +51,64 @@ export type SavedPersonalTaskDraft = {
 };
 
 export const orderedWeekdays: Weekday[] = ["월", "화", "수", "목", "금"];
+
+function normalizeWeekdayValue(value: string): Weekday | null {
+  const normalized = value.replace(/\s+/g, "").toLowerCase();
+
+  if (!normalized) {
+    return null;
+  }
+
+  const directMatch = orderedWeekdays.find(
+    (day) => normalized === day.replace(/\s+/g, "").toLowerCase(),
+  );
+
+  if (directMatch) {
+    return directMatch;
+  }
+
+  if (/월|mon/.test(normalized)) {
+    return orderedWeekdays[0] ?? null;
+  }
+
+  if (/화|tue/.test(normalized)) {
+    return orderedWeekdays[1] ?? null;
+  }
+
+  if (/수|wed/.test(normalized)) {
+    return orderedWeekdays[2] ?? null;
+  }
+
+  if (/목|thu/.test(normalized)) {
+    return orderedWeekdays[3] ?? null;
+  }
+
+  if (/금|fri/.test(normalized)) {
+    return orderedWeekdays[4] ?? null;
+  }
+
+  return null;
+}
+
+function normalizeDurationValue(value: string) {
+  const normalized = value.trim();
+
+  if (!normalized) {
+    return "60분";
+  }
+
+  if (/\d+\s*분/.test(normalized)) {
+    return normalized.replace(/\s+/g, "");
+  }
+
+  const matched = normalized.match(/(\d+)/);
+
+  if (matched?.[1]) {
+    return `${matched[1]}분`;
+  }
+
+  return "60분";
+}
 
 export const reviewIntervalOptions: Array<{
   label: string;
@@ -189,6 +249,124 @@ function getWeeklyFocusUnits(
   });
 
   return targetedUnits.length > 0 ? targetedUnits : units.slice(0, orderedWeekdays.length);
+}
+
+export function normalizePlanAgentDraftPayload(payload: unknown): PlanAgentDraft | null {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const maybeDraft = payload as {
+    scope?: unknown;
+    weeklyGoal?: unknown;
+    recentUpdate?: unknown;
+    weeklyPlan?: unknown;
+  };
+
+  const weeklyPlan: WeeklyPlanItem[] = Array.isArray(maybeDraft.weeklyPlan)
+    ? maybeDraft.weeklyPlan.reduce<WeeklyPlanItem[]>((items, item, index) => {
+        if (!item || typeof item !== "object") {
+          return items;
+        }
+
+        const maybeItem = item as {
+          id?: unknown;
+          day?: unknown;
+          title?: unknown;
+          detail?: unknown;
+          duration?: unknown;
+          referenceUnitSequence?: unknown;
+        };
+        const day = normalizeWeekdayValue(typeof maybeItem.day === "string" ? maybeItem.day : "");
+        const title = typeof maybeItem.title === "string" ? maybeItem.title.trim() : "";
+        const detail = typeof maybeItem.detail === "string" ? maybeItem.detail.trim() : "";
+        const duration = normalizeDurationValue(
+          typeof maybeItem.duration === "string" ? maybeItem.duration : "",
+        );
+        const referenceUnitSequence =
+          typeof maybeItem.referenceUnitSequence === "number" &&
+          Number.isFinite(maybeItem.referenceUnitSequence)
+            ? maybeItem.referenceUnitSequence
+            : null;
+
+        if (!day || !title) {
+          return items;
+        }
+
+        items.push({
+          id:
+            typeof maybeItem.id === "string" && maybeItem.id.trim()
+              ? maybeItem.id.trim()
+              : createDraftId("plan-agent-draft", index),
+          day,
+          title,
+          detail,
+          duration,
+          memberStatus: {},
+          referenceUnitSequence,
+        });
+
+        return items;
+      }, [])
+    : [];
+
+  if (weeklyPlan.length === 0) {
+    return null;
+  }
+
+  return {
+    scope:
+      maybeDraft.scope === "roadmap" || maybeDraft.scope === "both" || maybeDraft.scope === "weekly-plan"
+        ? maybeDraft.scope
+        : "weekly-plan",
+    weeklyGoal:
+      typeof maybeDraft.weeklyGoal === "string" && maybeDraft.weeklyGoal.trim()
+        ? maybeDraft.weeklyGoal.trim()
+        : weeklyPlan.map((item) => item.title).join(", "),
+    recentUpdate:
+      typeof maybeDraft.recentUpdate === "string" && maybeDraft.recentUpdate.trim()
+        ? maybeDraft.recentUpdate.trim()
+        : `${weeklyPlan[0]?.title ?? "이번 주 계획"} 기준으로 주간 계획을 정리했습니다.`,
+    roadmap: [],
+    weeklyPlan,
+  };
+}
+
+export function buildStoredPlanAgentMessage(text: string, draft: PlanAgentDraft | null) {
+  const visibleText = text.trim();
+
+  if (!draft) {
+    return visibleText;
+  }
+
+  return `${visibleText}\n${planAgentDraftMarker}\n${JSON.stringify(draft)}`;
+}
+
+export function parseStoredPlanAgentMessage(text: string) {
+  const marker = `\n${planAgentDraftMarker}\n`;
+  const markerIndex = text.lastIndexOf(marker);
+
+  if (markerIndex < 0) {
+    return {
+      visibleText: text.trim(),
+      draft: null as PlanAgentDraft | null,
+    };
+  }
+
+  const visibleText = text.slice(0, markerIndex).trim();
+  const payloadText = text.slice(markerIndex + marker.length).trim();
+
+  try {
+    return {
+      visibleText,
+      draft: normalizePlanAgentDraftPayload(JSON.parse(payloadText)),
+    };
+  } catch {
+    return {
+      visibleText,
+      draft: null as PlanAgentDraft | null,
+    };
+  }
 }
 
 export function isLeader(group: StudyGroup, memberId?: string | null) {

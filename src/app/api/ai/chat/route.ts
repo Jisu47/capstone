@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
       finishReason: answer.finishReason,
       finishMessage: answer.finishMessage,
       isComplete: answer.isComplete,
+      planAgentDraft: answer.planAgentDraft,
     };
 
     return Response.json(response);

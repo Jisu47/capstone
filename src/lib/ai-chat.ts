@@ -54,4 +54,25 @@ export type AiChatResponse = {
   finishReason?: string | null;
   finishMessage?: string | null;
   isComplete?: boolean;
+  planAgentDraft?: {
+    scope: "roadmap" | "weekly-plan" | "both";
+    weeklyGoal: string;
+    recentUpdate: string;
+    roadmap: Array<{
+      id: string;
+      weekNumber: number;
+      title: string;
+      summary: string;
+      unitStartSequence: number;
+      unitEndSequence: number;
+    }>;
+    weeklyPlan: Array<{
+      id: string;
+      day: string;
+      title: string;
+      detail: string;
+      duration: string;
+      referenceUnitSequence?: number | null;
+    }>;
+  } | null;
 };
