@@ -138,8 +138,8 @@ function StudyInfoIcon({
   type: "leader" | "members" | "date" | "time";
 }>) {
   return (
-    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#EEF8F1] text-[#57AE79]">
-      <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF8F1] text-[#57AE79]">
+      <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
         {type === "leader" ? (
           <>
             <path
@@ -572,7 +572,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
       headerBehavior="fixed"
       headerContent={<GroupPageHeader groupId={activeGroup.id} groupName={activeGroup.name} />}
     >
-      <div className="space-y-5 pb-1">
+      <div className="flex flex-col space-y-5 pb-1">
         <section className="px-1">
           <div className="space-y-1">
             <p className="text-[13px] font-medium text-slate-500">안녕하세요, {greetingName}님</p>
@@ -642,11 +642,11 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
           </div>
         </section>
 
-        <section className="order-first rounded-[26px] border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+        <section className="order-first rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.05)]">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
               <StudyInfoIcon type="members" />
-              <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-slate-950">
+              <h2 className="text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
                 스터디 정보
               </h2>
             </div>
@@ -656,7 +656,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
                 aria-expanded={isMenuOpen}
                 aria-haspopup="menu"
                 onClick={() => setIsMenuOpen((previous) => !previous)}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-[0_10px_26px_rgba(15,23,42,0.08)] transition hover:translate-y-[-1px]"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-[0_8px_18px_rgba(15,23,42,0.06)] transition hover:translate-y-[-1px]"
               >
                 <MeatballIcon />
               </button>
@@ -711,42 +711,42 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[22px] border border-slate-200">
+          <div className="overflow-hidden rounded-[18px] border border-slate-200">
             <div className="grid grid-cols-2 divide-x divide-slate-200">
-              <div className="flex items-center gap-3 px-4 py-4">
+              <div className="flex items-center gap-2.5 px-3.5 py-3">
                 <StudyInfoIcon type="leader" />
                 <div>
-                  <p className="text-sm font-medium text-slate-500">팀장</p>
-                  <p className="mt-1 text-[17px] font-semibold tracking-[-0.03em] text-slate-950">
+                  <p className="text-[12px] font-medium text-slate-500">팀장</p>
+                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
                     {leaderMember?.name ?? "-"}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 px-4 py-4">
+              <div className="flex items-center gap-2.5 px-3.5 py-3">
                 <StudyInfoIcon type="members" />
                 <div>
-                  <p className="text-sm font-medium text-slate-500">팀원</p>
-                  <p className="mt-1 text-[17px] font-semibold tracking-[-0.03em] text-slate-950">
+                  <p className="text-[12px] font-medium text-slate-500">팀원</p>
+                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
                     {teammateCount}명
                   </p>
                 </div>
               </div>
             </div>
             <div className="grid grid-cols-2 divide-x divide-slate-200 border-t border-slate-200">
-              <div className="flex items-center gap-3 px-4 py-4">
+              <div className="flex items-center gap-2.5 px-3.5 py-3">
                 <StudyInfoIcon type="date" />
                 <div>
-                  <p className="text-sm font-medium text-slate-500">목표일</p>
-                  <p className="mt-1 text-[17px] font-semibold tracking-[-0.03em] text-slate-950">
+                  <p className="text-[12px] font-medium text-slate-500">목표일</p>
+                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
                     {formatExamDate(activeGroup.examDate)}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 px-4 py-4">
+              <div className="flex items-center gap-2.5 px-3.5 py-3">
                 <StudyInfoIcon type="time" />
                 <div>
-                  <p className="text-sm font-medium text-slate-500">남은 기간</p>
-                  <p className="mt-1 text-[17px] font-semibold tracking-[-0.03em] text-[var(--brand)]">
+                  <p className="text-[12px] font-medium text-slate-500">남은 기간</p>
+                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-[var(--brand)]">
                     {ddayLabel}
                   </p>
                 </div>
