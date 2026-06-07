@@ -590,7 +590,7 @@ export default function MyPage() {
                       onClick={() => setIsMenuOpen((previous) => !previous)}
                       className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition hover:translate-y-[-1px]"
                     >
-                      <span className="sr-only">怨꾩젙 硫붾돱 ?닿린</span>
+                      <span className="sr-only">계정 메뉴 열기</span>
                       <SettingsIcon />
                     </button>
 
@@ -604,7 +604,7 @@ export default function MyPage() {
                           }}
                           className="flex w-full items-center rounded-[14px] px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                         >
-                          ?꾨줈???몄쭛
+                          프로필 수정
                         </button>
                         <button
                           type="button"
@@ -613,7 +613,7 @@ export default function MyPage() {
                           }}
                           className="flex w-full items-center rounded-[14px] px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                         >
-                          濡쒓렇?꾩썐
+                          로그아웃
                         </button>
                         <button
                           type="button"
@@ -623,7 +623,7 @@ export default function MyPage() {
                           }}
                           className="flex w-full items-center rounded-[14px] px-4 py-3 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50"
                         >
-                          ?뚯썝 ?덊눜
+                          회원 탈퇴
                         </button>
                       </div>
                     ) : null}
