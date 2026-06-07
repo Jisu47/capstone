@@ -145,34 +145,8 @@ function getLastPlanAgentQuestion(messages: ChatMessage[]) {
 }
 
 function getPlanAgentDraftScope(question: string): PlanAgentDraftScope {
-  const normalizedQuestion = question.replace(/\s+/g, " ").trim();
-
-  if (!normalizedQuestion) {
-    return "both";
-  }
-
-  const roadmapIntent =
-    /전체\s*계획|주차별|로드맵|전체\s*진도|overall\s*plan|roadmap/i.test(
-      normalizedQuestion,
-    );
-  const weeklyIntent =
-    /이번\s*주|주간\s*계획|주차\s*계획|재조정|다시\s*짜|1주차\s*기준|\d+\s*주차|weekly/i.test(
-      normalizedQuestion,
-    );
-
-  if (roadmapIntent && weeklyIntent) {
-    return "both";
-  }
-
-  if (roadmapIntent) {
-    return "roadmap";
-  }
-
-  if (weeklyIntent) {
-    return "weekly-plan";
-  }
-
-  return "both";
+  void question;
+  return "weekly-plan";
 }
 
 function getRequestedWeekNumber(question: string, roadmapLength: number) {
@@ -332,11 +306,7 @@ export function buildPlanAgentDraft(
   const scope = getPlanAgentDraftScope(lastQuestion);
   const fullRoadmap = buildRoadmapFromUnits(group, units);
   const requestedWeekNumber = getRequestedWeekNumber(lastQuestion, fullRoadmap.length);
-  const roadmap = scope === "weekly-plan" ? [] : fullRoadmap;
-  const focusUnits =
-    scope === "roadmap"
-      ? []
-      : getWeeklyFocusUnits(units, fullRoadmap, requestedWeekNumber);
+  const focusUnits = getWeeklyFocusUnits(units, fullRoadmap, requestedWeekNumber);
   const detailSuffix = lastQuestion
     ? `요청사항 반영: ${lastQuestion}`
     : `${group.subject} 기본 진도 흐름으로 배치했습니다.`;
@@ -356,17 +326,13 @@ export function buildPlanAgentDraft(
       ? focusUnits.map((unit) => unit.label).join(", ")
       : group.weeklyGoal;
   const recentUpdate =
-    scope === "roadmap"
-      ? `${group.subject} 기준으로 주차별 전체 계획 미리보기를 만들었습니다.`
-      : scope === "weekly-plan"
-        ? `${focusUnits[0]?.label ?? group.subject} 기준으로 주간 계획 미리보기를 만들었습니다.`
-        : `${focusUnits[0]?.label ?? group.subject} 기준으로 계획 에이전트 초안을 만들었습니다.`;
+    `${focusUnits[0]?.label ?? group.subject} 기준으로 이번 주 계획 미리보기를 만들었습니다.`;
 
   return {
     scope,
     weeklyGoal,
     recentUpdate,
-    roadmap,
+    roadmap: [],
     weeklyPlan,
   };
 }
@@ -382,21 +348,12 @@ export function buildPlanAgentAnswer(
     };
   }
 
-  const firstRoadmap = draft.roadmap[0];
   const firstPlan = draft.weeklyPlan[0];
-  const preparedRoadmap = draft.scope !== "weekly-plan" && draft.roadmap.length > 0;
-  const preparedWeeklyPlan = draft.scope !== "roadmap" && draft.weeklyPlan.length > 0;
+  const preparedWeeklyPlan = draft.weeklyPlan.length > 0;
 
   return {
     text: [
-      draft.scope === "roadmap"
-        ? `${group.subject} 기준으로 주차별 전체 계획을 준비했습니다.`
-        : draft.scope === "weekly-plan"
-          ? `${group.subject} 기준으로 주간 계획을 준비했습니다.`
-          : `${group.subject} 기준으로 주차별 로드맵과 주간 계획 초안을 함께 만들었습니다.`,
-      preparedRoadmap && firstRoadmap
-        ? `전체 계획은 "${firstRoadmap.title}"부터 시작하고, ${draft.roadmap.length}주 흐름으로 정리했습니다.`
-        : null,
+      `${group.subject} 기준으로 이번 주 계획을 준비했습니다.`,
       preparedWeeklyPlan && firstPlan
         ? `주간 계획은 "${firstPlan.title}"부터 시작하도록 맞췄습니다.`
         : null,

@@ -11,6 +11,7 @@ import {
 } from "@/components/mobile-shell";
 import { PlanReferenceViewerDialog } from "@/components/plan-reference-viewer-dialog";
 import { usePrototype } from "@/components/prototype-provider";
+import { WeeklyPlanTabs } from "@/components/weekly-plan-tabs";
 import {
   buildPlanAgentDraft,
   isLeader,
@@ -43,6 +44,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   const group = getGroupById(groups, groupId);
   const [draftQuestion, setDraftQuestion] = useState("");
   const [previewDraftState, setPreviewDraftState] = useState<PreviewDraftState | null>(null);
+  const [previewEditMode, setPreviewEditMode] = useState(false);
   const latestChatMessageRef = useRef<HTMLDivElement | null>(null);
   const [viewingUploadId, setViewingUploadId] = useState<string | null>(null);
   const planAgentChatLength = group?.planAgentChat.length ?? 0;
@@ -81,8 +83,8 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   const leaderMode = isLeader(activeGroup, currentUserId);
   const planAgentBusy = isPlanAgentAnswering(activeGroup.id);
   const quickQuestions = [
-    "진도표 기준으로 전체 계획 주차별 정리",
-    "진도표 1주차 기준으로 이번주 계획 생성",
+    "진도표 기준으로 이번 주 계획 정리",
+    "이번 주 학습량이 무리 없도록 계획 조정",
   ] as const;
   const conversationSubject = activeGroup.subject.trim() || activeGroup.name.trim();
   const introMessage = `안녕하세요! ${conversationSubject} 학습 계획을 세워볼까요? 질문을 선택해 빠른 대화를 시작할 수 있고 직접 대화를 입력하실 수 있어요.`;
@@ -144,6 +146,29 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
       draft,
       sourceMessageId,
       sourceQuestion,
+    });
+    setPreviewEditMode(false);
+  }
+
+  function updatePreviewDraftItem(
+    itemId: string,
+    field: "title" | "detail" | "duration",
+    value: string,
+  ) {
+    setPreviewDraftState((previous) => {
+      if (!previous || previous.groupId !== activeGroup.id) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        draft: {
+          ...previous.draft,
+          weeklyPlan: previous.draft.weeklyPlan.map((item) =>
+            item.id === itemId ? { ...item, [field]: value } : item,
+          ),
+        },
+      };
     });
   }
 
@@ -217,69 +242,69 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
             <div className="max-h-[420px] overflow-y-auto rounded-[18px] border border-slate-200 bg-slate-50/55 px-2.5 py-2.5">
               {chatEntries.length > 0 ? (
                 chatEntries.map((entry, index) => {
-                const { message, previewDraft: draftForMessage, sourceQuestion } = entry;
-                const isAssistant = message.role === "assistant";
-                const isSelectedPreview =
-                  previewDraftState?.groupId === activeGroup.id &&
-                  previewDraftState.sourceMessageId === message.id;
-                const isLastMessage = index === chatEntries.length - 1;
+                  const { message, previewDraft: draftForMessage, sourceQuestion } = entry;
+                  const isAssistant = message.role === "assistant";
+                  const isSelectedPreview =
+                    previewDraftState?.groupId === activeGroup.id &&
+                    previewDraftState.sourceMessageId === message.id;
+                  const isLastMessage = index === chatEntries.length - 1;
 
-                return (
-                  <div
-                    key={message.id}
-                    ref={isLastMessage ? latestChatMessageRef : null}
-                    className={`flex ${isAssistant ? "justify-start" : "justify-end"}`}
-                  >
-                    <div className="max-w-[88%] py-1.5">
-                      <div
-                        className={`rounded-[16px] px-3.5 py-3.5 ${
-                          isAssistant
-                            ? "rounded-bl-[6px] border border-slate-200 bg-white"
-                            : "rounded-br-[6px] border border-[var(--brand)] bg-[var(--brand-soft)] text-slate-900"
-                        }`}
-                      >
-                        <p className="whitespace-pre-line text-[13px] leading-5">{message.text}</p>
-
+                  return (
+                    <div
+                      key={message.id}
+                      ref={isLastMessage ? latestChatMessageRef : null}
+                      className={`flex ${isAssistant ? "justify-start" : "justify-end"}`}
+                    >
+                      <div className="max-w-[88%] py-1.5">
                         <div
-                          className={`mt-3 flex items-center justify-between gap-3 ${
-                            isAssistant ? "text-slate-400" : "text-[var(--brand)]"
+                          className={`rounded-[16px] px-3.5 py-3.5 ${
+                            isAssistant
+                              ? "rounded-bl-[6px] border border-slate-200 bg-white"
+                              : "rounded-br-[6px] border border-[var(--brand)] bg-[var(--brand-soft)] text-slate-900"
                           }`}
                         >
-                          <p className="text-[11px] font-medium">{message.createdAt}</p>
-                          {isAssistant ? (
-                            <button
-                              type="button"
-                              disabled={!leaderMode || !sourceQuestion || !draftForMessage || planAgentBusy}
-                              onClick={() => {
-                                handleReflectDraft(message.id, sourceQuestion);
-                              }}
-                              className="rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-[var(--brand)] hover:text-[var(--brand)] disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {isSelectedPreview ? "미리보기에 반영됨" : leaderMode ? "계획 반영" : "팀장만 반영 가능"}
-                            </button>
-                          ) : null}
-                        </div>
-                      </div>
+                          <p className="whitespace-pre-line text-[13px] leading-5">{message.text}</p>
 
-                      {isLastMessage && planAgentStatus ? (
-                        <div className="px-1 pt-2">
-                          <p className="text-xs leading-5 text-slate-400">{planAgentStatus}</p>
-                          {retryQuestion ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                void sendPlanAgentMessage(activeGroup.id, retryQuestion);
-                              }}
-                              className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
-                            >
-                              다시 시도
-                            </button>
-                          ) : null}
+                          <div
+                            className={`mt-3 flex items-center justify-between gap-3 ${
+                              isAssistant ? "text-slate-400" : "text-[var(--brand)]"
+                            }`}
+                          >
+                            <p className="text-[11px] font-medium">{message.createdAt}</p>
+                            {isAssistant ? (
+                              <button
+                                type="button"
+                                disabled={!leaderMode || !sourceQuestion || !draftForMessage || planAgentBusy}
+                                onClick={() => {
+                                  handleReflectDraft(message.id, sourceQuestion);
+                                }}
+                                className="rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-[var(--brand)] hover:text-[var(--brand)] disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {isSelectedPreview ? "미리보기에 반영됨" : leaderMode ? "계획 반영" : "팀장만 반영 가능"}
+                              </button>
+                            ) : null}
+                          </div>
                         </div>
-                      ) : null}
+
+                        {isLastMessage && planAgentStatus ? (
+                          <div className="px-1 pt-2">
+                            <p className="text-xs leading-5 text-slate-400">{planAgentStatus}</p>
+                            {retryQuestion ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void sendPlanAgentMessage(activeGroup.id, retryQuestion);
+                                }}
+                                className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
+                              >
+                                다시 시도
+                              </button>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                );
+                  );
                 })
               ) : (
                 <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-3.5 py-3.5 text-[13px] leading-5 text-[var(--ink-soft)]">
@@ -328,71 +353,37 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                       {previewDraftState?.sourceQuestion}
                     </p>
                   </div>
-                  <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[var(--brand)]">
-                    {previewDraft.scope === "roadmap"
-                      ? "전체 계획 미리보기"
-                      : previewDraft.scope === "weekly-plan"
-                        ? "주간 계획 미리보기"
-                        : "전체 + 주간 미리보기"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[var(--brand)]">
+                      이번 주 계획 미리보기
+                    </span>
+                    <button
+                      type="button"
+                      disabled={!leaderMode || !previewDraft}
+                      onClick={() => {
+                        setPreviewEditMode((previous) => !previous);
+                      }}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {previewEditMode ? "수정 완료" : "직접 수정"}
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {previewDraft.scope !== "roadmap" ? (
-                <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4">
-                  <p className="text-xs font-medium text-slate-500">이번 주 목표</p>
-                  <p className="mt-2 text-base font-semibold text-slate-900">
-                    {previewDraft.weeklyGoal}
-                  </p>
-                </div>
-              ) : null}
+              <div className="rounded-[16px] border border-slate-200 bg-white px-4 py-4">
+                <p className="text-xs font-medium text-slate-500">이번 주 목표</p>
+                <p className="mt-2 text-base font-semibold text-slate-900">
+                  {previewDraft.weeklyGoal}
+                </p>
+              </div>
 
-              {previewDraft.roadmap.length > 0 ? (
-                <div className="space-y-3">
-                  {previewDraft.roadmap.map((item) => (
-                    <article
-                      key={item.id}
-                      className="rounded-[16px] border border-slate-200 bg-white px-4 py-4"
-                    >
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
-                        {item.weekNumber}주차
-                      </p>
-                      <p className="mt-1 text-base font-semibold text-slate-900">{item.title}</p>
-                      <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">
-                        {item.summary}
-                      </p>
-                    </article>
-                  ))}
-                </div>
-              ) : null}
-
-              {previewDraft.weeklyPlan.length > 0 ? (
-                <div className="space-y-3">
-                  {previewDraft.weeklyPlan.map((item) => (
-                    <article
-                      key={item.id}
-                      className="rounded-[16px] border border-slate-200 bg-white px-4 py-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
-                            {item.day}
-                          </p>
-                          <p className="mt-1 text-base font-semibold text-slate-900">
-                            {item.title}
-                          </p>
-                        </div>
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                          {item.duration}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">
-                        {item.detail}
-                      </p>
-                    </article>
-                  ))}
-                </div>
-              ) : null}
+              <WeeklyPlanTabs
+                items={previewDraft.weeklyPlan}
+                editMode={previewEditMode}
+                onUpdateDraftItem={updatePreviewDraftItem}
+                emptyMessage="미리볼 이번 주 계획이 아직 없습니다."
+              />
 
               <div className="rounded-[16px] border border-dashed border-[var(--line)] bg-[var(--surface)] px-4 py-4 text-xs leading-6 text-slate-500">
                 이 단계는 미리보기입니다. 아래 계획 적용하기를 눌러야 계획 탭에 최종 반영됩니다.

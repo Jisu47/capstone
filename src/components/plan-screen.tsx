@@ -12,6 +12,7 @@ import {
 } from "@/components/mobile-shell";
 import { PlanReferenceViewerDialog } from "@/components/plan-reference-viewer-dialog";
 import { usePrototype } from "@/components/prototype-provider";
+import { WeeklyPlanTabs } from "@/components/weekly-plan-tabs";
 import {
   getCurrentUserPersonalPlanItems,
   getNextPendingReviewDate,
@@ -19,7 +20,6 @@ import {
   getReviewCandidateScheduledDate,
   getReviewIntervalLabel,
   isLeader,
-  orderedWeekdays,
   reviewIntervalOptions,
   type PersonalPlanItemDraft,
 } from "@/lib/plan-flow";
@@ -65,35 +65,6 @@ function BookIcon() {
         stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth="1.8"
-      />
-    </svg>
-  );
-}
-
-function VideoIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6">
-      <path
-        d="M4.75 6.75A2.75 2.75 0 0 1 7.5 4h9A2.75 2.75 0 0 1 19.25 6.75v10.5A2.75 2.75 0 0 1 16.5 20h-9a2.75 2.75 0 0 1-2.75-2.75V6.75Z"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-      />
-      <path
-        d="m10 9.25 4.5 2.75L10 14.75v-5.5Z"
-        fill="none"
-        stroke="currentColor"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M4.75 8.75h14.5"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
         strokeWidth="1.8"
       />
     </svg>
@@ -183,234 +154,6 @@ function readFileAsDataUrl(file: File) {
 
 function formatReviewDate(date: Date) {
   return `${date.getMonth() + 1}/${date.getDate()}`;
-}
-
-function parseDurationMinutes(duration: string) {
-  const matched = duration.match(/(\d+)/);
-  const parsed = matched ? Number.parseInt(matched[1], 10) : NaN;
-
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return 60;
-  }
-
-  return parsed;
-}
-
-function formatClock(totalMinutes: number) {
-  const hours = Math.floor(totalMinutes / 60)
-    .toString()
-    .padStart(2, "0");
-  const minutes = (totalMinutes % 60).toString().padStart(2, "0");
-  return `${hours}:${minutes}`;
-}
-
-function buildTimeRangeLabel(duration: string, index: number) {
-  const startMinutes = 9 * 60 + index * 120;
-  const endMinutes = startMinutes + parseDurationMinutes(duration);
-  return `${formatClock(startMinutes)} - ${formatClock(endMinutes)}`;
-}
-
-function getPlanVisualType(title: string, detail: string) {
-  const normalized = `${title} ${detail}`.toLowerCase();
-
-  if (/강의|시청|영상|비디오|lecture|video/.test(normalized)) {
-    return "video";
-  }
-
-  if (/문제|풀이|연습|필기|발표|질문|실습|코딩|작성|정리/.test(normalized)) {
-    return "pencil";
-  }
-
-  return "book";
-}
-
-function PlanTypeIcon({ type }: Readonly<{ type: "book" | "video" | "pencil" }>) {
-  return (
-    <span className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] text-slate-900 shadow-[0_6px_14px_rgba(15,23,42,0.05)]">
-      {type === "video" ? <VideoIcon /> : type === "pencil" ? <PencilIcon /> : <BookIcon />}
-    </span>
-  );
-}
-
-function WeeklyPlanTabs({
-  group,
-  currentUserId,
-  onTogglePlanItem,
-}: Readonly<{
-  group: StudyGroup;
-  currentUserId: string;
-  onTogglePlanItem: (itemId: string) => void;
-}>) {
-  const [activeDay, setActiveDay] = useState(orderedWeekdays[0]);
-  const plansByDay = orderedWeekdays.map((day) => ({
-    day,
-    items: group.plan.filter((item) => item.day === day),
-  }));
-  const activeDayItems =
-    plansByDay.find((entry) => entry.day === activeDay)?.items ?? [];
-
-  return (
-    <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
-      <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fcfdfc_100%)]">
-        <div className="grid grid-cols-5">
-          {plansByDay.map(({ day, items }) => {
-            const active = day === activeDay;
-            const count = items.length;
-            const countClass =
-              count === 0
-                ? "bg-slate-100 text-slate-500"
-                : active
-                  ? "bg-[var(--brand)] text-white"
-                  : "bg-[rgba(121,184,149,0.18)] text-[var(--brand)]";
-
-            return (
-              <button
-                key={day}
-                type="button"
-                onClick={() => setActiveDay(day)}
-                className={`relative flex flex-col items-center gap-1.5 px-1.5 pb-3 pt-3 text-[13px] transition ${
-                  active ? "font-semibold text-slate-950" : "font-medium text-slate-500"
-                }`}
-                aria-pressed={active}
-              >
-                <span className="flex items-center gap-1.5">
-                  <span>{day}</span>
-                  <span
-                    className={`inline-flex min-w-7 items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${countClass}`}
-                  >
-                    {count}
-                  </span>
-                </span>
-                {active ? (
-                  <span className="absolute inset-x-3 bottom-0 h-[2px] rounded-full bg-[var(--brand)]" />
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="space-y-2.5 px-3.5 py-3.5">
-        {activeDayItems.length === 0 ? (
-          <div className="rounded-[14px] border border-dashed border-slate-200 bg-slate-50/70 px-3.5 py-6 text-center text-[13px] text-slate-400">
-            선택한 요일에 등록된 계획이 없습니다.
-          </div>
-        ) : (
-          activeDayItems.map((item, index) => {
-            const checked = item.memberStatus[currentUserId];
-            const timeRangeLabel = buildTimeRangeLabel(item.duration, index);
-            const visualType = getPlanVisualType(item.title, item.detail);
-
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onTogglePlanItem(item.id)}
-                className={`flex w-full items-center gap-3 rounded-[16px] border px-3.5 py-3 text-left transition ${
-                  checked
-                    ? "border-[var(--brand)] bg-[linear-gradient(180deg,#ffffff_0%,#f8fdf9_100%)] shadow-[0_10px_22px_rgba(121,184,149,0.10)]"
-                    : "border-slate-200 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.04)] hover:border-slate-300"
-                }`}
-              >
-                <PlanTypeIcon type={visualType} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
-                    {item.title}
-                  </p>
-                  <p className="mt-1 text-[12px] font-medium text-slate-600">{timeRangeLabel}</p>
-                </div>
-              </button>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
-}
-
-function RoadmapTabs({
-  roadmap,
-}: Readonly<{
-  roadmap: StudyGroup["roadmap"];
-}>) {
-  const [activeRoadmapId, setActiveRoadmapId] = useState(roadmap[0]?.id ?? "");
-  const selectedRoadmapId =
-    roadmap.find((item) => item.id === activeRoadmapId)?.id ?? roadmap[0]?.id ?? "";
-  const activeItem = roadmap.find((item) => item.id === selectedRoadmapId) ?? roadmap[0];
-
-  if (!activeItem) {
-    return null;
-  }
-
-  return (
-    <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
-      <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fcfdfc_100%)]">
-        <div
-          className="flex gap-1 overflow-x-auto px-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-          aria-label="전체 계획 주차 선택"
-        >
-          {roadmap.map((item) => {
-            const active = item.id === selectedRoadmapId;
-            const coveredUnitCount = Math.max(
-              1,
-              item.unitEndSequence - item.unitStartSequence + 1,
-            );
-            const countClass = active
-              ? "bg-[var(--brand)] text-white"
-              : "bg-[rgba(121,184,149,0.18)] text-[var(--brand)]";
-
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setActiveRoadmapId(item.id)}
-                className={`relative shrink-0 flex min-w-[94px] flex-col items-center gap-1.5 px-2.5 pb-3 pt-3 text-[13px] transition ${
-                  active ? "font-semibold text-slate-950" : "font-medium text-slate-500"
-                }`}
-                aria-pressed={active}
-              >
-                <span className="flex items-center gap-1.5 whitespace-nowrap">
-                  <span>{item.weekNumber}주차</span>
-                  <span
-                    className={`inline-flex min-w-7 items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${countClass}`}
-                  >
-                    {coveredUnitCount}
-                  </span>
-                </span>
-                {active ? (
-                  <span className="absolute inset-x-3 bottom-0 h-[2px] rounded-full bg-[var(--brand)]" />
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="px-3.5 py-3.5">
-        <article className="rounded-[16px] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[0_6px_14px_rgba(15,23,42,0.04)]">
-          <div className="flex items-start gap-3">
-            <PlanTypeIcon type="book" />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
-                    {activeItem.title}
-                  </p>
-                  <p className="mt-1 text-[12px] font-medium text-slate-600">
-                    {activeItem.weekNumber}주차 학습 범위
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                  {activeItem.unitStartSequence} ~ {activeItem.unitEndSequence}
-                </span>
-              </div>
-              <p className="mt-2.5 text-[13px] leading-5 text-[var(--ink-soft)]">{activeItem.summary}</p>
-            </div>
-          </div>
-        </article>
-      </div>
-    </div>
-  );
 }
 
 function SummaryChip({
@@ -836,7 +579,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
         </ExpandableSection>
 
         <ExpandableSection
-          title="전체 계획"
+          title="이번 주 계획"
           action={
             leaderMode ? (
               <Link
@@ -848,24 +591,17 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
             ) : null
           }
         >
-          {activeGroup.roadmap.length === 0 ? (
-            <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
-              {activeGroup.planReferenceUploads.length === 0
-                ? "진도표를 먼저 올리면 주차별 로드맵이 여기 정리됩니다."
-                : "계획 에이전트에서 초안을 만들면 전체 계획이 여기 반영됩니다."}
-            </div>
-          ) : (
-            <RoadmapTabs roadmap={activeGroup.roadmap} />
-          )}
-        </ExpandableSection>
-
-        <ExpandableSection title="이번 주 계획">
           <WeeklyPlanTabs
-            group={activeGroup}
+            items={activeGroup.plan}
             currentUserId={currentUserId}
             onTogglePlanItem={(itemId) => {
               void togglePlanItem(activeGroup.id, itemId);
             }}
+            emptyMessage={
+              activeGroup.planReferenceUploads.length === 0
+                ? "진도표를 먼저 올리면 이번 주 계획을 만들 수 있어요."
+                : "계획 에이전트에서 이번 주 계획 초안을 만들면 여기에 반영됩니다."
+            }
           />
         </ExpandableSection>
 
