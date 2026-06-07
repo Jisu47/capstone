@@ -135,7 +135,7 @@ function MeatballIcon() {
 function StudyInfoIcon({
   type,
 }: Readonly<{
-  type: "leader" | "members" | "date" | "time";
+  type: "leader" | "members" | "subject" | "time";
 }>) {
   return (
     <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF8F1] text-[#57AE79]">
@@ -181,10 +181,21 @@ function StudyInfoIcon({
             />
           </>
         ) : null}
-        {type === "date" ? (
+        {type === "subject" ? (
           <>
-            <rect x="4.75" y="6.5" width="14.5" height="12.75" rx="2.25" stroke="currentColor" strokeWidth="1.8" />
-            <path d="M8 4.75v3.5M16 4.75v3.5M4.75 9.75h14.5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+            <path
+              d="M6.25 6.75a2 2 0 0 1 2-2h9.5v14.5h-9.5a2 2 0 0 0-2 2V6.75Z"
+              stroke="currentColor"
+              strokeLinejoin="round"
+              strokeWidth="1.8"
+            />
+            <path
+              d="M17.75 19.25h-9.5a2 2 0 0 0-2 2M9 8.5h5.75M9 11.5h5.75"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.8"
+            />
           </>
         ) : null}
         {type === "time" ? (
@@ -734,11 +745,11 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
             </div>
             <div className="grid grid-cols-2 divide-x divide-slate-200 border-t border-slate-200">
               <div className="flex items-center gap-2.5 px-3.5 py-3">
-                <StudyInfoIcon type="date" />
+                <StudyInfoIcon type="subject" />
                 <div>
-                  <p className="text-[12px] font-medium text-slate-500">목표일</p>
+                  <p className="text-[12px] font-medium text-slate-500">과목</p>
                   <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
-                    {formatExamDate(activeGroup.examDate)}
+                    {activeGroup.subject}
                   </p>
                 </div>
               </div>
@@ -759,7 +770,13 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
           <div className="absolute inset-x-0 bottom-0 h-24 bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.18),transparent_58%)]" />
           <div className="absolute right-[-38px] top-[-34px] h-36 w-36 rounded-full bg-white/10 blur-2xl" />
 
-          <div className="relative flex items-start justify-end">
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[12px] font-medium text-white/80">목표일</p>
+              <p className="mt-1 text-[15px] font-semibold tracking-[-0.03em] text-white">
+                {formatExamDate(activeGroup.examDate)}
+              </p>
+            </div>
             <span className="inline-flex shrink-0 rounded-full bg-white/88 px-3 py-2 text-sm font-semibold text-[#4A9568] shadow-[0_10px_20px_rgba(20,60,38,0.12)]">
               {ddayLabel}
             </span>
