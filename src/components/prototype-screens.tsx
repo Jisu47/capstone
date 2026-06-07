@@ -18,7 +18,7 @@ import {
   getMemberProgress,
 } from "@/lib/mock-data";
 
-const weekdayOptions: Weekday[] = ["월", "화", "수", "목", "금"];
+const weekdayOptions: Weekday[] = ["월", "화", "수", "목", "금", "토", "일"];
 
 const shellRootClass = "flex min-h-dvh flex-col bg-white text-slate-900";
 const shellFrameClass = "mx-auto flex w-full max-w-[430px] flex-col";

@@ -474,7 +474,7 @@ function buildSystemInstruction(scope: AiChatScope) {
     "Treat review management as a personal setting outside this shared planning conversation.",
     "After the visible Korean answer, append a new line with the exact marker <<PLAN_AGENT_DRAFT>> and then output one JSON object only.",
     'The JSON object must include: {"scope":"weekly-plan","weeklyGoal":"...","recentUpdate":"...","weeklyPlan":[{"day":"월","title":"...","detail":"...","duration":"60분"}]}.',
-    "Use only the weekdays 월, 화, 수, 목, 금 in the weeklyPlan array, and repeat a day when there are multiple study items on that day.",
+    "Use the seven weekdays 월, 화, 수, 목, 금, 토, 일 in the weeklyPlan array, and keep the plan structured as one week from Monday through Sunday.",
     "Do not wrap the JSON in markdown code fences and do not mention the marker or JSON in the visible answer.",
     "Keep the answer concise enough for a mobile chat UI.",
   ].join(" ");

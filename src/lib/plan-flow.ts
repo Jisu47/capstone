@@ -50,7 +50,7 @@ export type SavedPersonalTaskDraft = {
   detail: string;
 };
 
-export const orderedWeekdays: Weekday[] = ["월", "화", "수", "목", "금"];
+export const orderedWeekdays: Weekday[] = ["월", "화", "수", "목", "금", "토", "일"];
 
 function normalizeWeekdayValue(value: string): Weekday | null {
   const normalized = value.replace(/\s+/g, "").toLowerCase();
@@ -67,24 +67,20 @@ function normalizeWeekdayValue(value: string): Weekday | null {
     return directMatch;
   }
 
-  if (/월|mon/.test(normalized)) {
-    return orderedWeekdays[0] ?? null;
-  }
+  const weekdayAliases: Array<{ day: Weekday; pattern: RegExp }> = [
+    { day: "월", pattern: /월|mon/ },
+    { day: "화", pattern: /화|tue/ },
+    { day: "수", pattern: /수|wed/ },
+    { day: "목", pattern: /목|thu/ },
+    { day: "금", pattern: /금|fri/ },
+    { day: "토", pattern: /토|sat/ },
+    { day: "일", pattern: /일|sun/ },
+  ];
 
-  if (/화|tue/.test(normalized)) {
-    return orderedWeekdays[1] ?? null;
-  }
-
-  if (/수|wed/.test(normalized)) {
-    return orderedWeekdays[2] ?? null;
-  }
-
-  if (/목|thu/.test(normalized)) {
-    return orderedWeekdays[3] ?? null;
-  }
-
-  if (/금|fri/.test(normalized)) {
-    return orderedWeekdays[4] ?? null;
+  for (const alias of weekdayAliases) {
+    if (alias.pattern.test(normalized)) {
+      return alias.day;
+    }
   }
 
   return null;
@@ -491,7 +487,7 @@ export function buildPlanAgentDraft(
 
   const weeklyPlan = focusUnits.map<WeeklyPlanItem>((unit, index) => ({
     id: createDraftId(`${group.id}-weekly-plan`, index),
-    day: orderedWeekdays[index] ?? "금",
+    day: orderedWeekdays[index] ?? orderedWeekdays.at(-1) ?? "일",
     title: `${unit.label} 학습`,
     detail: `${unit.detail} ${detailSuffix}`,
     duration: `${40 + index * 5}분`,

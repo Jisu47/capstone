@@ -44,7 +44,7 @@ export type ChatMessage = {
   sources?: SourceCard[];
 };
 
-export type Weekday = "월" | "화" | "수" | "목" | "금";
+export type Weekday = "월" | "화" | "수" | "목" | "금" | "토" | "일";
 
 export type ReviewIntervalDays = 3 | 7 | 14 | 28;
 export type UnderstandingLevel = "low" | "medium" | "high";
@@ -389,6 +389,20 @@ function createAutoPlan(
         duration: "30분",
         completedMemberIds: [],
       },
+      {
+        day: "토",
+        title: `${subject} 오답 정리`,
+        detail: "이번 주에 막혔던 개념과 문제를 다시 묶어 주말 복습 흐름으로 정리합니다.",
+        duration: "35분",
+        completedMemberIds: [],
+      },
+      {
+        day: "일",
+        title: `${subject} 다음 주 준비`,
+        detail: "다음 주에 볼 범위와 필요한 자료를 미리 확인하고 개인 질문을 정리합니다.",
+        duration: "25분",
+        completedMemberIds: [],
+      },
     ],
     memberIds,
     idPrefix,
@@ -585,6 +599,20 @@ function createInitialGroups(): StudyGroup[] {
             day: "금",
             title: "주간 학습 요약 정리",
             detail: "모임 발표용 핵심 문장과 진행 현황을 갱신합니다.",
+            duration: "25분",
+            completedMemberIds: [],
+          },
+          {
+            day: "토",
+            title: "교착상태 복습 정리",
+            detail: "주중에 헷갈렸던 교착상태 조건과 해결 방식을 다시 묶어 정리합니다.",
+            duration: "35분",
+            completedMemberIds: [],
+          },
+          {
+            day: "일",
+            title: "다음 주 범위 미리 보기",
+            detail: "다음 주에 볼 메모리 관리 범위와 필요한 질문을 미리 정리합니다.",
             duration: "25분",
             completedMemberIds: [],
           },

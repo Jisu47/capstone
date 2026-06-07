@@ -220,7 +220,8 @@ export function WeeklyPlanTabs({
   ) => void;
   emptyMessage?: string;
 }>) {
-  const [activeDay, setActiveDay] = useState<Weekday>(orderedWeekdays[0]);
+  const [activeDay, setActiveDay] = useState<Weekday>(orderedWeekdays[0] ?? "월");
+
   const plansByDay = useMemo(
     () =>
       orderedWeekdays.map((day) => ({
@@ -234,41 +235,43 @@ export function WeeklyPlanTabs({
   return (
     <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
       <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fcfdfc_100%)]">
-        <div className="grid grid-cols-5">
-          {plansByDay.map(({ day, items: dayItems }) => {
-            const active = day === activeDay;
-            const count = dayItems.length;
-            const countClass =
-              count === 0
-                ? "bg-slate-100 text-slate-500"
-                : active
-                  ? "bg-[var(--brand)] text-white"
-                  : "bg-[rgba(121,184,149,0.18)] text-[var(--brand)]";
+        <div className="overflow-x-auto px-2 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex min-w-max gap-1">
+            {plansByDay.map(({ day, items: dayItems }) => {
+              const active = day === activeDay;
+              const count = dayItems.length;
+              const countClass =
+                count === 0
+                  ? "bg-slate-100 text-slate-500"
+                  : active
+                    ? "bg-[var(--brand)] text-white"
+                    : "bg-[rgba(121,184,149,0.18)] text-[var(--brand)]";
 
-            return (
-              <button
-                key={day}
-                type="button"
-                onClick={() => setActiveDay(day)}
-                className={`relative flex flex-col items-center gap-1.5 px-1.5 pb-3 pt-3 text-[13px] transition ${
-                  active ? "font-semibold text-slate-950" : "font-medium text-slate-500"
-                }`}
-                aria-pressed={active}
-              >
-                <span className="flex items-center gap-1.5">
-                  <span>{day}</span>
-                  <span
-                    className={`inline-flex min-w-7 items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${countClass}`}
-                  >
-                    {count}
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => setActiveDay(day)}
+                  className={`relative flex min-w-[54px] shrink-0 flex-col items-center gap-1.5 px-2 pb-3 pt-3 text-[13px] transition ${
+                    active ? "font-semibold text-slate-950" : "font-medium text-slate-500"
+                  }`}
+                  aria-pressed={active}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span>{day}</span>
+                    <span
+                      className={`inline-flex min-w-7 items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${countClass}`}
+                    >
+                      {count}
+                    </span>
                   </span>
-                </span>
-                {active ? (
-                  <span className="absolute inset-x-3 bottom-0 h-[2px] rounded-full bg-[var(--brand)]" />
-                ) : null}
-              </button>
-            );
-          })}
+                  {active ? (
+                    <span className="absolute inset-x-3 bottom-0 h-[2px] rounded-full bg-[var(--brand)]" />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
