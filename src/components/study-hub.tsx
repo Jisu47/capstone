@@ -78,6 +78,11 @@ function formatTargetMinutes(targetMinutes: number) {
   return `목표 ${targetMinutes}분`;
 }
 
+function getNextGoalPromptThreshold(elapsedSeconds: number, targetMinutes: number) {
+  const unitSeconds = Math.max(targetMinutes * 60, 1);
+  return (Math.floor(elapsedSeconds / unitSeconds) + 1) * unitSeconds;
+}
+
 function getTimerStorageKey(groupId: string, memberId: string) {
   return `study-flow:timer-session:${groupId}:${memberId}`;
 }
@@ -290,6 +295,10 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [targetMinutes, setTargetMinutes] = useState(25);
+  const [goalPromptThresholdSeconds, setGoalPromptThresholdSeconds] = useState(
+    timerPresetOptions[0] * 60,
+  );
+  const [isGoalReachedModalOpen, setIsGoalReachedModalOpen] = useState(false);
   const [timerView, setTimerView] = useState<"focus" | "stats">("focus");
   const [activeTimerMembers, setActiveTimerMembers] = useState<ActiveTimerMember[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
@@ -329,12 +338,19 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
         setElapsedSeconds(0);
         setIsTimerRunning(false);
         setTargetMinutes(25);
+        setGoalPromptThresholdSeconds(25 * 60);
+        setIsGoalReachedModalOpen(false);
         return;
       }
 
-      setElapsedSeconds(resolveLiveElapsedSeconds(storedSession));
+      const resolvedElapsedSeconds = resolveLiveElapsedSeconds(storedSession);
+      setElapsedSeconds(resolvedElapsedSeconds);
       setIsTimerRunning(storedSession.isRunning);
       setTargetMinutes(storedSession.targetMinutes);
+      setGoalPromptThresholdSeconds(
+        getNextGoalPromptThreshold(resolvedElapsedSeconds, storedSession.targetMinutes),
+      );
+      setIsGoalReachedModalOpen(false);
     });
 
     return () => {
@@ -376,6 +392,25 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
       window.clearInterval(intervalId);
     };
   }, [isTimerRunning]);
+
+  useEffect(() => {
+    if (!isTimerRunning || isGoalReachedModalOpen) {
+      return;
+    }
+
+    if (elapsedSeconds < goalPromptThresholdSeconds) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsTimerRunning(false);
+      setIsGoalReachedModalOpen(true);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [elapsedSeconds, goalPromptThresholdSeconds, isGoalReachedModalOpen, isTimerRunning]);
 
   useEffect(() => {
     writeTimerSession(group.id, currentUserId, {
@@ -484,6 +519,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
 
   function applyTargetMinutes(nextMinutes: number) {
     setTargetMinutes(nextMinutes);
+    setGoalPromptThresholdSeconds(getNextGoalPromptThreshold(elapsedSeconds, nextMinutes));
   }
 
   function configureCustomTarget() {
@@ -497,7 +533,21 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
       return;
     }
 
-    setTargetMinutes(Math.round(parsed));
+    const nextMinutes = Math.round(parsed);
+    setTargetMinutes(nextMinutes);
+    setGoalPromptThresholdSeconds(getNextGoalPromptThreshold(elapsedSeconds, nextMinutes));
+  }
+
+  function continueAfterGoalReached() {
+    setGoalPromptThresholdSeconds(getNextGoalPromptThreshold(elapsedSeconds, targetMinutes));
+    setIsGoalReachedModalOpen(false);
+    setIsTimerRunning(true);
+  }
+
+  function stopAfterGoalReached() {
+    setGoalPromptThresholdSeconds(getNextGoalPromptThreshold(elapsedSeconds, targetMinutes));
+    setIsGoalReachedModalOpen(false);
+    setIsTimerRunning(false);
   }
 
   return (
@@ -1083,6 +1133,42 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
             >
               닫기
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {isGoalReachedModalOpen ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/24 px-6">
+          <div className="w-full max-w-[340px] rounded-[20px] border border-slate-200 bg-white p-5 shadow-[0_14px_30px_rgba(15,23,42,0.10)]">
+            <p className="text-base font-semibold text-slate-900">목표 시간에 도달했어요</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              {formatTargetMinutes(targetMinutes)}을 채웠습니다. 계속 집중할지 여기서 멈출지
+              선택해 주세요.
+            </p>
+
+            <div className="mt-4 rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-xs font-medium text-slate-500">현재 집중 시간</p>
+              <p className="mt-1 text-[28px] font-semibold tracking-[-0.05em] text-slate-950">
+                {formatTimer(elapsedSeconds)}
+              </p>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={stopAfterGoalReached}
+                className="rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+              >
+                멈추기
+              </button>
+              <button
+                type="button"
+                onClick={continueAfterGoalReached}
+                className="rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
+              >
+                계속하기
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
