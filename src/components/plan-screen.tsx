@@ -1323,7 +1323,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
             href={`/group/${activeGroup.id}/plan/agent`}
             className="flex w-full items-center justify-center rounded-[16px] bg-[var(--brand)] px-5 py-4 text-sm font-semibold text-white"
           >
-            계획 새로 짜기
+            계획 에이전트
           </Link>
         ) : null}
 
