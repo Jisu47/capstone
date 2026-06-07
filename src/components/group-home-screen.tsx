@@ -132,6 +132,72 @@ function MeatballIcon() {
   );
 }
 
+function StudyInfoIcon({
+  type,
+}: Readonly<{
+  type: "leader" | "members" | "date" | "time";
+}>) {
+  return (
+    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#EEF8F1] text-[#57AE79]">
+      <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+        {type === "leader" ? (
+          <>
+            <path
+              d="M12 12a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            />
+            <path
+              d="M5.5 19.25a6.5 6.5 0 0 1 13 0"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="1.8"
+            />
+          </>
+        ) : null}
+        {type === "members" ? (
+          <>
+            <path
+              d="M9 10.25a2.75 2.75 0 1 0 0-5.5 2.75 2.75 0 0 0 0 5.5Z"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            />
+            <path
+              d="M15.5 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            />
+            <path
+              d="M4.75 18a4.25 4.25 0 0 1 8.5 0"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="1.8"
+            />
+            <path
+              d="M13 18a3.5 3.5 0 0 1 6.25-2.15"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="1.8"
+            />
+          </>
+        ) : null}
+        {type === "date" ? (
+          <>
+            <rect x="4.75" y="6.5" width="14.5" height="12.75" rx="2.25" stroke="currentColor" strokeWidth="1.8" />
+            <path d="M8 4.75v3.5M16 4.75v3.5M4.75 9.75h14.5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+          </>
+        ) : null}
+        {type === "time" ? (
+          <>
+            <circle cx="12" cy="12" r="7.25" stroke="currentColor" strokeWidth="1.8" />
+            <path d="M12 8.75v3.5l2.5 1.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+          </>
+        ) : null}
+      </svg>
+    </span>
+  );
+}
+
 function CheckIcon({ active }: Readonly<{ active: boolean }>) {
   return (
     <span
@@ -334,11 +400,13 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   const inviteCode = createGroupJoinCode(activeGroup.id);
   const currentMember = activeGroup.members.find((member) => member.id === currentUserId) ?? null;
   const leaderMode = currentMember?.role === "팀장";
+  const leaderMember = activeGroup.members.find((member) => member.role === "팀장") ?? currentMember;
   const showTutorial = leaderMode && hasPendingGroupHomeTour(currentUserId, activeGroup.id);
   const shouldPromptPostExamDecision =
     leaderMode && activeGroup.status === "active" && isDatePast(activeGroup.examDate);
   const resolvedPostExamModal = postExamModal ?? (shouldPromptPostExamDecision ? "decision" : null);
   const transferableMembers = activeGroup.members.filter((member) => member.id !== currentUserId);
+  const teammateCount = Math.max(0, activeGroup.members.length - 1);
   const daysLeft = getDaysLeft(activeGroup.examDate);
   const ddayLabel = getDdayLabel(daysLeft, shouldPromptPostExamDecision);
   const memberProgresses = activeGroup.members.map((member, index) => ({
@@ -574,27 +642,85 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
           </div>
         </section>
 
+        <section className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <StudyInfoIcon type="members" />
+              <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-slate-950">
+                스터디 정보
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (!leaderMode) {
+                  return;
+                }
+
+                openRenewGroupCycleModal();
+              }}
+              disabled={!leaderMode}
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_6px_16px_rgba(15,23,42,0.06)] disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              수정하기
+            </button>
+          </div>
+
+          <div className="overflow-hidden rounded-[22px] border border-slate-200">
+            <div className="grid grid-cols-2 divide-x divide-slate-200">
+              <div className="flex items-center gap-3 px-4 py-4">
+                <StudyInfoIcon type="leader" />
+                <div>
+                  <p className="text-sm font-medium text-slate-500">팀장</p>
+                  <p className="mt-1 text-[17px] font-semibold tracking-[-0.03em] text-slate-950">
+                    {leaderMember?.name ?? "-"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 px-4 py-4">
+                <StudyInfoIcon type="members" />
+                <div>
+                  <p className="text-sm font-medium text-slate-500">팀원</p>
+                  <p className="mt-1 text-[17px] font-semibold tracking-[-0.03em] text-slate-950">
+                    {teammateCount}명
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 divide-x divide-slate-200 border-t border-slate-200">
+              <div className="flex items-center gap-3 px-4 py-4">
+                <StudyInfoIcon type="date" />
+                <div>
+                  <p className="text-sm font-medium text-slate-500">목표일</p>
+                  <p className="mt-1 text-[17px] font-semibold tracking-[-0.03em] text-slate-950">
+                    {formatExamDate(activeGroup.examDate)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 px-4 py-4">
+                <StudyInfoIcon type="time" />
+                <div>
+                  <p className="text-sm font-medium text-slate-500">남은 기간</p>
+                  <p className="mt-1 text-[17px] font-semibold tracking-[-0.03em] text-[var(--brand)]">
+                    {ddayLabel}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="relative overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,#7FCB95_0%,#67B884_56%,#56AA79_100%)] px-5 pb-5 pt-5 text-white shadow-[0_22px_48px_rgba(76,175,122,0.24)]">
           <div className="absolute inset-x-0 bottom-0 h-24 bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.18),transparent_58%)]" />
           <div className="absolute right-[-38px] top-[-34px] h-36 w-36 rounded-full bg-white/10 blur-2xl" />
 
-          <div className="relative flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium tracking-[0.04em] text-white/82">진행 중인 스터디</p>
-              <h2 className="mt-2 text-[30px] font-semibold tracking-[-0.06em] text-white">
-                {activeGroup.name}
-              </h2>
-              <p className="mt-2 text-sm font-medium text-white/84">
-                목표일 {formatExamDate(activeGroup.examDate)}
-              </p>
-            </div>
-
+          <div className="relative flex items-start justify-end">
             <span className="inline-flex shrink-0 rounded-full bg-white/88 px-3 py-2 text-sm font-semibold text-[#4A9568] shadow-[0_10px_20px_rgba(20,60,38,0.12)]">
               {ddayLabel}
             </span>
           </div>
 
-          <div className="relative mt-7 flex items-end justify-between gap-4">
+          <div className="relative mt-5 flex items-end justify-between gap-4">
             <div className="max-w-[205px]">
               <p className="text-sm font-medium text-white/88">오늘 진행률</p>
               <p className="mt-2 text-[46px] font-semibold leading-none tracking-[-0.06em] text-white">
