@@ -173,24 +173,150 @@ function detectPlanAgentFocus(question: string) {
   return "general" as const;
 }
 
+function extractRequestedWeekNumber(question: string) {
+  const matched = question.match(/(\d+)\s*주차/i);
+
+  if (!matched) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(matched[1] ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function extractUnitWeekNumber(unit: AiChatGroupContext["planReferenceUnits"][number]) {
+  const matched = `${unit.label} ${unit.detail}`.match(/(\d+)\s*주차/i);
+
+  if (!matched) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(matched[1] ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function buildPlanReferenceUnitSearchText(
+  unit: AiChatGroupContext["planReferenceUnits"][number],
+) {
+  return `${unit.label} ${unit.detail}`.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function buildFocusedUnitOrder(
+  units: AiChatGroupContext["planReferenceUnits"],
+  requestedWeekNumber: number,
+) {
+  const sortedUnits = [...units].sort((left, right) => left.sequence - right.sequence);
+  const explicitWeekPattern = new RegExp(`${requestedWeekNumber}\\s*주차`, "i");
+  const explicitMatches = sortedUnits.filter((unit) => {
+    const weekNumber = extractUnitWeekNumber(unit);
+
+    if (weekNumber === requestedWeekNumber) {
+      return true;
+    }
+
+    return explicitWeekPattern.test(buildPlanReferenceUnitSearchText(unit));
+  });
+
+  if (explicitMatches.length > 0) {
+    const focusedSequences = new Set(explicitMatches.map((unit) => unit.sequence));
+    const focusedIndexes = sortedUnits
+      .map((unit, index) => (focusedSequences.has(unit.sequence) ? index : -1))
+      .filter((index) => index >= 0);
+    const orderedIndexes = [...focusedIndexes];
+    let radius = 1;
+
+    while (orderedIndexes.length < sortedUnits.length) {
+      let added = false;
+
+      for (const focusIndex of focusedIndexes) {
+        const previousIndex = focusIndex - radius;
+        const nextIndex = focusIndex + radius;
+
+        if (previousIndex >= 0 && !orderedIndexes.includes(previousIndex)) {
+          orderedIndexes.push(previousIndex);
+          added = true;
+        }
+
+        if (nextIndex < sortedUnits.length && !orderedIndexes.includes(nextIndex)) {
+          orderedIndexes.push(nextIndex);
+          added = true;
+        }
+      }
+
+      if (!added) {
+        break;
+      }
+
+      radius += 1;
+    }
+
+    return orderedIndexes.map((index) => sortedUnits[index]);
+  }
+
+  if (requestedWeekNumber <= sortedUnits.length) {
+    const focusIndex = requestedWeekNumber - 1;
+    const orderedIndexes = [focusIndex];
+    let radius = 1;
+
+    while (orderedIndexes.length < sortedUnits.length) {
+      let added = false;
+      const previousIndex = focusIndex - radius;
+      const nextIndex = focusIndex + radius;
+
+      if (previousIndex >= 0 && !orderedIndexes.includes(previousIndex)) {
+        orderedIndexes.push(previousIndex);
+        added = true;
+      }
+
+      if (nextIndex < sortedUnits.length && !orderedIndexes.includes(nextIndex)) {
+        orderedIndexes.push(nextIndex);
+        added = true;
+      }
+
+      if (!added) {
+        break;
+      }
+
+      radius += 1;
+    }
+
+    return orderedIndexes.map((index) => sortedUnits[index]);
+  }
+
+  return sortedUnits;
+}
+
 function buildPlanReferenceUnitLines(
   units: AiChatGroupContext["planReferenceUnits"],
+  question: string,
   detailedLimit: number,
   outlineLimit: number,
 ) {
   if (units.length === 0) {
-    return ["No extracted timetable units are available."];
+    return {
+      requestedWeekNumber: extractRequestedWeekNumber(question),
+      lines: ["No extracted timetable units are available."],
+    };
   }
 
-  const detailedUnits = units.slice(0, detailedLimit).map(
+  const requestedWeekNumber = extractRequestedWeekNumber(question);
+  const prioritizedUnits =
+    requestedWeekNumber === null
+      ? [...units].sort((left, right) => left.sequence - right.sequence)
+      : buildFocusedUnitOrder(units, requestedWeekNumber);
+  const detailedUnits = prioritizedUnits.slice(0, detailedLimit).map(
     (unit) =>
       `${unit.sequence}. ${compactContextText(unit.label, 40)} - ${compactContextText(unit.detail, 64)}`,
   );
-  const outlineUnits = units
+  const outlineUnits = prioritizedUnits
     .slice(detailedLimit, detailedLimit + outlineLimit)
     .map((unit) => `${unit.sequence}. ${compactContextText(unit.label, 52)}`);
-  const omittedCount = Math.max(0, units.length - detailedLimit - outlineLimit);
+  const omittedCount = Math.max(0, prioritizedUnits.length - detailedLimit - outlineLimit);
   const lines = [...detailedUnits];
+
+  if (requestedWeekNumber !== null) {
+    lines.unshift(`Week-specific focus: prioritize ${requestedWeekNumber}주차-related units first.`);
+  }
 
   if (outlineUnits.length > 0) {
     lines.push("Additional unit labels:");
@@ -198,7 +324,10 @@ function buildPlanReferenceUnitLines(
   }
 
   appendOmittedNotice(lines, omittedCount, "timetable units");
-  return lines;
+  return {
+    requestedWeekNumber,
+    lines,
+  };
 }
 
 function buildRoadmapLines(roadmap: AiChatGroupContext["roadmap"], limit: number) {
@@ -286,8 +415,9 @@ function buildGroupContext(
               `${index + 1}. ${compactContextText(upload.fileName, 38)} - ${compactContextText(upload.summary, 68)}`,
           )
       : ["No plan reference uploads are available."];
-  const planReferenceUnits = buildPlanReferenceUnitLines(
+  const planReferenceUnitContext = buildPlanReferenceUnitLines(
     group.planReferenceUnits,
+    question,
     unitDetailedLimit,
     unitOutlineLimit,
   );
@@ -298,12 +428,15 @@ function buildGroupContext(
     ...header,
     "",
     `Planning focus: ${focus}`,
+    ...(planReferenceUnitContext.requestedWeekNumber !== null
+      ? ["Requested week: " + `${planReferenceUnitContext.requestedWeekNumber}주차`, ""]
+      : []),
     "",
     "Plan reference uploads:",
     ...planReferenceUploads,
     "",
     "Extracted timetable units:",
-    ...planReferenceUnits,
+    ...planReferenceUnitContext.lines,
     "",
     "Roadmap:",
     ...roadmap,
@@ -329,6 +462,7 @@ function buildSystemInstruction(scope: AiChatScope) {
     "You are Study Flow's planning agent assistant.",
     "Answer in Korean.",
     "Use the provided extracted timetable units, roadmap, weekly plan, and group goals to suggest realistic study planning guidance.",
+    "If the user asks about a specific week, prioritize the extracted unit labels and details that match that week before using earlier weeks.",
     "The provided context may be compacted or partially truncated for speed, so prioritize the most relevant details and briefly say what extra information would help if needed.",
     "Do not claim that changes were already applied.",
     "Treat review management as a personal setting outside this shared planning conversation.",
@@ -352,15 +486,17 @@ function buildPlanReferenceAnalysisPrompt(subject: string, fileName: string) {
     `File name: ${fileName || "plan-reference-image"}`,
     "Task:",
     "1. Read the uploaded timetable or syllabus image in order.",
-    "2. Extract ordered learning units.",
-    "3. If the image is organized by week, keep one unit per week row.",
-    "4. For each unit, write a short label and a detail that merges the visible topic, goal, and content.",
-    "5. Omit teaching method and evaluation text even if they appear in the image.",
-    "6. Use this exact output format:",
+    "2. Read the full image from top to bottom and left to right, and do not stop after the first detected row or first week.",
+    "3. Extract every visible ordered learning unit that you can identify.",
+    "4. If the image is organized by week, keep one unit per visible week row and preserve the week label in the unit label.",
+    "5. For each unit, write a short label and a detail that merges the visible topic, goal, and content.",
+    "6. Omit teaching method and evaluation text even if they appear in the image.",
+    "7. Use this exact output format:",
     "SUMMARY: one sentence summary",
     "UNIT: label || detail",
     "UNIT: label || detail",
-    "7. Do not output JSON, markdown fences, numbering, or extra commentary.",
+    "8. Output as many UNIT lines as there are visible rows or weeks.",
+    "9. Do not output JSON, markdown fences, numbering, or extra commentary.",
   ].join("\n");
 }
 
@@ -429,6 +565,23 @@ function parsePlanReferenceAnalysisText(value: string, fileName: string) {
       const [labelPart, ...detailParts] = splitByDoublePipe;
       const label = normalizeAnalysisText(labelPart);
       const detail = normalizeAnalysisText(detailParts.join(" || "));
+
+      if (label) {
+        units.push({
+          label,
+          detail: detail || `${fileName} 기준 ${label} 범위를 학습합니다.`,
+        });
+      }
+
+      continue;
+    }
+
+    const splitBySinglePipe = unitText.split(/\s*\|\s*/);
+
+    if (splitBySinglePipe.length >= 2) {
+      const [labelPart, ...detailParts] = splitBySinglePipe;
+      const label = normalizeAnalysisText(labelPart);
+      const detail = normalizeAnalysisText(detailParts.join(" | "));
 
       if (label) {
         units.push({
