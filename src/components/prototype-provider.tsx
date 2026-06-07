@@ -124,6 +124,7 @@ type PrototypeContextValue = {
     groupId: string,
     upload: PlanReferenceUploadDraft,
   ) => Promise<void>;
+  reanalyzePlanReferenceUploads: (groupId: string) => Promise<void>;
   replacePlanReferenceUpload: (
     groupId: string,
     uploadId: string,
@@ -331,6 +332,25 @@ function findRelatedMaterial(group: StudyGroup, question: string) {
           normalizedQuestion.includes(value) || value.includes(normalizedQuestion),
       );
     }) ?? group.materials[0] ?? null
+  );
+}
+
+function extractRequestedWeekNumber(question: string) {
+  const matched = question.match(/(\d+)\s*주차/i);
+
+  if (!matched) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(matched[1] ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function hasRequestedWeekCoverage(group: StudyGroup, weekNumber: number) {
+  const pattern = new RegExp(`${weekNumber}\\s*주차`, "i");
+
+  return group.planReferenceUnits.some((unit) =>
+    pattern.test(`${unit.label} ${unit.detail}`),
   );
 }
 
@@ -956,6 +976,63 @@ export function PrototypeProvider({
     });
   }
 
+  async function reanalyzeStoredPlanReferences(group: StudyGroup) {
+    for (const upload of group.planReferenceUploads) {
+      const analysis = await analyzePlanReference({
+        subject: group.subject,
+        fileName: upload.fileName,
+        mimeType: upload.mimeType,
+        imageDataUrl: upload.imageDataUrl,
+      });
+
+      await replacePrototypePlanReferenceUpload(
+        group,
+        upload.id,
+        {
+          fileName: upload.fileName,
+          mimeType: upload.mimeType,
+          imageDataUrl: upload.imageDataUrl,
+        },
+        analysis,
+        resolvedCurrentUserId,
+      );
+    }
+
+    const nextGroups = await refreshGroups();
+    return getGroupById(nextGroups, group.id) ?? group;
+  }
+
+  async function ensurePlanReferenceCoverage(group: StudyGroup, question: string) {
+    const requestedWeekNumber = extractRequestedWeekNumber(question);
+
+    if (
+      requestedWeekNumber === null ||
+      group.planReferenceUploads.length === 0 ||
+      hasRequestedWeekCoverage(group, requestedWeekNumber)
+    ) {
+      return group;
+    }
+
+    setPlanAgentStatus(
+      group.id,
+      `${requestedWeekNumber}주차 정보를 다시 읽는 중입니다.`,
+    );
+
+    return reanalyzeStoredPlanReferences(group);
+  }
+
+  async function reanalyzePlanReferenceUploads(groupId: string) {
+    const group = getGroupById(groups, groupId);
+
+    if (!group || group.planReferenceUploads.length === 0) {
+      return;
+    }
+
+    await runMutation(async () => {
+      await reanalyzeStoredPlanReferences(group);
+    });
+  }
+
   async function deleteReviewCandidates(candidateIds: string[]) {
     await runMutation(async () => {
       await deletePrototypeReviewCandidates(candidateIds);
@@ -1193,8 +1270,12 @@ export function PrototypeProvider({
     const timeoutId = window.setTimeout(() => {
       void runMutation(async () => {
         try {
-          const answer = await requestAiAnswer(group, trimmedQuestion, scope);
-          await addPrototypeAssistantAnswer(group, trimmedQuestion, scope, answer.text);
+          const requestGroup =
+            scope === "plan-agent"
+              ? await ensurePlanReferenceCoverage(group, trimmedQuestion)
+              : group;
+          const answer = await requestAiAnswer(requestGroup, trimmedQuestion, scope);
+          await addPrototypeAssistantAnswer(requestGroup, trimmedQuestion, scope, answer.text);
           await refreshGroups();
           if (scope === "plan-agent") {
             clearPlanAgentStatusSequence(groupId);
@@ -1280,6 +1361,7 @@ export function PrototypeProvider({
     recordMaterialView,
     getWeaknessInsights,
     uploadPlanReference,
+    reanalyzePlanReferenceUploads,
     replacePlanReferenceUpload,
     deletePlanReferenceUpload,
     updateReviewDays,

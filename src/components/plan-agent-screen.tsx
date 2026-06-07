@@ -39,6 +39,7 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
     isPlanAgentAnswering,
     getPlanAgentStatus,
     applyPlanAgentDraft,
+    reanalyzePlanReferenceUploads,
     isMutating,
   } = usePrototype();
   const group = getGroupById(groups, groupId);
@@ -206,6 +207,18 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                       >
                         보기
                       </button>
+                      {leaderMode ? (
+                        <button
+                          type="button"
+                          disabled={isMutating}
+                          onClick={() => {
+                            void reanalyzePlanReferenceUploads(activeGroup.id);
+                          }}
+                          className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600 disabled:opacity-60"
+                        >
+                          재분석
+                        </button>
+                      ) : null}
                       <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
                         {activeGroup.planReferenceUnits.length}개 단위
                       </span>

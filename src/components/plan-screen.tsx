@@ -349,6 +349,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
     currentUserId,
     togglePlanItem,
     uploadPlanReference,
+    reanalyzePlanReferenceUploads,
     replacePlanReferenceUpload,
     deletePlanReferenceUpload,
     updateReviewInterval,
@@ -544,6 +545,16 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                         </button>
                         {leaderMode ? (
                           <>
+                          <button
+                            type="button"
+                            disabled={isMutating}
+                            onClick={() => {
+                              void reanalyzePlanReferenceUploads(activeGroup.id);
+                            }}
+                            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 disabled:opacity-60"
+                          >
+                            재분석
+                          </button>
                           <button
                             type="button"
                             disabled={isMutating}
