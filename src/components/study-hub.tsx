@@ -37,6 +37,21 @@ const understandingOptions: Array<{
   },
 ];
 
+type StudyTimerSession = {
+  elapsedSeconds: number;
+  isRunning: boolean;
+  startedAt: string | null;
+  targetMinutes: number;
+  updatedAt: string;
+};
+
+type ActiveTimerMember = {
+  elapsedSeconds: number;
+  member: StudyGroup["members"][number];
+};
+
+const timerPresetOptions = [25, 50, 75, 100] as const;
+
 function formatTimer(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600)
     .toString()
@@ -49,8 +64,89 @@ function formatTimer(totalSeconds: number) {
   return `${hours}:${minutes}:${seconds}`;
 }
 
-function getTeammateSessionLength(index: number) {
-  return formatTimer(3600 + index * 780);
+function formatTargetMinutes(targetMinutes: number) {
+  if (targetMinutes % 60 === 0) {
+    return `목표 ${targetMinutes / 60}시간`;
+  }
+
+  if (targetMinutes > 60) {
+    const hours = Math.floor(targetMinutes / 60);
+    const minutes = targetMinutes % 60;
+    return `목표 ${hours}시간 ${minutes}분`;
+  }
+
+  return `목표 ${targetMinutes}분`;
+}
+
+function getTimerStorageKey(groupId: string, memberId: string) {
+  return `study-flow:timer-session:${groupId}:${memberId}`;
+}
+
+function readTimerSession(groupId: string, memberId: string): StudyTimerSession | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem(getTimerStorageKey(groupId, memberId));
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<StudyTimerSession>;
+    return {
+      elapsedSeconds:
+        typeof parsed.elapsedSeconds === "number" && Number.isFinite(parsed.elapsedSeconds)
+          ? parsed.elapsedSeconds
+          : 0,
+      isRunning: parsed.isRunning === true,
+      startedAt: typeof parsed.startedAt === "string" ? parsed.startedAt : null,
+      targetMinutes:
+        typeof parsed.targetMinutes === "number" && Number.isFinite(parsed.targetMinutes)
+          ? parsed.targetMinutes
+          : 25,
+      updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeTimerSession(groupId: string, memberId: string, session: StudyTimerSession) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(getTimerStorageKey(groupId, memberId), JSON.stringify(session));
+}
+
+function resolveLiveElapsedSeconds(session: StudyTimerSession) {
+  if (!session.isRunning || !session.startedAt) {
+    return session.elapsedSeconds;
+  }
+
+  const startedAt = Date.parse(session.startedAt);
+  if (Number.isNaN(startedAt)) {
+    return session.elapsedSeconds;
+  }
+
+  return session.elapsedSeconds + Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+}
+
+function readActiveTimerMembers(group: StudyGroup): ActiveTimerMember[] {
+  return group.members
+    .map((member) => {
+      const session = readTimerSession(group.id, member.id);
+      if (!session || !session.isRunning) {
+        return null;
+      }
+
+      return {
+        member,
+        elapsedSeconds: resolveLiveElapsedSeconds(session),
+      };
+    })
+    .filter((entry): entry is ActiveTimerMember => entry !== null);
 }
 
 function CheckIcon({ active }: Readonly<{ active: boolean }>) {
@@ -193,6 +289,9 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
   } = usePrototype();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [targetMinutes, setTargetMinutes] = useState(25);
+  const [timerView, setTimerView] = useState<"focus" | "stats">("focus");
+  const [activeTimerMembers, setActiveTimerMembers] = useState<ActiveTimerMember[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [pendingChecklistId, setPendingChecklistId] = useState<string | null>(null);
   const [selectedUnderstanding, setSelectedUnderstanding] = useState<UnderstandingLevel | null>(
@@ -211,8 +310,8 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
   const currentMember = group.members.find((member) => member.id === currentUserId) ?? null;
   const leaderMode = currentMember?.role === "팀장";
   const leaderMember = group.members.find((member) => member.role === "팀장") ?? currentMember;
-  const teammates = group.members.filter((member) => member.id !== currentUserId).slice(0, 2);
-  const selectedMember = teammates.find((member) => member.id === selectedMemberId) ?? null;
+  const selectedMember =
+    activeTimerMembers.find((entry) => entry.member.id === selectedMemberId)?.member ?? null;
   const pendingChecklistItem = group.plan.find((item) => item.id === pendingChecklistId) ?? null;
   const pendingChecklistChecked = pendingChecklistItem?.memberStatus[currentUserId] ?? false;
   const completedCount = group.plan.filter((item) => item.memberStatus[currentUserId]).length;
@@ -221,6 +320,48 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
   const daysLeft = getDaysLeft(group.examDate);
   const ddayLabel = group.status === "completed" ? "수료함" : getDdayLabel(daysLeft, isDatePast(group.examDate));
   const studyInfoMenuRef = useRef<HTMLDivElement | null>(null);
+  const timerProgress = Math.min(elapsedSeconds / Math.max(targetMinutes * 60, 1), 1);
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      const storedSession = readTimerSession(group.id, currentUserId);
+      if (!storedSession) {
+        setElapsedSeconds(0);
+        setIsTimerRunning(false);
+        setTargetMinutes(25);
+        return;
+      }
+
+      setElapsedSeconds(resolveLiveElapsedSeconds(storedSession));
+      setIsTimerRunning(storedSession.isRunning);
+      setTargetMinutes(storedSession.targetMinutes);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [currentUserId, group.id]);
+
+  useEffect(() => {
+    const syncActiveMembers = () => {
+      setActiveTimerMembers(readActiveTimerMembers(group));
+    };
+
+    syncActiveMembers();
+    const intervalId = window.setInterval(syncActiveMembers, 1000);
+
+    function handleStorage(event: StorageEvent) {
+      if (event.key?.startsWith(`study-flow:timer-session:${group.id}:`)) {
+        syncActiveMembers();
+      }
+    }
+
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [group]);
 
   useEffect(() => {
     if (!isTimerRunning) {
@@ -235,6 +376,16 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
       window.clearInterval(intervalId);
     };
   }, [isTimerRunning]);
+
+  useEffect(() => {
+    writeTimerSession(group.id, currentUserId, {
+      elapsedSeconds,
+      isRunning: isTimerRunning,
+      startedAt: isTimerRunning ? new Date(Date.now() - elapsedSeconds * 1000).toISOString() : null,
+      targetMinutes,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [currentUserId, elapsedSeconds, group.id, isTimerRunning, targetMinutes]);
 
   useEffect(() => {
     if (!isStudyInfoMenuOpen) {
@@ -320,6 +471,33 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
 
     await completePlanItemWithFeedback(group.id, pendingChecklistItem.id, selectedUnderstanding);
     closeChecklistModal();
+  }
+
+  function toggleTimer() {
+    if (isTimerRunning) {
+      setIsTimerRunning(false);
+      return;
+    }
+
+    setIsTimerRunning(true);
+  }
+
+  function applyTargetMinutes(nextMinutes: number) {
+    setTargetMinutes(nextMinutes);
+  }
+
+  function configureCustomTarget() {
+    const input = window.prompt("집중 목표 시간을 분 단위로 입력해 주세요.", String(targetMinutes));
+    if (!input) {
+      return;
+    }
+
+    const parsed = Number(input);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return;
+    }
+
+    setTargetMinutes(Math.round(parsed));
   }
 
   return (
@@ -416,65 +594,191 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
           </div>
         </section>
 
-        <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
-          <div>
-            <div className="flex h-[88px] w-full flex-col items-center justify-center rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-center shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
-              <p className="text-[34px] font-semibold leading-none tracking-[-0.06em] text-slate-950">
-                {formatTimer(elapsedSeconds)}
-              </p>
+        <section className="rounded-[24px] border border-slate-200 bg-white px-4 py-5 shadow-[0_12px_28px_rgba(15,23,42,0.05)]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF8F1] text-[var(--brand)]">
+                <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="7.25" stroke="currentColor" strokeWidth="1.8" />
+                  <path
+                    d="M12 8.75v3.5l2.5 1.75"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.8"
+                  />
+                </svg>
+              </span>
+              <h2 className="text-[18px] font-semibold tracking-[-0.03em] text-slate-950">
+                집중 타이머
+              </h2>
+            </div>
+            <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+              {[
+                { key: "focus", label: "집중 모드" },
+                { key: "stats", label: "통계" },
+              ].map((option) => {
+                const active = timerView === option.key;
+
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setTimerView(option.key as "focus" | "stats")}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                      active
+                        ? "bg-[var(--brand-soft)] text-[var(--brand)]"
+                        : "text-slate-500"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
-            <button
-              type="button"
-              onClick={() => setIsTimerRunning((previous) => !previous)}
-              className="rounded-[14px] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white"
-            >
-              {isTimerRunning ? "타이머 멈추기" : "타이머 시작"}
-            </button>
-            <div className="rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
-              오늘 {group.plan.length}개
+          {timerView === "focus" ? (
+            <>
+              <div className="mt-5 flex justify-center">
+                <div
+                  className="relative flex h-[320px] w-[320px] items-center justify-center rounded-full"
+                  style={{
+                    background: `conic-gradient(#8ED2A4 ${timerProgress * 360}deg, rgba(142,210,164,0.16) 0deg)`,
+                  }}
+                >
+                  <div className="flex h-[248px] w-[248px] flex-col items-center justify-center rounded-full bg-white text-center">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF8F1] text-[var(--brand)]">
+                      <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <path
+                          d="M12 19.25c3.3 0 5.75-2.26 5.75-5.31 0-3.55-3.15-6.44-5.75-8.19-2.6 1.75-5.75 4.64-5.75 8.19 0 3.05 2.45 5.31 5.75 5.31Z"
+                          stroke="currentColor"
+                          strokeWidth="1.7"
+                        />
+                        <path
+                          d="M12 9.25c1.1-2.1 2.84-3.41 4.5-4.25M12 9.25c-1.1-2.1-2.84-3.41-4.5-4.25"
+                          stroke="currentColor"
+                          strokeLinecap="round"
+                          strokeWidth="1.7"
+                        />
+                      </svg>
+                    </span>
+                    <p className="mt-4 text-[16px] font-medium text-slate-700">오늘의 집중 시간</p>
+                    <p className="mt-3 text-[56px] font-semibold leading-none tracking-[-0.08em] text-slate-950">
+                      {formatTimer(elapsedSeconds)}
+                    </p>
+                    <p className="mt-6 text-[15px] font-medium text-slate-600">
+                      {formatTargetMinutes(targetMinutes)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={toggleTimer}
+                className="mx-auto mt-5 flex min-w-[268px] items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#45B55E_0%,#47B957_100%)] px-6 py-4 text-[18px] font-semibold text-white shadow-[0_14px_30px_rgba(76,175,122,0.28)]"
+              >
+                <svg aria-hidden="true" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                  {isTimerRunning ? (
+                    <path d="M7 5.75h3.5v12.5H7zm6.5 0H17v12.5h-3.5z" />
+                  ) : (
+                    <path d="m8 5.5 10 6.5-10 6.5z" />
+                  )}
+                </svg>
+                <span>{isTimerRunning ? "멈추기" : "시작하기"}</span>
+              </button>
+
+              <div className="mt-5 grid grid-cols-5 gap-2">
+                {timerPresetOptions.map((minutes) => {
+                  const active = targetMinutes === minutes;
+
+                  return (
+                    <button
+                      key={minutes}
+                      type="button"
+                      onClick={() => applyTargetMinutes(minutes)}
+                      className={`rounded-[16px] px-3 py-3 text-[15px] font-semibold transition ${
+                        active
+                          ? "bg-[var(--brand-soft)] text-[var(--brand)]"
+                          : "border border-slate-200 bg-white text-slate-700"
+                      }`}
+                    >
+                      {minutes}분
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={configureCustomTarget}
+                  className="rounded-[16px] border border-slate-200 bg-white px-3 py-3 text-[15px] font-semibold text-slate-700"
+                >
+                  사용자 설정
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
+                <p className="text-sm font-medium text-slate-500">오늘의 집중 시간</p>
+                <p className="mt-2 text-[30px] font-semibold tracking-[-0.05em] text-slate-950">
+                  {formatTimer(elapsedSeconds)}
+                </p>
+              </div>
+              <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
+                <p className="text-sm font-medium text-slate-500">오늘 체크한 계획</p>
+                <p className="mt-2 text-[30px] font-semibold tracking-[-0.05em] text-slate-950">
+                  {completedCount}개
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-[15px] font-semibold text-slate-900">공부 중인 팀원</h2>
-            <span className="text-xs text-slate-500">{teammates.length}명</span>
+            <span className="text-xs text-slate-500">{activeTimerMembers.length}명</span>
           </div>
 
-          <div className="space-y-2">
-            {teammates.map((member, index) => {
-              const active = member.id === selectedMemberId;
+          {activeTimerMembers.length === 0 ? (
+            <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+              지금은 타이머를 켜고 공부 중인 팀원이 없습니다.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {activeTimerMembers.map(({ member, elapsedSeconds: memberElapsedSeconds }) => {
+                const active = member.id === selectedMemberId;
 
-              return (
-                <button
-                  key={member.id}
-                  type="button"
-                  onClick={() =>
-                    setSelectedMemberId((previous) => (previous === member.id ? null : member.id))
-                  }
-                  className={`w-full rounded-[14px] border px-4 py-3 text-left transition ${
-                    active
-                      ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
-                      : "border-slate-200 bg-white hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{member.name}</p>
-                      <p className="mt-1 text-xs text-slate-500">{member.focus}</p>
+                return (
+                  <button
+                    key={member.id}
+                    type="button"
+                    onClick={() =>
+                      setSelectedMemberId((previous) => (previous === member.id ? null : member.id))
+                    }
+                    className={`w-full rounded-[14px] border px-4 py-3 text-left transition ${
+                      active
+                        ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
+                        : "border-slate-200 bg-white hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">
+                          {member.id === currentUserId ? `${member.name} (나)` : member.name}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">{member.focus}</p>
+                      </div>
+                      <span className="text-xs font-medium text-slate-500">
+                        {formatTimer(memberElapsedSeconds)}
+                      </span>
                     </div>
-                    <span className="text-xs font-medium text-slate-500">
-                      {getTeammateSessionLength(index)}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {selectedMember ? (
             <div className="mt-3 rounded-[14px] border border-slate-200 bg-white px-4 py-3 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
