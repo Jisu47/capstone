@@ -10,6 +10,7 @@ import {
   MissingGroupState,
   SectionCard,
 } from "@/components/mobile-shell";
+import { PlanReferenceViewerDialog } from "@/components/plan-reference-viewer-dialog";
 import { usePrototype } from "@/components/prototype-provider";
 import {
   getCurrentUserPersonalPlanItems,
@@ -627,6 +628,7 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
   });
   const [isReviewScheduleOpen, setIsReviewScheduleOpen] = useState(false);
   const [replacingUploadId, setReplacingUploadId] = useState<string | null>(null);
+  const [viewingUploadId, setViewingUploadId] = useState<string | null>(null);
 
   if (isLoading && !group) {
     return (
@@ -645,6 +647,8 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
   }
 
   const activeGroup = group;
+  const viewingUpload =
+    activeGroup.planReferenceUploads.find((upload) => upload.id === viewingUploadId) ?? null;
   const leaderMode = isLeader(activeGroup, currentUserId);
   const personalPlanItems = getCurrentUserPersonalPlanItems(activeGroup, currentUserId);
   const pendingReviewCandidates = getPendingReviewCandidates(activeGroup, currentUserId);
@@ -785,8 +789,18 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                           {upload.uploadedBy} · {upload.mimeType}
                         </p>
                       </div>
-                      {leaderMode ? (
-                        <div className="flex shrink-0 gap-2">
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setViewingUploadId(upload.id);
+                          }}
+                          className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600"
+                        >
+                          보기
+                        </button>
+                        {leaderMode ? (
+                          <>
                           <button
                             type="button"
                             disabled={isMutating}
@@ -809,8 +823,9 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
                           >
                             사진 삭제
                           </button>
-                        </div>
-                      ) : null}
+                          </>
+                        ) : null}
+                      </div>
                     </div>
                     <p className="text-sm leading-6 text-[var(--ink-soft)]">{upload.summary}</p>
                   </div>
@@ -1341,6 +1356,15 @@ export function PlanFlowScreen({ groupId }: Readonly<{ groupId: string }>) {
         onClose={() => setIsReviewScheduleOpen(false)}
         onDeleteCandidates={deleteReviewCandidates}
         isMutating={isMutating}
+      />
+      <PlanReferenceViewerDialog
+        fileName={viewingUpload?.fileName ?? ""}
+        imageDataUrl={viewingUpload?.imageDataUrl ?? ""}
+        summary={viewingUpload?.summary}
+        isOpen={Boolean(viewingUpload)}
+        onClose={() => {
+          setViewingUploadId(null);
+        }}
       />
     </AppShell>
   );

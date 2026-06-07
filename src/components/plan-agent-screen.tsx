@@ -9,6 +9,7 @@ import {
   MissingGroupState,
   SectionCard,
 } from "@/components/mobile-shell";
+import { PlanReferenceViewerDialog } from "@/components/plan-reference-viewer-dialog";
 import { usePrototype } from "@/components/prototype-provider";
 import {
   buildPlanAgentDraft,
@@ -42,18 +43,19 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   const group = getGroupById(groups, groupId);
   const [draftQuestion, setDraftQuestion] = useState("");
   const [previewDraftState, setPreviewDraftState] = useState<PreviewDraftState | null>(null);
-  const latestChatAnchorRef = useRef<HTMLDivElement | null>(null);
+  const latestChatMessageRef = useRef<HTMLDivElement | null>(null);
+  const [viewingUploadId, setViewingUploadId] = useState<string | null>(null);
   const planAgentChatLength = group?.planAgentChat.length ?? 0;
   const planAgentStatus = group ? getPlanAgentStatus(group.id) : null;
 
   useEffect(() => {
-    if (!latestChatAnchorRef.current || !group) {
+    if (!latestChatMessageRef.current || !group) {
       return;
     }
 
-    latestChatAnchorRef.current.scrollIntoView({
+    latestChatMessageRef.current.scrollIntoView({
       behavior: "smooth",
-      block: "end",
+      block: "center",
     });
   }, [group, planAgentChatLength, planAgentStatus]);
 
@@ -74,6 +76,8 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
   }
 
   const activeGroup = group;
+  const viewingUpload =
+    activeGroup.planReferenceUploads.find((upload) => upload.id === viewingUploadId) ?? null;
   const leaderMode = isLeader(activeGroup, currentUserId);
   const planAgentBusy = isPlanAgentAnswering(activeGroup.id);
   const quickQuestions = [
@@ -167,27 +171,25 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                       <p className="truncate text-[13px] font-semibold text-slate-900">{upload.fileName}</p>
                       <p className="mt-1 truncate text-[11px] text-slate-500">{upload.summary}</p>
                     </div>
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                      {activeGroup.planReferenceUnits.length}개 단위
-                    </span>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setViewingUploadId(upload.id);
+                        }}
+                        className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600"
+                      >
+                        보기
+                      </button>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                        {activeGroup.planReferenceUnits.length}개 단위
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </SectionCard>
-
-        <SectionCard title="계획 참고 정보">
-          <div className="space-y-2.5">
-            <div className="rounded-[14px] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[0_4px_12px_rgba(15,23,42,0.03)]">
-              <p className="text-xs font-medium text-slate-500">이번 주 목표</p>
-              <p className="mt-1.5 text-[14px] font-semibold text-slate-900">{activeGroup.weeklyGoal}</p>
-            </div>
-            <div className="rounded-[14px] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[0_4px_12px_rgba(15,23,42,0.03)]">
-              <p className="text-xs font-medium text-slate-500">전체 목표</p>
-              <p className="mt-1.5 text-[13px] leading-5 text-slate-900">{activeGroup.overallGoal}</p>
-            </div>
-          </div>
         </SectionCard>
 
         <SectionCard title="채팅">
@@ -212,8 +214,9 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
               ))}
             </div>
 
-            {chatEntries.length > 0 ? (
-              chatEntries.map((entry, index) => {
+            <div className="max-h-[420px] overflow-y-auto rounded-[18px] border border-slate-200 bg-slate-50/55 px-2.5 py-2.5">
+              {chatEntries.length > 0 ? (
+                chatEntries.map((entry, index) => {
                 const { message, previewDraft: draftForMessage, sourceQuestion } = entry;
                 const isAssistant = message.role === "assistant";
                 const isSelectedPreview =
@@ -224,9 +227,10 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                 return (
                   <div
                     key={message.id}
+                    ref={isLastMessage ? latestChatMessageRef : null}
                     className={`flex ${isAssistant ? "justify-start" : "justify-end"}`}
                   >
-                    <div className="max-w-[88%]">
+                    <div className="max-w-[88%] py-1.5">
                       <div
                         className={`rounded-[16px] px-3.5 py-3.5 ${
                           isAssistant
@@ -276,14 +280,13 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
                     </div>
                   </div>
                 );
-              })
-            ) : (
-            <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-3.5 py-3.5 text-[13px] leading-5 text-[var(--ink-soft)]">
-                빠른 질문을 누르거나 직접 입력해서 계획 초안을 시작해 보세요.
-              </div>
-            )}
-
-            <div ref={latestChatAnchorRef} />
+                })
+              ) : (
+                <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-3.5 py-3.5 text-[13px] leading-5 text-[var(--ink-soft)]">
+                  빠른 질문을 누르거나 직접 입력해서 계획 초안을 시작해 보세요.
+                </div>
+              )}
+            </div>
           </div>
 
           <form
@@ -420,6 +423,16 @@ export function PlanAgentScreen({ groupId }: Readonly<{ groupId: string }>) {
           계획으로 돌아가기
         </Link>
       </div>
+
+      <PlanReferenceViewerDialog
+        fileName={viewingUpload?.fileName ?? ""}
+        imageDataUrl={viewingUpload?.imageDataUrl ?? ""}
+        summary={viewingUpload?.summary}
+        isOpen={Boolean(viewingUpload)}
+        onClose={() => {
+          setViewingUploadId(null);
+        }}
+      />
     </AppShell>
   );
 }
