@@ -192,8 +192,8 @@ function StudyInfoIcon({
   type: "leader" | "members" | "date" | "time";
 }>) {
   return (
-    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF8F1] text-[#57AE79]">
-      <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EEF8F1] text-[#57AE79]">
+      <svg aria-hidden="true" className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24">
         {type === "leader" ? (
           <>
             <path
@@ -552,10 +552,10 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
 
   return (
     <>
-      <div className="space-y-4">
-        <section className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.05)]">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
+      <div className="space-y-3">
+        <section className="rounded-[20px] border border-slate-200 bg-white px-3.5 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.04)]">
+          <div className="mb-2.5 flex items-center justify-between gap-2.5">
+            <h2 className="min-w-0 flex-1 truncate pr-2 text-[14px] font-semibold tracking-[-0.03em] text-slate-950">
               {group.name}
             </h2>
             <div ref={studyInfoMenuRef} className="relative shrink-0">
@@ -564,13 +564,13 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                 aria-expanded={isStudyInfoMenuOpen}
                 aria-haspopup="menu"
                 onClick={() => setIsStudyInfoMenuOpen((previous) => !previous)}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-[0_6px_14px_rgba(15,23,42,0.05)] transition hover:translate-y-[-1px]"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-[0_4px_12px_rgba(15,23,42,0.05)] transition hover:translate-y-[-1px]"
               >
                 <MeatballIcon />
               </button>
 
               {isStudyInfoMenuOpen ? (
-                <div className="absolute right-0 top-[calc(100%+10px)] z-40 w-[180px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_18px_42px_rgba(15,23,42,0.14)]">
+                <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-[168px] rounded-[16px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_36px_rgba(15,23,42,0.12)]">
                   <div className="space-y-1">
                     {leaderMode ? (
                       <button
@@ -579,7 +579,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                           setIsStudyInfoMenuOpen(false);
                           openStudyInfoEditModal();
                         }}
-                        className="flex w-full items-center rounded-[12px] px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        className="flex w-full items-center rounded-[12px] px-3 py-2 text-left text-[13px] font-medium text-slate-700 transition hover:bg-slate-50"
                       >
                         수정
                       </button>
@@ -590,7 +590,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                         setIsStudyInfoMenuOpen(false);
                         setIsTeamMemberModalOpen(true);
                       }}
-                      className="flex w-full items-center rounded-[12px] px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                      className="flex w-full items-center rounded-[12px] px-3 py-2 text-left text-[13px] font-medium text-slate-700 transition hover:bg-slate-50"
                     >
                       팀원 확인
                     </button>
@@ -600,42 +600,42 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[18px] border border-slate-200">
+          <div className="overflow-hidden rounded-[16px] border border-slate-200">
             <div className="grid grid-cols-2 divide-x divide-slate-200">
-              <div className="flex items-center gap-2.5 px-3.5 py-3">
+              <div className="flex min-w-0 items-center gap-2 px-3 py-2.5">
                 <StudyInfoIcon type="leader" />
-                <div>
-                  <p className="text-[12px] font-medium text-slate-500">팀장</p>
-                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium text-slate-500">팀장</p>
+                  <p className="mt-0.5 truncate text-[13px] font-semibold tracking-[-0.03em] text-slate-950">
                     {leaderMember?.name ?? "-"}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2.5 px-3.5 py-3">
+              <div className="flex min-w-0 items-center gap-2 px-3 py-2.5">
                 <StudyInfoIcon type="members" />
-                <div>
-                  <p className="text-[12px] font-medium text-slate-500">팀원</p>
-                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium text-slate-500">팀원</p>
+                  <p className="mt-0.5 truncate text-[13px] font-semibold tracking-[-0.03em] text-slate-950">
                     {teammateCount}명
                   </p>
                 </div>
               </div>
             </div>
             <div className="grid grid-cols-2 divide-x divide-slate-200 border-t border-slate-200">
-              <div className="flex items-center gap-2.5 px-3.5 py-3">
+              <div className="flex min-w-0 items-center gap-2 px-3 py-2.5">
                 <StudyInfoIcon type="date" />
-                <div>
-                  <p className="text-[12px] font-medium text-slate-500">목표일</p>
-                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium text-slate-500">목표일</p>
+                  <p className="mt-0.5 truncate text-[12px] font-semibold tracking-[-0.03em] text-slate-950">
                     {formatExamDate(group.examDate)}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2.5 px-3.5 py-3">
+              <div className="flex min-w-0 items-center gap-2 px-3 py-2.5">
                 <StudyInfoIcon type="time" />
-                <div>
-                  <p className="text-[12px] font-medium text-slate-500">남은 기간</p>
-                  <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.03em] text-[var(--brand)]">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium text-slate-500">남은 기간</p>
+                  <p className="mt-0.5 truncate text-[13px] font-semibold tracking-[-0.03em] text-[var(--brand)]">
                     {ddayLabel}
                   </p>
                 </div>
@@ -644,11 +644,11 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
           </div>
         </section>
 
-        <section className="rounded-[24px] border border-slate-200 bg-white px-4 py-5 shadow-[0_12px_28px_rgba(15,23,42,0.05)]">
+        <section className="rounded-[20px] border border-slate-200 bg-white px-3.5 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF8F1] text-[var(--brand)]">
-                <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EEF8F1] text-[var(--brand)]">
+                <svg aria-hidden="true" className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="7.25" stroke="currentColor" strokeWidth="1.8" />
                   <path
                     d="M12 8.75v3.5l2.5 1.75"
@@ -659,11 +659,11 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                   />
                 </svg>
               </span>
-              <h2 className="text-[18px] font-semibold tracking-[-0.03em] text-slate-950">
+              <h2 className="text-[16px] font-semibold tracking-[-0.03em] text-slate-950">
                 집중 타이머
               </h2>
             </div>
-            <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+            <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-0.5">
               {[
                 { key: "focus", label: "집중 모드" },
                 { key: "stats", label: "통계" },
@@ -675,7 +675,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                     key={option.key}
                     type="button"
                     onClick={() => setTimerView(option.key as "focus" | "stats")}
-                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold whitespace-nowrap transition ${
                       active
                         ? "bg-[var(--brand-soft)] text-[var(--brand)]"
                         : "text-slate-500"
@@ -690,15 +690,15 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
 
           {timerView === "focus" ? (
             <>
-              <div className="mt-5 flex justify-center">
+              <div className="mt-4 flex justify-center">
                 <div
-                  className="relative flex h-[320px] w-[320px] items-center justify-center rounded-full"
+                  className="relative flex h-[280px] w-[280px] items-center justify-center rounded-full"
                   style={{
                     background: `conic-gradient(#8ED2A4 ${timerProgress * 360}deg, rgba(142,210,164,0.16) 0deg)`,
                   }}
                 >
-                  <div className="flex h-[248px] w-[248px] flex-col items-center justify-center rounded-full bg-white text-center">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF8F1] text-[var(--brand)]">
+                  <div className="flex h-[216px] w-[216px] flex-col items-center justify-center rounded-full bg-white px-4 text-center">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EEF8F1] text-[var(--brand)]">
                       <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
                         <path
                           d="M12 19.25c3.3 0 5.75-2.26 5.75-5.31 0-3.55-3.15-6.44-5.75-8.19-2.6 1.75-5.75 4.64-5.75 8.19 0 3.05 2.45 5.31 5.75 5.31Z"
@@ -713,11 +713,11 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                         />
                       </svg>
                     </span>
-                    <p className="mt-4 text-[16px] font-medium text-slate-700">오늘의 집중 시간</p>
-                    <p className="mt-3 text-[56px] font-semibold leading-none tracking-[-0.08em] text-slate-950">
+                    <p className="mt-3 text-[14px] font-medium text-slate-700">오늘의 집중 시간</p>
+                    <p className="mt-2.5 whitespace-nowrap text-[46px] font-semibold leading-none tracking-[-0.08em] text-slate-950">
                       {formatTimer(elapsedSeconds)}
                     </p>
-                    <p className="mt-6 text-[15px] font-medium text-slate-600">
+                    <p className="mt-5 text-[13px] font-medium text-slate-600">
                       {formatTargetMinutes(targetMinutes)}
                     </p>
                   </div>
@@ -727,7 +727,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
               <button
                 type="button"
                 onClick={toggleTimer}
-                className="mx-auto mt-5 flex min-w-[268px] items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#45B55E_0%,#47B957_100%)] px-6 py-4 text-[18px] font-semibold text-white shadow-[0_14px_30px_rgba(76,175,122,0.28)]"
+                className="mx-auto mt-4 flex min-w-[236px] items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#45B55E_0%,#47B957_100%)] px-5 py-3 text-[16px] font-semibold text-white shadow-[0_12px_24px_rgba(76,175,122,0.24)]"
               >
                 <svg aria-hidden="true" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
                   {isTimerRunning ? (
@@ -739,7 +739,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                 <span>{isTimerRunning ? "멈추기" : "시작하기"}</span>
               </button>
 
-              <div className="mt-5 grid grid-cols-5 gap-2">
+              <div className="mt-4 grid grid-cols-5 gap-1.5">
                 {timerPresetOptions.map((minutes) => {
                   const active = targetMinutes === minutes;
 
@@ -748,7 +748,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                       key={minutes}
                       type="button"
                       onClick={() => applyTargetMinutes(minutes)}
-                      className={`rounded-[16px] px-3 py-3 text-[15px] font-semibold transition ${
+                      className={`rounded-[14px] px-2.5 py-2.5 text-[13px] font-semibold whitespace-nowrap transition ${
                         active
                           ? "bg-[var(--brand-soft)] text-[var(--brand)]"
                           : "border border-slate-200 bg-white text-slate-700"
@@ -761,23 +761,23 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                 <button
                   type="button"
                   onClick={configureCustomTarget}
-                  className="rounded-[16px] border border-slate-200 bg-white px-3 py-3 text-[15px] font-semibold text-slate-700"
+                  className="rounded-[14px] border border-slate-200 bg-white px-2.5 py-2.5 text-[13px] font-semibold whitespace-nowrap text-slate-700"
                 >
                   사용자 설정
                 </button>
               </div>
             </>
           ) : (
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
-                <p className="text-sm font-medium text-slate-500">오늘의 집중 시간</p>
-                <p className="mt-2 text-[30px] font-semibold tracking-[-0.05em] text-slate-950">
+            <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+              <div className="rounded-[16px] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
+                <p className="text-[13px] font-medium text-slate-500">오늘의 집중 시간</p>
+                <p className="mt-2 text-[26px] font-semibold tracking-[-0.05em] text-slate-950">
                   {formatTimer(elapsedSeconds)}
                 </p>
               </div>
-              <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
-                <p className="text-sm font-medium text-slate-500">오늘 체크한 계획</p>
-                <p className="mt-2 text-[30px] font-semibold tracking-[-0.05em] text-slate-950">
+              <div className="rounded-[16px] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
+                <p className="text-[13px] font-medium text-slate-500">오늘 체크한 계획</p>
+                <p className="mt-2 text-[26px] font-semibold tracking-[-0.05em] text-slate-950">
                   {completedCount}개
                 </p>
               </div>
@@ -785,18 +785,18 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
           )}
         </section>
 
-        <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-[15px] font-semibold text-slate-900">공부 중인 팀원</h2>
-            <span className="text-xs text-slate-500">{activeTimerMembers.length}명</span>
+        <section className="rounded-[16px] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[0_6px_16px_rgba(15,23,42,0.04)]">
+          <div className="mb-2.5 flex items-center justify-between gap-3">
+            <h2 className="text-[14px] font-semibold text-slate-900">공부 중인 팀원</h2>
+            <span className="text-[11px] text-slate-500">{activeTimerMembers.length}명</span>
           </div>
 
           {activeTimerMembers.length === 0 ? (
-            <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+            <div className="rounded-[13px] border border-dashed border-slate-200 bg-white px-3.5 py-3.5 text-[13px] leading-5 text-[var(--ink-soft)]">
               지금은 타이머를 켜고 공부 중인 팀원이 없습니다.
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {activeTimerMembers.map(({ member, elapsedSeconds: memberElapsedSeconds }) => {
                 const active = member.id === selectedMemberId;
 
@@ -807,20 +807,20 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                     onClick={() =>
                       setSelectedMemberId((previous) => (previous === member.id ? null : member.id))
                     }
-                    className={`w-full rounded-[14px] border px-4 py-3 text-left transition ${
+                    className={`w-full rounded-[13px] border px-3 py-2.5 text-left transition ${
                       active
                         ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
                         : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-semibold text-slate-900">
                           {member.id === currentUserId ? `${member.name} (나)` : member.name}
                         </p>
-                        <p className="mt-1 text-xs text-slate-500">{member.focus}</p>
+                        <p className="mt-0.5 truncate text-[11px] text-slate-500">{member.focus}</p>
                       </div>
-                      <span className="text-xs font-medium text-slate-500">
+                      <span className="shrink-0 text-[11px] font-medium text-slate-500">
                         {formatTimer(memberElapsedSeconds)}
                       </span>
                     </div>
@@ -831,32 +831,32 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
           )}
 
           {selectedMember ? (
-            <div className="mt-3 rounded-[14px] border border-slate-200 bg-white px-4 py-3 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
-              <p className="text-sm font-semibold text-slate-900">{selectedMember.name}</p>
-              <p className="mt-1 text-sm text-slate-600">
+            <div className="mt-2.5 rounded-[13px] border border-slate-200 bg-white px-3.5 py-3 shadow-[0_4px_10px_rgba(15,23,42,0.03)]">
+              <p className="truncate text-[13px] font-semibold text-slate-900">{selectedMember.name}</p>
+              <p className="mt-1 text-[13px] text-slate-600">
                 {selectedMember.focus} 중심으로 공부를 이어가고 있어요.
               </p>
             </div>
           ) : null}
         </section>
 
-        <section className="space-y-3">
+        <section className="space-y-2.5">
           <div className="flex items-center justify-between gap-3 px-1">
-            <h2 className="text-[18px] font-semibold tracking-[-0.03em] text-slate-900">
+            <h2 className="text-[16px] font-semibold tracking-[-0.03em] text-slate-900">
               오늘 할 일
             </h2>
-            <span className="text-xs font-semibold text-slate-500">
+            <span className="text-[11px] font-semibold text-slate-500">
               {completedCount}/{group.plan.length}
             </span>
           </div>
 
-          <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
+          <div className="rounded-[16px] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[0_6px_16px_rgba(15,23,42,0.04)]">
             {group.plan.length === 0 ? (
-              <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+              <div className="rounded-[13px] border border-dashed border-slate-200 bg-white px-3.5 py-3.5 text-[13px] leading-5 text-[var(--ink-soft)]">
                 아직 등록된 공동 계획이 없습니다. 계획 탭에서 할 일을 추가하면 여기에서 바로 체크할 수 있어요.
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {group.plan.map((item) => {
                   const checked = item.memberStatus[currentUserId];
 
@@ -865,29 +865,29 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                       key={item.id}
                       type="button"
                       onClick={() => setPendingChecklistId(item.id)}
-                      className={`w-full rounded-[14px] border px-4 py-4 text-left transition ${
+                      className={`w-full rounded-[13px] border px-3.5 py-3 text-left transition ${
                         checked
                           ? "border-[var(--brand)] bg-white shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
                           : "border-slate-200 bg-white hover:border-slate-300"
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600">
+                        <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-600">
                           {item.day}
                         </span>
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                              <p className="mt-1 text-xs leading-5 text-slate-500">
+                              <p className="truncate text-[13px] font-semibold text-slate-900">{item.title}</p>
+                              <p className="mt-1 truncate text-[11px] leading-5 text-slate-500">
                                 {item.detail}
                               </p>
                             </div>
                             <CheckIcon active={checked} />
                           </div>
 
-                          <p className="mt-2 text-xs font-medium text-slate-500">{item.duration}</p>
+                          <p className="mt-1.5 text-[11px] font-medium text-slate-500">{item.duration}</p>
                         </div>
                       </div>
                     </button>
@@ -897,19 +897,19 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
             )}
           </div>
 
-          <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="text-[15px] font-semibold text-slate-900">개인 보강 할 일</h2>
-              <span className="text-xs text-slate-500">{personalPlanItems.length}개</span>
+          <div className="rounded-[16px] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[0_6px_16px_rgba(15,23,42,0.04)]">
+            <div className="mb-2.5 flex items-center justify-between gap-3">
+              <h2 className="text-[14px] font-semibold text-slate-900">개인 보강 할 일</h2>
+              <span className="text-[11px] text-slate-500">{personalPlanItems.length}개</span>
             </div>
 
             {personalPlanItems.length === 0 ? (
-              <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-[var(--ink-soft)]">
+              <div className="rounded-[13px] border border-dashed border-slate-200 bg-white px-3.5 py-3.5 text-[13px] leading-5 text-[var(--ink-soft)]">
                 아직 추가된 개인 할 일이 없습니다. 계획 탭에서 직접 추가하거나
                 복습 시점이 되면 [복습] 할 일이 여기에 자동으로 들어옵니다.
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {personalPlanItems.map((item) => (
                   <button
                     key={item.id}
@@ -917,7 +917,7 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                     onClick={() => {
                       void togglePersonalPlanItem(item.id, !item.completed);
                     }}
-                    className={`flex w-full items-start gap-3 rounded-[14px] border px-4 py-3 text-left transition ${
+                    className={`flex w-full items-start gap-3 rounded-[13px] border px-3.5 py-2.5 text-left transition ${
                       item.completed
                         ? "border-[var(--brand)] bg-white text-[var(--brand)] shadow-[0_6px_16px_rgba(121,184,149,0.10)]"
                         : "border-slate-200 bg-white hover:border-slate-300"
@@ -925,9 +925,9 @@ export function StudyHub({ group }: Readonly<StudyHubProps>) {
                   >
                     <CheckIcon active={item.completed} />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-slate-700">{item.title}</p>
+                      <p className="truncate text-[13px] font-medium text-slate-700">{item.title}</p>
                       {item.detail ? (
-                        <p className="mt-1 text-xs leading-5 text-slate-500">{item.detail}</p>
+                        <p className="mt-1 truncate text-[11px] leading-5 text-slate-500">{item.detail}</p>
                       ) : null}
                     </div>
                   </button>
