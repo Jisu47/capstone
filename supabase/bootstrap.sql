@@ -774,3 +774,36 @@ create policy "personal_task_library_items_delete_all"
   for delete
   to anon, authenticated
   using (true);
+
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  current_user_id uuid := auth.uid();
+begin
+  if current_user_id is null then
+    raise exception 'UNAUTHENTICATED';
+  end if;
+
+  if exists (
+    select 1
+    from public.group_members
+    where member_id = current_user_id::text
+      and member_role = 'leader'
+  ) then
+    raise exception 'LEADER_MEMBERSHIP';
+  end if;
+
+  delete from public.profiles
+  where id = current_user_id::text;
+
+  delete from auth.users
+  where id = current_user_id;
+end;
+$$;
+
+revoke all on function public.delete_my_account() from public;
+grant execute on function public.delete_my_account() to authenticated;

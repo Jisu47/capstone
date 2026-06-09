@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdminClient, getSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  getSupabaseAdminClient,
+  getSupabaseServerClient,
+  getSupabaseUserServerClient,
+} from "@/lib/supabase/server";
 import { jsonError } from "@/lib/server/route-utils";
 
 export const runtime = "nodejs";
@@ -20,6 +24,27 @@ function getAccessToken(request: Request) {
   return accessToken;
 }
 
+async function deleteAccountWithRpc(accessToken: string) {
+  const userClient = getSupabaseUserServerClient(accessToken);
+  const { error } = await userClient.rpc("delete_my_account");
+
+  if (!error) {
+    return NextResponse.json({ ok: true });
+  }
+
+  if (error.message.includes("LEADER_MEMBERSHIP")) {
+    return NextResponse.json(
+      {
+        error:
+          "리더로 참여 중인 그룹이 있어 회원 탈퇴를 진행할 수 없어요. 먼저 권한을 위임하거나 그룹을 정리해 주세요.",
+      },
+      { status: 409 },
+    );
+  }
+
+  throw new Error(`회원 탈퇴 RPC 실행에 실패했어요: ${error.message}`);
+}
+
 export async function POST(request: Request) {
   try {
     const accessToken = getAccessToken(request);
@@ -31,9 +56,13 @@ export async function POST(request: Request) {
 
     if (authError || !user) {
       return NextResponse.json(
-        { error: "현재 로그인 사용자를 확인하지 못했어요. 다시 로그인해 주세요." },
+        { error: "현재 로그인한 사용자를 확인하지 못했어요. 다시 로그인해 주세요." },
         { status: 401 },
       );
+    }
+
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) {
+      return deleteAccountWithRpc(accessToken);
     }
 
     const adminClient = getSupabaseAdminClient();
@@ -51,7 +80,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "팀장으로 참여 중인 그룹이 있어 회원 탈퇴를 진행할 수 없어요. 먼저 권한을 위임하거나 그룹을 정리해 주세요.",
+            "리더로 참여 중인 그룹이 있어 회원 탈퇴를 진행할 수 없어요. 먼저 권한을 위임하거나 그룹을 정리해 주세요.",
         },
         { status: 409 },
       );
