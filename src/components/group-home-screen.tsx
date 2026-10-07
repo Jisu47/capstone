@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { GroupHomeTutorial } from "@/components/group-home-tutorial";
+import { CompletedGroupNotice } from "@/components/completed-group-notice";
 import { AppShell, LoadingState, MissingGroupState } from "@/components/mobile-shell";
 import { GroupPageHeader } from "@/components/group-page-header";
 import { usePrototype } from "@/components/prototype-provider";
@@ -291,6 +292,7 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
     completeGroup,
     renewGroupCycle,
     groups,
+    allGroups,
     currentUserId,
     clearPlanItemCompletion,
     completePlanItemWithFeedback,
@@ -352,9 +354,13 @@ export function GroupHomeScreen({ groupId }: Readonly<{ groupId: string }>) {
   }
 
   if (!group) {
+    const completedGroup = allGroups.find((item) =>
+      item.id === groupId && item.status === "completed" &&
+      currentUser && getGroupMembership(item, currentUser.userId),
+    );
     return (
-      <AppShell groupId={groupId} title="홈" headerBehavior="fixed">
-        <MissingGroupState />
+      <AppShell groupId={groupId} title={completedGroup ? "보관된 그룹" : "홈"} showNavigation={false}>
+        {completedGroup ? <CompletedGroupNotice group={completedGroup} /> : <MissingGroupState />}
       </AppShell>
     );
   }

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { AppShell, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
+import { useHiddenGroups } from "@/components/use-hidden-groups";
 import { getMemberGroups } from "@/lib/group-membership";
 import { formatExamDate, getDaysLeft, type StudyGroup } from "@/lib/mock-data";
 
@@ -359,15 +360,20 @@ function NextGroupCard({
 function ArchivedGroupCard({
   group,
   onOpen,
+  onHide,
+  disabled,
 }: Readonly<{
   group: StudyGroup;
   onOpen: (groupId: string) => void;
+  onHide: (groupId: string) => void;
+  disabled: boolean;
 }>) {
   return (
+    <article className="overflow-hidden rounded-[24px] bg-white shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
     <button
       type="button"
       onClick={() => onOpen(group.id)}
-      className="flex min-w-0 w-full items-start gap-4 rounded-[24px] bg-white px-5 py-4 text-left shadow-[0_8px_30px_rgba(15,23,42,0.05)] transition hover:translate-y-[-1px]"
+      className="flex min-w-0 w-full items-start gap-4 px-5 py-4 text-left transition hover:bg-slate-50"
     >
       <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#F3F6FA_0%,#E7EDF4_100%)] text-slate-500">
         <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
@@ -412,6 +418,18 @@ function ArchivedGroupCard({
         <ArrowRightIcon />
       </div>
     </button>
+      <div className="flex justify-end border-t border-slate-100 px-5 py-2">
+        <button
+          type="button"
+          disabled={disabled}
+          aria-label={`${group.name} 내 목록에서 숨기기`}
+          onClick={() => onHide(group.id)}
+          className="min-h-11 rounded-xl px-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 disabled:opacity-50"
+        >
+          내 목록에서 숨기기
+        </button>
+      </div>
+    </article>
   );
 }
 
@@ -506,12 +524,18 @@ function EmptyGroupState() {
   );
 }
 
-function AuthenticatedHome() {
+function AuthenticatedHome({ userId }: Readonly<{ userId: string }>) {
   const { allGroups, isLoading } = usePrototype();
   const { currentUser, sessionName } = useAuth();
   const router = useRouter();
+  const hidden = useHiddenGroups(userId);
   const memberGroups = currentUser ? getMemberGroups(allGroups, currentUser.userId) : [];
-  const sortedGroups = sortGroupsByStatusAndExamDate(memberGroups);
+  const sortedGroups = sortGroupsByStatusAndExamDate(memberGroups.filter(
+    (group) => group.status !== "completed" || (hidden.isReady && !hidden.hiddenIds.includes(group.id)),
+  ));
+  const hiddenGroups = memberGroups.filter(
+    (group) => group.status === "completed" && hidden.hiddenIds.includes(group.id),
+  );
   const activeGroups = sortedGroups.filter((group) => group.status === "active");
   const completedGroups = sortedGroups.filter((group) => group.status === "completed");
   const featuredGroup = activeGroups[0] ?? null;
@@ -563,7 +587,7 @@ function AuthenticatedHome() {
         </SectionCard>
       ) : null}
 
-      {!isLoading && sortedGroups.length === 0 ? <EmptyGroupState /> : null}
+      {!isLoading && hidden.isReady && memberGroups.length === 0 ? <EmptyGroupState /> : null}
 
       {featuredGroup ? (
         <NextGroupCard
@@ -591,15 +615,30 @@ function AuthenticatedHome() {
         </section>
       ) : null}
 
+      {hidden.error ? (
+        <div role="alert" className="rounded-2xl bg-rose-50 p-4 text-sm text-rose-700">
+          <p>{hidden.error}</p>
+          <button type="button" onClick={hidden.reload} disabled={hidden.isSaving} className="mt-2 min-h-11 font-semibold underline">
+            다시 불러오기
+          </button>
+        </div>
+      ) : !hidden.isReady ? (
+        <p role="status" className="text-sm text-slate-500">그룹 표시 설정을 불러오는 중이에요.</p>
+      ) : null}
+      <p role="status" aria-live="polite" className="text-sm text-slate-600">{hidden.notice}</p>
+
       {completedGroups.length > 0 ? (
         <section className="space-y-4">
           <h3 className="px-1 text-[20px] font-semibold tracking-[-0.04em] text-slate-950">
             보관된 그룹
           </h3>
+          <p className="px-1 text-sm leading-6 text-slate-500">숨기면 내 목록에서만 사라져요. 다른 팀원의 목록과 자료는 유지돼요.</p>
           {completedGroups.map((group) => (
             <ArchivedGroupCard
               key={group.id}
               group={group}
+              onHide={(groupId) => { void hidden.setHidden(groupId, true); }}
+              disabled={hidden.isSaving}
               onOpen={(groupId) => {
                 router.push(`/group/${groupId}`);
               }}
@@ -607,16 +646,35 @@ function AuthenticatedHome() {
           ))}
         </section>
       ) : null}
+      {hidden.isReady && hiddenGroups.length > 0 ? (
+        <details className="rounded-[24px] border border-slate-200 bg-white p-5">
+          <summary className="cursor-pointer py-2 font-semibold text-slate-600">숨긴 그룹 {hiddenGroups.length}개</summary>
+          <ul className="mt-3 divide-y divide-slate-100">
+            {hiddenGroups.map((group) => (
+              <li key={group.id} className="flex items-center justify-between gap-3 py-2">
+                <span className="min-w-0 text-sm text-slate-700">{group.name}</span>
+                <button
+                  type="button"
+                  disabled={hidden.isSaving}
+                  aria-label={`${group.name} 다시 표시`}
+                  onClick={() => { void hidden.setHidden(group.id, false); }}
+                  className="min-h-11 shrink-0 rounded-xl px-3 text-sm font-semibold text-[var(--brand)] disabled:opacity-50"
+                >다시 표시</button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
     </AppShell>
   );
 }
 
 export function StudyEntryScreen() {
-  const { isAuthReady, sessionName } = useAuth();
+  const { isAuthReady, sessionName, currentUser } = useAuth();
 
-  if (!isAuthReady || !sessionName) {
+  if (!isAuthReady || !sessionName || !currentUser) {
     return <SplashScreen />;
   }
 
-  return <AuthenticatedHome />;
+  return <AuthenticatedHome key={currentUser.userId} userId={currentUser.userId} />;
 }
