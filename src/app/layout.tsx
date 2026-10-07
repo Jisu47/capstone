@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { AuthProvider } from "@/components/auth-provider";
-import { PrototypeProvider } from "@/components/prototype-provider";
+import { AppProviders } from "@/components/app-providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,9 +15,7 @@ export default function RootLayout({
   return (
     <html lang="ko" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        <AuthProvider>
-          <PrototypeProvider>{children}</PrototypeProvider>
-        </AuthProvider>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );
