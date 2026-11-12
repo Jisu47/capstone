@@ -22,6 +22,14 @@ pnpm dev
 
 브라우저에서 `http://localhost:3000`을 열면 바로 데모를 볼 수 있습니다.
 
+## 디자인 시스템
+
+StudyFlow의 유일한 최종 디자인 기준은 Design Preview V2, `/design-preview-v2`입니다.
+개발 서버에서는 `http://localhost:3000/design-preview-v2`로 확인하고,
+UI 작업 전 [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)의 사용 규칙을 읽어주세요.
+이전 `/design-preview`와 `/design-preview/buttons`는 최종 화면으로 redirect됩니다.
+서비스 UI 적용은 화면별로 점진 진행하며, 발표에는 최종 화면만 사용합니다.
+
 ## 프로토타입 특징
 
 - 모든 화면에 mock 데이터가 바로 표시됩니다.

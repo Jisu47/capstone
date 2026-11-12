@@ -12,7 +12,7 @@ This file is the shared development and collaboration rule document for this pro
 
 Multiple team members use different AI agents to implement features. To reduce inconsistent code structure, duplicated implementations, and merge conflicts, every agent and team member must follow the rules below before modifying the project.
 
-This is not a design system document. Do not use this file to decide detailed UI colors, spacing, typography, radius, or visual style. A separate `DESIGN_SYSTEM.md` may be added later.
+This is not a design system document. Use `/design-preview-v2` and `DESIGN_SYSTEM.md` for visual design guidance; keep development rules here.
 
 ## Project Stack
 
@@ -123,13 +123,15 @@ Do not create a new top-level source architecture unless the team has agreed to 
 
 ## Styling Rules
 
-- The detailed design system has not been finalized by the team.
+- The sole approved design system is Design Preview V2 at `/design-preview-v2`. Earlier `/design-preview` experiments are no longer design references.
+- Before UI work, inspect the existing Foundations / Components and read `DESIGN_SYSTEM.md`. The implemented preview is the visual source of truth; the document explains usage rules.
+- Reuse existing service components first and apply the approved design incrementally, only within the assigned screen or component scope.
 - Do not invent new global design rules.
 - Do not refactor unrelated screens for visual consistency during feature work.
 - Style only the minimum UI needed for the assigned feature.
 - Do not modify `src/app/globals.css` without sharing the planned change with the team first.
 - Do not use this file to define specific colors, typography, spacing, radius, button styles, card styles, input styles, or modal styles.
-- If `DESIGN_SYSTEM.md` is added later, UI-related work must follow that document as the highest-priority design reference.
+- Keep `DESIGN_SYSTEM.md` aligned with the approved preview. Do not invent global rules or unreviewed variants when migrating service UI.
 
 ## Scope Control
 
