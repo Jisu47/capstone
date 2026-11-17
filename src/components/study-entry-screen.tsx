@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
-import { GroupLeaveDialog, GroupListAction, useHiddenStudyGroups } from "@/components/group-list-actions";
+import { GroupLeaveDialog, GroupListMenu, useHiddenStudyGroups } from "@/components/group-list-actions";
 import { AppShell, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
 import { StudyOnboardingScreen } from "@/components/study-onboarding-screen";
@@ -264,9 +264,9 @@ function NextGroupCard({
   action: ReactNode;
 }>) {
   return (
-    <article className="min-w-0 rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
+    <article className="relative min-w-0 rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
       <div className="space-y-4">
-        <div className="min-w-0">
+        <div className="min-w-0 pr-9">
           <p className="text-[12px] font-semibold tracking-[0.18em] text-[#74B98D]">NEXT GROUP</p>
 
           <div className="mt-3 flex min-w-0 flex-wrap items-center gap-3">
@@ -298,8 +298,8 @@ function NextGroupCard({
           <span>들어가기</span>
           <ArrowRightIcon />
         </button>
-        <div className="flex justify-end">{action}</div>
       </div>
+      <div className="absolute right-3 top-3">{action}</div>
     </article>
   );
 }
@@ -314,11 +314,11 @@ function ArchivedGroupCard({
   action: ReactNode;
 }>) {
   return (
-    <article className="min-w-0 overflow-hidden rounded-[24px] bg-white shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
+    <article className="relative min-w-0 rounded-[24px] bg-white shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
       <button
         type="button"
         onClick={() => onOpen(group.id)}
-        className="flex w-full min-w-0 items-start gap-4 rounded-t-[24px] px-5 py-4 text-left hover:bg-[#F7FAF8]"
+        className="flex w-full min-w-0 items-start gap-4 rounded-[24px] py-4 pl-5 pr-14 text-left hover:bg-[#F7FAF8]"
       >
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#F3F6FA_0%,#E7EDF4_100%)] text-slate-500">
           <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
@@ -359,11 +359,8 @@ function ArchivedGroupCard({
           </div>
         </div>
 
-        <div className="shrink-0 pt-1 text-slate-400">
-          <ArrowRightIcon />
-        </div>
       </button>
-      <div className="flex justify-end border-t border-[#E5E7E6] px-5 py-1">{action}</div>
+      <div className="absolute right-3 top-3">{action}</div>
     </article>
   );
 }
@@ -378,11 +375,11 @@ function JoinedGroupListCard({
   action: ReactNode;
 }>) {
   return (
-    <article className="min-w-0 overflow-hidden rounded-[24px] bg-white shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
+    <article className="relative min-w-0 rounded-[24px] bg-white shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
       <button
         type="button"
         onClick={() => onOpen(group.id)}
-        className="flex w-full min-w-0 items-start gap-4 rounded-t-[24px] px-5 py-4 text-left hover:bg-[#F7FAF8]"
+        className="flex w-full min-w-0 items-start gap-4 rounded-[24px] py-4 pl-5 pr-14 text-left hover:bg-[#F7FAF8]"
       >
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#F3FBF6_0%,#E8F5EC_100%)] text-[#4CAF7A]">
           <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
@@ -425,11 +422,8 @@ function JoinedGroupListCard({
           </div>
         </div>
 
-        <div className="shrink-0 pt-1 text-slate-400">
-          <ArrowRightIcon />
-        </div>
       </button>
-      <div className="flex justify-end border-t border-[#E5E7E6] px-5 py-1">{action}</div>
+      <div className="absolute right-3 top-3">{action}</div>
     </article>
   );
 }
@@ -487,7 +481,7 @@ function AuthenticatedHome({ userId }: { userId: string }) {
   function leaveAction(group: StudyGroup) {
     const soloLeader = group.members.length === 1 && getGroupMembership(group, userId)?.role === "팀장";
     return (
-      <GroupListAction
+      <GroupListMenu
         title={soloLeader ? "그룹 삭제" : "탈퇴하기"}
         groupName={group.name}
         disabled={isMutating}
@@ -587,7 +581,7 @@ function AuthenticatedHome({ userId }: { userId: string }) {
               key={group.id}
               group={group}
               action={(
-                <GroupListAction
+                <GroupListMenu
                   title="내 목록에서 숨기기"
                   groupName={group.name}
                   disabled={!archive.ready || archive.busy}
@@ -608,7 +602,7 @@ function AuthenticatedHome({ userId }: { userId: string }) {
                 {hiddenGroups.map((group) => (
                   <li key={group.id} className="flex items-center justify-between gap-3 border-t border-[#E5E7E6] py-1">
                     <span className="min-w-0 break-words text-sm">{group.name}</span>
-                    <GroupListAction
+                    <GroupListMenu
                       title="다시 표시"
                       groupName={group.name}
                       disabled={archive.busy}

@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { getGroupMembership } from "@/lib/group-membership";
 import type { StudyGroup } from "@/lib/mock-data";
 import type { LeaveGroupOptions } from "@/lib/prototype-repository";
@@ -72,7 +72,7 @@ export function useHiddenStudyGroups(userId: string) {
   return { hiddenIds, ready, busy, error, retry, setHidden };
 }
 
-export function GroupListAction({
+export function GroupListMenu({
   title,
   groupName,
   onClick,
@@ -85,16 +85,71 @@ export function GroupListAction({
   disabled?: boolean;
   destructive?: boolean;
 }>) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+
+    function closeOnOutsideClick(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
+  }, [open]);
+
   return (
-    <button
-      type="button"
-      aria-label={`${groupName} ${title}`}
-      onClick={onClick}
-      disabled={disabled}
-      className={`min-h-11 rounded-[10px] px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 ${destructive ? "text-rose-700 hover:bg-rose-50" : "text-[#205D40] hover:bg-[#EEF7F1]"}`}
+    <div
+      ref={rootRef}
+      className="relative shrink-0"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
+      onKeyDown={(event) => {
+        if (open && event.key === "Escape") {
+          event.stopPropagation();
+          setOpen(false);
+          triggerRef.current?.focus();
+        }
+      }}
     >
-      {title}
-    </button>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-label={`${groupName} 그룹 설정`}
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
+        onClick={() => setOpen((previous) => !previous)}
+        className="group grid size-10 cursor-pointer place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#27834F]"
+      >
+        <span className="grid size-7 place-items-center rounded-full bg-[#F3F6F3] text-[#536459] transition group-hover:bg-[#E8F2EA] group-aria-expanded:bg-[#E8F2EA] group-aria-expanded:text-[#205D40]">
+          <svg aria-hidden="true" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 3h4l.6 2.5c.5.2 1 .5 1.4.8l2.5-.7 2 3.5-1.9 1.8a6 6 0 0 1 0 1.7l1.9 1.8-2 3.5-2.5-.7a7 7 0 0 1-1.4.8l-.6 2.5h-4l-.6-2.5a7 7 0 0 1-1.4-.8l-2.5.7-2-3.5 1.9-1.8a6 6 0 0 1 0-1.7L3.5 9.1l2-3.5 2.5.7c.4-.3.9-.6 1.4-.8L10 3Z" />
+            <circle cx="12" cy="11.75" r="2.8" />
+          </svg>
+        </span>
+      </button>
+      {open && (
+        <div id={menuId} className="absolute right-0 top-full z-20 w-max min-w-32 rounded-[12px] border border-[#E5E7E6] bg-white p-1 shadow-[0_6px_22px_rgba(32,54,42,0.12)]">
+          <button
+            type="button"
+            aria-label={`${groupName} ${title}`}
+            onClick={() => {
+              triggerRef.current?.focus();
+              setOpen(false);
+              onClick();
+            }}
+            disabled={disabled}
+            className={`min-h-9 w-full cursor-pointer rounded-[8px] px-3 text-left text-[13px] font-medium focus-visible:outline-2 focus-visible:outline-offset-1 disabled:opacity-50 ${destructive ? "text-rose-700 hover:bg-rose-50" : "text-[#205D40] hover:bg-[#EEF7F1]"}`}
+          >
+            {title}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
