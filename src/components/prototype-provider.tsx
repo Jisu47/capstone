@@ -76,6 +76,7 @@ import {
   updatePrototypeReviewDays,
   updatePrototypeReviewInterval,
   renewPrototypeGroupCycle,
+  type LeaveGroupOptions,
   type PlanItemDraft,
 } from "@/lib/prototype-repository";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -89,7 +90,7 @@ type PrototypeContextValue = {
   isMutating: boolean;
   createGroup: (input: CreateGroupInput) => Promise<string>;
   joinGroup: (groupId: string) => Promise<void>;
-  leaveGroup: (groupId: string) => Promise<void>;
+  leaveGroup: (groupId: string, options?: LeaveGroupOptions) => Promise<void>;
   deleteGroup: (groupId: string) => Promise<void>;
   transferGroupLeadership: (groupId: string, nextLeaderId: string) => Promise<void>;
   completeGroup: (groupId: string) => Promise<void>;
@@ -560,33 +561,6 @@ export function PrototypeProvider({
       return;
     }
 
-    const storedGroup = currentUser.joinedGroupId
-      ? storedGroups.find((group) => group.id === currentUser.joinedGroupId) ?? null
-      : null;
-
-    if (
-      storedGroup &&
-      storedGroup.status === "active" &&
-      !storedGroup.members.some((member) => member.id === currentMember.id)
-    ) {
-      const syncKey = `${currentMember.id}:${storedGroup.id}:membership`;
-
-      if (syncingMembershipKeyRef.current === syncKey) {
-        return;
-      }
-
-      syncingMembershipKeyRef.current = syncKey;
-
-      void runMutation(async () => {
-        await ensurePrototypeGroupMembership(storedGroup.id, currentMember);
-        await refreshGroups();
-      }).finally(() => {
-        syncingMembershipKeyRef.current = null;
-      });
-
-      return;
-    }
-
     const activeMembershipGroups = findActiveMembershipGroups(storedGroups, currentMember.id);
 
     if (activeMembershipGroups.length === 0) {
@@ -641,7 +615,6 @@ export function PrototypeProvider({
     currentUser,
     currentUser?.joinedGroupId,
     isLoading,
-    refreshGroups,
     setJoinedGroupState,
     storedGroups,
   ]);
@@ -694,12 +667,24 @@ export function PrototypeProvider({
     await markGroupJoined(fallbackGroup.id, currentUser.role ?? "member");
   }
 
-  async function leaveGroup(groupId: string) {
-    await runMutation(async () => {
-      await leavePrototypeGroup(groupId, resolvedCurrentUserId);
-      const nextGroups = await refreshGroups();
-      await syncJoinedGroupAfterRemoval(groupId, nextGroups);
-    });
+  async function leaveGroup(groupId: string, options: LeaveGroupOptions = {}) {
+    await runMutation(() => leavePrototypeGroup(groupId, options));
+
+    setStoredGroups((previous) => previous.flatMap((group) => {
+      if (group.id !== groupId) return [group];
+      if (options.deleteIfSolo) return [];
+
+      const members = group.members
+        .filter((member) => member.id !== resolvedCurrentUserId)
+        .map((member) => member.id === options.nextLeaderId ? { ...member, role: "팀장" as const } : member);
+      return [{ ...group, members }];
+    }));
+
+    try {
+      await refreshGroups();
+    } catch {
+      setError("그룹 정리는 완료됐지만 목록을 새로 불러오지 못했어요. 새로고침해 주세요.");
+    }
   }
 
   async function deleteGroup(groupId: string) {

@@ -1,14 +1,15 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
+import { GroupLeaveDialog, GroupListAction, useHiddenStudyGroups } from "@/components/group-list-actions";
 import { AppShell, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
 import { StudyOnboardingScreen } from "@/components/study-onboarding-screen";
-import { getMemberGroups } from "@/lib/group-membership";
+import { getGroupMembership, getMemberGroups } from "@/lib/group-membership";
 import { formatExamDate, getDaysLeft, type StudyGroup } from "@/lib/mock-data";
 
 function sortGroupsByStatusAndExamDate(groups: StudyGroup[]) {
@@ -256,9 +257,11 @@ function GroupInfoCard({
 function NextGroupCard({
   group,
   onOpen,
+  action,
 }: Readonly<{
   group: StudyGroup;
   onOpen: (groupId: string) => void;
+  action: ReactNode;
 }>) {
   return (
     <article className="min-w-0 rounded-[28px] bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
@@ -295,6 +298,7 @@ function NextGroupCard({
           <span>들어가기</span>
           <ArrowRightIcon />
         </button>
+        <div className="flex justify-end">{action}</div>
       </div>
     </article>
   );
@@ -303,120 +307,130 @@ function NextGroupCard({
 function ArchivedGroupCard({
   group,
   onOpen,
+  action,
 }: Readonly<{
   group: StudyGroup;
   onOpen: (groupId: string) => void;
+  action: ReactNode;
 }>) {
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(group.id)}
-      className="flex min-w-0 w-full items-start gap-4 rounded-[24px] bg-white px-5 py-4 text-left shadow-[0_8px_30px_rgba(15,23,42,0.05)] transition hover:translate-y-[-1px]"
-    >
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#F3F6FA_0%,#E7EDF4_100%)] text-slate-500">
-        <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
-          <path
-            d="M4.5 9.5 12 5l7.5 4.5L12 14 4.5 9.5ZM7.5 11.5V15c0 .8 2 2.5 4.5 2.5s4.5-1.7 4.5-2.5v-3.5"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="1.7"
-          />
-        </svg>
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="rounded-full bg-[#F6F7F8] px-3 py-1 text-xs font-semibold text-slate-500">
-            {group.subject}
-          </span>
-          <span className="rounded-full bg-[#F3F5F7] px-3 py-1 text-xs font-semibold text-slate-500">
-            운영 종료
-          </span>
+    <article className="min-w-0 overflow-hidden rounded-[24px] bg-white shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
+      <button
+        type="button"
+        onClick={() => onOpen(group.id)}
+        className="flex w-full min-w-0 items-start gap-4 rounded-t-[24px] px-5 py-4 text-left hover:bg-[#F7FAF8]"
+      >
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#F3F6FA_0%,#E7EDF4_100%)] text-slate-500">
+          <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path
+              d="M4.5 9.5 12 5l7.5 4.5L12 14 4.5 9.5ZM7.5 11.5V15c0 .8 2 2.5 4.5 2.5s4.5-1.7 4.5-2.5v-3.5"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.7"
+            />
+          </svg>
         </div>
 
-        <p className="mt-2.5 min-w-0 whitespace-normal text-[18px] font-semibold tracking-[-0.04em] text-slate-950">
-          {group.name}
-        </p>
-
-        <div className="mt-3 flex min-w-0 flex-col gap-2 text-sm text-slate-500 min-[390px]:flex-row min-[390px]:items-center min-[390px]:justify-between">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="shrink-0">
-              <CalendarIcon />
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="rounded-full bg-[#F6F7F8] px-3 py-1 text-xs font-semibold text-slate-500">
+              {group.subject}
             </span>
-            <span className="min-w-0 whitespace-normal">
-              마지막 목표 날짜 {formatExamDate(group.examDate)}
+            <span className="rounded-full bg-[#F3F5F7] px-3 py-1 text-xs font-semibold text-slate-500">
+              운영 종료
             </span>
           </div>
-          <span className="shrink-0">{group.members.length}명</span>
-        </div>
-      </div>
 
-      <div className="shrink-0 pt-1 text-slate-400">
-        <ArrowRightIcon />
-      </div>
-    </button>
+          <p className="mt-2.5 min-w-0 whitespace-normal text-[18px] font-semibold tracking-[-0.04em] text-slate-950">
+            {group.name}
+          </p>
+
+          <div className="mt-3 flex min-w-0 flex-col gap-2 text-sm text-slate-500 min-[390px]:flex-row min-[390px]:items-center min-[390px]:justify-between">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="shrink-0">
+                <CalendarIcon />
+              </span>
+              <span className="min-w-0 whitespace-normal">
+                마지막 목표 날짜 {formatExamDate(group.examDate)}
+              </span>
+            </div>
+            <span className="shrink-0">{group.members.length}명</span>
+          </div>
+        </div>
+
+        <div className="shrink-0 pt-1 text-slate-400">
+          <ArrowRightIcon />
+        </div>
+      </button>
+      <div className="flex justify-end border-t border-[#E5E7E6] px-5 py-1">{action}</div>
+    </article>
   );
 }
 
 function JoinedGroupListCard({
   group,
   onOpen,
+  action,
 }: Readonly<{
   group: StudyGroup;
   onOpen: (groupId: string) => void;
+  action: ReactNode;
 }>) {
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(group.id)}
-      className="flex w-full min-w-0 items-start gap-4 rounded-[24px] bg-white px-5 py-4 text-left shadow-[0_8px_30px_rgba(15,23,42,0.05)] transition hover:translate-y-[-1px]"
-    >
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#F3FBF6_0%,#E8F5EC_100%)] text-[#4CAF7A]">
-        <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
-          <path
-            d="M12 5.75a3.25 3.25 0 1 0 0 6.5 3.25 3.25 0 0 0 0-6.5ZM6 18c0-2.761 2.686-5 6-5s6 2.239 6 5"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="1.7"
-          />
-        </svg>
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[#4CAF7A]">
-            {group.subject}
-          </span>
-          <span className="rounded-full bg-[#F5FBF7] px-3 py-1 text-xs font-semibold text-[#4CAF7A]">
-            {getGroupStatusLabel(group)}
-          </span>
+    <article className="min-w-0 overflow-hidden rounded-[24px] bg-white shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
+      <button
+        type="button"
+        onClick={() => onOpen(group.id)}
+        className="flex w-full min-w-0 items-start gap-4 rounded-t-[24px] px-5 py-4 text-left hover:bg-[#F7FAF8]"
+      >
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#F3FBF6_0%,#E8F5EC_100%)] text-[#4CAF7A]">
+          <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path
+              d="M12 5.75a3.25 3.25 0 1 0 0 6.5 3.25 3.25 0 0 0 0-6.5ZM6 18c0-2.761 2.686-5 6-5s6 2.239 6 5"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.7"
+            />
+          </svg>
         </div>
 
-        <p className="mt-2.5 min-w-0 whitespace-normal text-[18px] font-semibold tracking-[-0.04em] text-slate-950">
-          {group.name}
-        </p>
-
-        <p className="mt-1.5 min-w-0 whitespace-normal text-sm leading-6 text-slate-500">
-          {group.recentUpdate}
-        </p>
-
-        <div className="mt-3 flex min-w-0 flex-col gap-2 text-sm text-slate-500 min-[390px]:flex-row min-[390px]:items-center min-[390px]:justify-between">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="shrink-0">
-              <CalendarIcon />
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[#4CAF7A]">
+              {group.subject}
             </span>
-            <span className="min-w-0 whitespace-normal">{formatExamDate(group.examDate)}</span>
+            <span className="rounded-full bg-[#F5FBF7] px-3 py-1 text-xs font-semibold text-[#4CAF7A]">
+              {getGroupStatusLabel(group)}
+            </span>
           </div>
-          <span className="shrink-0">{group.members.length}명</span>
-        </div>
-      </div>
 
-      <div className="shrink-0 pt-1 text-slate-400">
-        <ArrowRightIcon />
-      </div>
-    </button>
+          <p className="mt-2.5 min-w-0 whitespace-normal text-[18px] font-semibold tracking-[-0.04em] text-slate-950">
+            {group.name}
+          </p>
+
+          <p className="mt-1.5 min-w-0 whitespace-normal text-sm leading-6 text-slate-500">
+            {group.recentUpdate}
+          </p>
+
+          <div className="mt-3 flex min-w-0 flex-col gap-2 text-sm text-slate-500 min-[390px]:flex-row min-[390px]:items-center min-[390px]:justify-between">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="shrink-0">
+                <CalendarIcon />
+              </span>
+              <span className="min-w-0 whitespace-normal">{formatExamDate(group.examDate)}</span>
+            </div>
+            <span className="shrink-0">{group.members.length}명</span>
+          </div>
+        </div>
+
+        <div className="shrink-0 pt-1 text-slate-400">
+          <ArrowRightIcon />
+        </div>
+      </button>
+      <div className="flex justify-end border-t border-[#E5E7E6] px-5 py-1">{action}</div>
+    </article>
   );
 }
 
@@ -450,20 +464,38 @@ function EmptyGroupState() {
   );
 }
 
-function AuthenticatedHome() {
-  const { allGroups, isLoading } = usePrototype();
+function AuthenticatedHome({ userId }: { userId: string }) {
+  const { allGroups, isLoading, isMutating, leaveGroup } = usePrototype();
   const { currentUser, sessionName } = useAuth();
   const router = useRouter();
-  const memberGroups = currentUser ? getMemberGroups(allGroups, currentUser.userId) : [];
+  const archive = useHiddenStudyGroups(userId);
+  const [leaveGroupId, setLeaveGroupId] = useState<string | null>(null);
+  const memberGroups = getMemberGroups(allGroups, userId);
   const sortedGroups = sortGroupsByStatusAndExamDate(memberGroups);
   const activeGroups = sortedGroups.filter((group) => group.status === "active");
   const completedGroups = sortedGroups.filter((group) => group.status === "completed");
+  const hiddenGroups = completedGroups.filter((group) => archive.hiddenIds.includes(group.id));
+  const visibleArchivedGroups = completedGroups.filter((group) => !archive.hiddenIds.includes(group.id));
   const featuredGroup = activeGroups[0] ?? null;
   const secondaryActiveGroups = featuredGroup
     ? activeGroups.filter((group) => group.id !== featuredGroup.id)
     : activeGroups;
   const recentGroupId = currentUser?.joinedGroupId ?? featuredGroup?.id ?? null;
   const displayName = currentUser?.displayName ?? sessionName ?? "스터디 메이트";
+  const leaveTarget = activeGroups.find((group) => group.id === leaveGroupId);
+
+  function leaveAction(group: StudyGroup) {
+    const soloLeader = group.members.length === 1 && getGroupMembership(group, userId)?.role === "팀장";
+    return (
+      <GroupListAction
+        title={soloLeader ? "그룹 삭제" : "탈퇴하기"}
+        groupName={group.name}
+        disabled={isMutating}
+        destructive
+        onClick={() => setLeaveGroupId(group.id)}
+      />
+    );
+  }
 
   return (
     <AppShell
@@ -474,7 +506,7 @@ function AuthenticatedHome() {
       headerBehavior="fixed"
       headerVariant="bare"
       title="그룹 선택"
-      headerContent={<HeaderBar totalCount={sortedGroups.length} />}
+      headerContent={<HeaderBar totalCount={activeGroups.length + visibleArchivedGroups.length} />}
     >
       <section>
         <div className="hidden">
@@ -512,6 +544,7 @@ function AuthenticatedHome() {
       {featuredGroup ? (
         <NextGroupCard
           group={featuredGroup}
+          action={leaveAction(featuredGroup)}
           onOpen={(groupId) => {
             router.push(`/group/${groupId}`);
           }}
@@ -527,6 +560,7 @@ function AuthenticatedHome() {
             <JoinedGroupListCard
               key={group.id}
               group={group}
+              action={leaveAction(group)}
               onOpen={(groupId) => {
                 router.push(`/group/${groupId}`);
               }}
@@ -540,27 +574,75 @@ function AuthenticatedHome() {
           <h3 className="px-1 text-[20px] font-semibold tracking-[-0.04em] text-slate-950">
             보관된 그룹
           </h3>
-          {completedGroups.map((group) => (
+          {archive.error && (
+            <div role="alert" className="flex items-center justify-between gap-3 text-sm text-rose-700">
+              <p>{archive.error}</p>
+              {!archive.ready && (
+                <button type="button" onClick={archive.retry} className="min-h-11 px-2 font-semibold">다시 시도</button>
+              )}
+            </div>
+          )}
+          {visibleArchivedGroups.map((group) => (
             <ArchivedGroupCard
               key={group.id}
               group={group}
+              action={(
+                <GroupListAction
+                  title="내 목록에서 숨기기"
+                  groupName={group.name}
+                  disabled={!archive.ready || archive.busy}
+                  onClick={() => { void archive.setHidden(group.id, true); }}
+                />
+              )}
               onOpen={(groupId) => {
                 router.push(`/group/${groupId}`);
               }}
             />
           ))}
+          {hiddenGroups.length > 0 && (
+            <details className="rounded-[16px] border border-[#E5E7E6] bg-white px-4 py-2">
+              <summary className="cursor-pointer py-2 text-sm font-semibold text-[#205D40]">
+                숨긴 그룹 {hiddenGroups.length}개
+              </summary>
+              <ul>
+                {hiddenGroups.map((group) => (
+                  <li key={group.id} className="flex items-center justify-between gap-3 border-t border-[#E5E7E6] py-1">
+                    <span className="min-w-0 break-words text-sm">{group.name}</span>
+                    <GroupListAction
+                      title="다시 표시"
+                      groupName={group.name}
+                      disabled={archive.busy}
+                      onClick={() => { void archive.setHidden(group.id, false); }}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
         </section>
       ) : null}
+      {leaveTarget && (
+        <GroupLeaveDialog
+          key={leaveTarget.id}
+          group={leaveTarget}
+          userId={userId}
+          onClose={() => setLeaveGroupId(null)}
+          onLeave={async (groupId, options) => {
+            await leaveGroup(groupId, options);
+            setLeaveGroupId(null);
+          }}
+        />
+      )}
     </AppShell>
   );
 }
 
 export function StudyEntryScreen() {
-  const { isAuthReady, sessionName } = useAuth();
+  const { isAuthReady, currentUser, sessionName } = useAuth();
 
-  if (!isAuthReady || !sessionName) {
+  if (!isAuthReady || !currentUser || !sessionName) {
     return <StudyOnboardingScreen />;
   }
 
-  return <AuthenticatedHome />;
+  return <AuthenticatedHome key={currentUser.userId} userId={currentUser.userId} />;
 }

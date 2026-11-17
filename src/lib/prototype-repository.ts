@@ -1329,16 +1329,6 @@ function normalizeRenewalInput(input: {
   };
 }
 
-async function listGroupPlanItemIds(groupId: string) {
-  const client = getSupabaseBrowserClient();
-  const rows = unwrapData(
-    "Failed to inspect group plan items",
-    await client.from("plan_items").select("id").eq("group_id", groupId),
-  ) as Array<{ id: string }>;
-
-  return rows.map((row) => row.id);
-}
-
 export async function createPrototypeGroup(input: CreateGroupInput, creator?: Member) {
   const group = createGroupFromInput(input, creator);
   await persistGroup(group);
@@ -1506,65 +1496,29 @@ export async function renewPrototypeGroupCycle(
   );
 }
 
-export async function leavePrototypeGroup(groupId: string, memberId: string) {
-  const client = getSupabaseBrowserClient();
-  const planItemIds = await listGroupPlanItemIds(groupId);
+export type LeaveGroupOptions = {
+  nextLeaderId?: string;
+  deleteIfSolo?: boolean;
+};
 
-  if (planItemIds.length > 0) {
-    ensureSuccess(
-      "Failed to remove plan completions for leaving member",
-      await client
-        .from("plan_item_completions")
-        .delete()
-        .eq("member_id", memberId)
-        .in("plan_item_id", planItemIds),
-    );
+const leaveErrors: Record<string, string> = {
+  UNAUTHENTICATED: "다시 로그인한 뒤 시도해 주세요.",
+  SUCCESSOR_REQUIRED: "새 팀장을 선택해 주세요.",
+  SUCCESSOR_UNAVAILABLE: "선택한 팀원이 현재 그룹에 없어요. 목록을 새로고침해 주세요.",
+  SOLO_DELETE_REQUIRED: "팀장이 혼자 있는 그룹은 그룹 삭제로 정리할 수 있어요.",
+  SOLO_DELETE_UNAVAILABLE: "그룹의 팀원 구성이 바뀌었어요. 목록을 새로고침해 주세요.",
+};
 
-    ensureSuccess(
-      "Failed to remove plan item feedback for leaving member",
-      await client
-        .from("plan_item_feedbacks")
-        .delete()
-        .eq("member_id", memberId)
-        .in("plan_item_id", planItemIds),
-    );
+export async function leavePrototypeGroup(groupId: string, options: LeaveGroupOptions = {}) {
+  const { error } = await getSupabaseBrowserClient().rpc("leave_study_group", {
+    p_group_id: groupId,
+    p_next_leader_id: options.nextLeaderId ?? null,
+    p_delete_if_solo: options.deleteIfSolo ?? false,
+  });
+
+  if (error) {
+    throw new Error(leaveErrors[error.message] ?? "그룹에서 나가지 못했어요. 잠시 후 다시 시도해 주세요.");
   }
-
-  ensureSuccess(
-    "Failed to remove review candidates for leaving member",
-    await client
-      .from("review_candidates")
-      .delete()
-      .eq("group_id", groupId)
-      .eq("member_id", memberId),
-  );
-
-  ensureSuccess(
-    "Failed to remove personal plan items for leaving member",
-    await client
-      .from("personal_plan_items")
-      .delete()
-      .eq("group_id", groupId)
-      .eq("member_id", memberId),
-  );
-
-  ensureSuccess(
-    "Failed to remove saved personal task items for leaving member",
-    await client
-      .from("personal_task_library_items")
-      .delete()
-      .eq("group_id", groupId)
-      .eq("member_id", memberId),
-  );
-
-  ensureSuccess(
-    "Failed to remove group membership",
-    await client
-      .from("group_members")
-      .delete()
-      .eq("group_id", groupId)
-      .eq("member_id", memberId),
-  );
 }
 
 export async function deletePrototypeGroup(groupId: string) {

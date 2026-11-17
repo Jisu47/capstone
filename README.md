@@ -22,6 +22,9 @@ pnpm dev
 
 브라우저에서 `http://localhost:3000`을 열면 바로 데모를 볼 수 있습니다.
 
+Supabase 환경을 새로 준비할 때는 `supabase/bootstrap.sql` 실행 후
+`supabase/migrations`의 SQL을 파일 이름 순서대로 적용합니다.
+
 ## 디자인 시스템
 
 StudyFlow의 유일한 최종 디자인 기준은 Design Preview V2, `/design-preview-v2`입니다.
