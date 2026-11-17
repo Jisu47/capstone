@@ -35,13 +35,18 @@ function getGroupStatusLabel(group: StudyGroup) {
 
 function SplashLogoMark() {
   return (
-    <div className="flex h-44 w-44 items-center justify-center rounded-[30px] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(244,250,246,0.92))] shadow-[0_28px_60px_rgba(121,184,149,0.16)]">
+    <div className="relative size-44 shrink-0">
       <Image
         src="/logo-study.png"
         alt="Study logo"
-        width={132}
-        height={132}
-        className="h-32 w-32 object-contain drop-shadow-[0_10px_24px_rgba(121,184,149,0.14)]"
+        width={248}
+        height={248}
+        className="absolute top-1/2 left-1/2 max-w-none -translate-x-1/2 -translate-y-1/2"
+        style={{
+          maskImage:
+            "linear-gradient(to right, transparent, black 18%, black 82%, transparent), linear-gradient(to bottom, transparent, black 18%, black 82%, transparent)",
+          maskComposite: "intersect",
+        }}
         priority
       />
     </div>
