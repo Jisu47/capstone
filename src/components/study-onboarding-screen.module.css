@@ -52,8 +52,8 @@
 }
 
 .layout {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   width: min(100%, 28rem);
   min-height: 100svh;
   margin-inline: auto;
@@ -62,6 +62,7 @@
 
 .carousel {
   display: flex;
+  flex: 1 0 auto;
   min-height: 23rem;
   overflow-x: auto;
   overflow-y: hidden;
@@ -76,9 +77,14 @@
 }
 
 .slide {
-  position: relative;
+  display: flex;
   flex: 0 0 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.75rem, 2svh, 1.25rem);
   min-width: 0;
+  padding: clamp(1.625rem, 8svh, 4.5rem) 0.75rem clamp(0.75rem, 2svh, 1.25rem);
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
@@ -93,12 +99,10 @@
 }
 
 .artwork {
-  position: absolute;
-  inset-block-start: 55%;
-  inset-inline-start: 50%;
-  width: min(100%, 25rem, 72svh);
+  position: relative;
+  flex: none;
+  width: min(100%, 25rem, 61svh);
   aspect-ratio: 1.75;
-  transform: translate(-50%, -50%);
 }
 
 .artwork img,
@@ -117,8 +121,11 @@
   inset-block-start: -80%;
 }
 
+.slide[data-slide="1"] {
+  padding-block-start: clamp(2.75rem, 18svh, 10rem);
+}
+
 .slide[data-slide="1"] .artwork {
-  inset-block-start: 63%;
   aspect-ratio: 1.7;
 }
 
@@ -127,7 +134,6 @@
 }
 
 .slide[data-slide="3"] .artwork {
-  inset-block-start: 67%;
   aspect-ratio: 1.5;
 }
 
@@ -136,9 +142,7 @@
 }
 
 .signature {
-  position: absolute;
-  inset-block-start: 23%;
-  inset-inline: 0;
+  flex: none;
   color: #354f41;
   text-align: center;
 }
@@ -164,9 +168,7 @@
 }
 
 .caption {
-  position: absolute;
-  inset-block-end: 10%;
-  inset-inline: 0.75rem;
+  flex: none;
   margin: 0;
   color: #152d25;
   font-size: clamp(1.125rem, 5.5vw, 1.75rem);
@@ -176,7 +178,6 @@
 }
 
 .slide[data-slide="3"] .caption {
-  inset-block-end: 1.5%;
   color: #355347;
   font-size: clamp(1rem, 4.35vw, 1.35rem);
 }
@@ -222,15 +223,6 @@
   color: #fff;
   font-size: 1.125rem;
   cursor: pointer;
-}
-
-.screen[data-active-slide="2"] .primary {
-  background: #3f654f;
-  box-shadow: 0 0.6rem 1rem #28453523;
-}
-
-.screen[data-active-slide="3"] .primary {
-  background: #385142;
 }
 
 .primary:hover {
@@ -282,8 +274,13 @@
     min-height: 21rem;
   }
 
-  .signature {
-    inset-block-start: 16%;
+  .slide {
+    gap: 0.625rem;
+    padding-block: 0.75rem;
+  }
+
+  .slide[data-slide="3"] .artwork {
+    width: min(100%, 25rem, 48svh);
   }
 
   .lotus {

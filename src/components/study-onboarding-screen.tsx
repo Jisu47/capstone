@@ -133,19 +133,9 @@ export function StudyOnboardingScreen() {
               </button>
             ))}
           </nav>
-          {activeSlide === 1 ? (
-            <button
-              type="button"
-              className={styles.primary}
-              onClick={() => goToSlide(2)}
-            >
-              다음
-            </button>
-          ) : (
-            <Link href="/login" className={styles.primary}>
-              {activeSlide === 0 ? "로그인 하기" : "다음"}
-            </Link>
-          )}
+          <Link href="/login" className={styles.primary}>
+            로그인하기
+          </Link>
           <div className={styles.account}>
             <Link href="/signup">계정 만들기</Link>
             <span className={styles.divider} aria-hidden="true" />
