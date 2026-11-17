@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { AppShell, SectionCard } from "@/components/mobile-shell";
 import { usePrototype } from "@/components/prototype-provider";
+import { StudyOnboardingScreen } from "@/components/study-onboarding-screen";
 import { getMemberGroups } from "@/lib/group-membership";
 import { formatExamDate, getDaysLeft, type StudyGroup } from "@/lib/mock-data";
 
@@ -31,68 +32,6 @@ function getGroupStatusLabel(group: StudyGroup) {
 
   const daysLeft = getDaysLeft(group.examDate);
   return daysLeft === 0 ? "D-day" : `D-${daysLeft}`;
-}
-
-function SplashLogoMark() {
-  return (
-    <div className="relative size-44 shrink-0">
-      <Image
-        src="/logo-study.png"
-        alt="Study logo"
-        width={248}
-        height={248}
-        className="absolute top-1/2 left-1/2 max-w-none -translate-x-1/2 -translate-y-1/2"
-        style={{
-          maskImage:
-            "linear-gradient(to right, transparent, black 18%, black 82%, transparent), linear-gradient(to bottom, transparent, black 18%, black 82%, transparent)",
-          maskComposite: "intersect",
-        }}
-        priority
-      />
-    </div>
-  );
-}
-
-function SplashScreen() {
-  return (
-    <main className="flex min-h-dvh flex-col overflow-x-hidden bg-[var(--background)] text-slate-900">
-      <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-1 flex-col px-6 pb-10 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
-        <div className="flex items-center justify-between text-sm text-slate-500">
-          <span className="font-semibold tracking-[0.24em] text-slate-600">STUDY FLOW</span>
-        </div>
-
-        <div className="flex flex-1 flex-col items-center justify-center">
-          <SplashLogoMark />
-
-          <div className="mt-8 text-center">
-            <p className="font-[family:var(--font-study-display)] text-[56px] leading-none tracking-[0.06em] text-slate-950">
-              STUDY
-            </p>
-            <p className="mt-3 text-sm tracking-[0.12em] text-slate-500">
-              필요한 스터디 흐름을 바로 시작해 보세요.
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <Link
-            href="/login"
-            className="inline-flex w-full items-center justify-center rounded-full bg-[var(--brand)] px-6 py-4 text-base font-semibold text-white shadow-[0_18px_36px_rgba(121,184,149,0.26)] transition hover:brightness-[0.98]"
-          >
-            로그인 시작하기
-          </Link>
-
-          <div className="flex items-center justify-center gap-3 text-sm text-slate-500">
-            <Link href="/signup" className="font-medium text-[var(--brand)] transition hover:brightness-90">
-              계정 만들기
-            </Link>
-            <span className="text-slate-300">|</span>
-            <span>아이디 비밀번호 찾기</span>
-          </div>
-        </div>
-      </div>
-    </main>
-  );
 }
 
 function ProfileUserIcon() {
@@ -620,7 +559,7 @@ export function StudyEntryScreen() {
   const { isAuthReady, sessionName } = useAuth();
 
   if (!isAuthReady || !sessionName) {
-    return <SplashScreen />;
+    return <StudyOnboardingScreen />;
   }
 
   return <AuthenticatedHome />;
