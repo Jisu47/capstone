@@ -11,6 +11,7 @@ const slides = [
     width: 1179,
     height: 2556,
     label: "Study Flow 시작 화면",
+    wordmark: "STUDY FLOW",
   },
   {
     image: "study.png",
@@ -107,6 +108,9 @@ export function StudyOnboardingScreen() {
                   draggable={false}
                 />
               </div>
+              {slide.wordmark && (
+                <p className={styles.wordmark} lang="en">{slide.wordmark}</p>
+              )}
               {slide.caption && (
                 <p className={styles.caption}>
                   {slide.caption[0]}

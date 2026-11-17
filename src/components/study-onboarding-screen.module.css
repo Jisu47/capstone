@@ -126,11 +126,23 @@
 }
 
 .slide[data-slide="1"] .artwork {
-  aspect-ratio: 1.7;
+  aspect-ratio: 1179 / 501;
 }
 
 .slide[data-slide="1"] .artwork img {
-  inset-block-start: -100%;
+  /* Keep the illustration above the lettering baked into the reference. */
+  inset-block-start: -141.5%;
+}
+
+.wordmark {
+  margin: 0;
+  color: #405e4f;
+  font-family: var(--font-study-display);
+  font-size: clamp(1.35rem, 6.1vw, 1.9rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.11em;
+  text-align: center;
 }
 
 .slide[data-slide="3"] .artwork {
