@@ -137,11 +137,15 @@
 
 .form {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: clamp(0.95rem, 2.65svh, 1.5rem);
 }
 
 .field {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: 0.35rem;
 }
 
@@ -154,6 +158,8 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  width: 100%;
+  min-width: 0;
   min-height: 2.95rem;
   padding-inline: 0.94rem 0.22rem;
   border: 1px solid #dfe7df;
@@ -183,7 +189,8 @@
 }
 
 .inputRow input {
-  flex: 1;
+  flex: 1 1 0%;
+  width: 0;
   min-width: 0;
   align-self: stretch;
   padding: 0 0.25rem;
