@@ -18,26 +18,47 @@ StudyFlow의 유일한 최종 UI 기준은 **Design Preview V2**, `/design-previ
 
 ### Colors
 
-현재 V2 전용 CSS와 예시에 실제 사용하는 값이다. 서비스 전역 token의 변경 지시가 아니다.
+색상은 `src/components/design-preview-v2/color-tokens.ts` 한 곳에서 정의하고,
+화면 루트에 `--v2-{token name}` CSS 변수로 전달한다. 서비스 전역 token은 변경하지 않는다.
 
-| 용도 | 값 |
-| --- | --- |
-| Header / Sidebar 프레임 | `#205D40` (`--v2-frame`) |
-| 주요 동작·강조 | `#27834F` (`--v2-green`) |
-| 연한 녹색 | `#EEF7F1` (`--v2-soft`) |
-| 흰색 바탕·카드 | `#FFFFFF` |
-| 기본 텍스트 | `#242B27` |
-| 보조 텍스트 | `#707773` (`--v2-muted`) |
-| 기본 border | `#E5E7E6` (`--v2-line`) |
-| 상세 예시 영역 바탕 | `#FAFCFB` |
-| Primary hover | `#216E43` |
-| Secondary hover | `#EEF7F1` |
-| Disabled 배경 / 글자 | `#E5EAE7` / `#6E7872` |
-| Overview hover 배경 / border | `#F7FAF8` / `#B6D3C0` |
+참고 소스는 `src/app/globals.css`, `src/app/login/page.tsx`, `src/components/study-create-screen.tsx`다.
+현재 소스의 실제 로그인·그룹 생성 CTA는 여전히 `--brand: #79B895`다. 어두운 CTA가 구현되어 있다고 간주하지 않는다.
+Design System은 사용자가 요청한 dark Primary 역할을 위해 기존 muted dark 프레임색 `#4B6C57`을 Primary로 승격한다.
+`#79B895`는 Accent·아이콘·작은 표본에 사용하고 Primary 버튼 배경에는 사용하지 않는다.
+Header/Sidebar는 기존 `#4B6C57`을 유지하며 본문·Overview·Detail 배경은 흰색으로 복원한다.
+이 역할 변경은 Design System 내부에만 적용하며 실제 서비스 CTA를 수정하지 않는다.
 
-프레임 글자는 흰색, 보조 글자는 흰색 76%, 메뉴는 흰색 86%다.
-선택 메뉴는 흰색 배경과 `#205D40` 글자다. 메뉴 hover는 흰색 10%다.
-강조색은 녹색 한 계열이며 shadow, gradient, glassmorphism은 사용하지 않는다.
+| Token name | Value | 용도 |
+| --- | --- | --- |
+| `primary` | `#4B6C57` | 승인된 muted dark 메인 액션·중요 선택·강조 |
+| `primary-hover` | `#405C4A` | Primary보다 어두운 동일 계열 hover |
+| `primary-foreground` | `#FFFFFF` | Primary 버튼 글자 |
+| `background` | `#FFFFFF` | Main content·Overview·Detail·상세 stage의 흰색 배경 |
+| `accent` | `#79B895` | 서비스 `--brand`를 재사용한 보조 강조·Overview 색상 표본 |
+| `surface` | `#FFFFFF` | Card / Input / Modal / Overview 항목 |
+| `surface-subtle` | `#E6F3EB` | 서비스 `--brand-soft`와 동일한 연녹색·Secondary hover |
+| `border` | `#E0E4E2` | 입력·카드·구분선. 서비스 보조색 `#66786F`를 흰색에 20% 혼합한 gray-green |
+| `text-primary` | `#38423D` | 중요 텍스트. 서비스 `#66786F` RGB를 55%로 어둡게 조정 |
+| `text-secondary` | `#66786F` | 서비스 `--ink-soft`와 동일한 보조 설명 |
+| `text-muted` | `#7D8C85` | Placeholder / 약한 텍스트. 보조색을 흰색에 85% 혼합 |
+| `icon-primary` | `#79B895` | 서비스 브랜드 녹색의 대표 아이콘·Input focus border |
+| `icon-muted` | `#66786F` | 차분한 보조 아이콘 |
+| `disabled-background` | `#E6F3EB` | Disabled 버튼 배경 |
+| `disabled-text` | `#7D8C85` | Disabled 버튼 글자 |
+| `focus` | `rgba(121,184,149,0.42)` | 서비스 녹색 기반의 부드러운 focus outline |
+| `frame` | `#4B6C57` | 같은 green family의 muted dark Header / Sidebar |
+| `on-frame` | `#FFFFFF` | 프레임 주요 글자·토글 아이콘 |
+| `on-frame-secondary` | `rgba(255,255,255,0.76)` | 프레임 보조 글자 |
+| `on-frame-menu` | `rgba(255,255,255,0.86)` | 기본 메뉴 글자 |
+| `frame-hover` | `rgba(255,255,255,0.10)` | 프레임 메뉴·토글 hover |
+| `frame-border` | `rgba(255,255,255,0.24)` | 토글 border |
+
+선택 메뉴는 기존과 같이 흰색 `surface` 배경 + `frame` 글자를 사용한다.
+색상 상세는 기존 4개 swatch 안에서 Primary / Primary Hover / Accent / Background를 표시한다.
+각 swatch의 기본 title 툴팁에 Text Primary·Text Secondary / Foreground·Disabled / Soft Accent·Icon / Surface·Border의 관련 값을 표시한다.
+전체 palette는 위 표에서도 확인한다. 기존 swatch 수·크기·그리드와 상세 구조를 늘리지 않는다.
+Primary 버튼은 dark green + 흰 글자, Secondary·Disabled·Input의 기존 색상 역할은 유지한다.
+강조색은 녹색 한 계열이고 shadow, gradient, glassmorphism은 사용하지 않는다.
 
 ### Typography
 
@@ -64,7 +85,7 @@ Radius 상세는 8, 12, 16px을 비교한다. 카드·상세 stage는 16px, Over
 
 ### Border
 
-기본은 1px `#E5E7E6`다. 카드 외곽선과 정보 사이의 구분선으로 구조를 표현한다.
+기본은 1px `border` token이다. 카드 외곽선과 정보 사이의 구분선으로 구조를 표현한다.
 Tabs 선택 표시는 2px 녹색 하단 선이다. 그림자로 영역을 구분하지 않는다.
 
 ## Components
@@ -86,7 +107,7 @@ size·variant·state를 임의로 추가하지 않는다. 서비스 적용 전 �
 
 - Header는 전체 너비의 진한 녹색 프레임이다. min-height는 76px, 760px 이하 68px이며 아래 border는 1px이다.
 - Sidebar는 viewport 왼쪽 끝, 폭 224px이다. 좁은 화면에서도 왼쪽 세로형을 유지한다.
-- 흰색 Content는 Sidebar 바로 오른쪽의 남은 너비를 사용한다. 중앙 정렬 max-width는 없다.
+- `background` 색 Content는 Sidebar 바로 오른쪽의 남은 너비를 사용한다. 중앙 정렬 max-width는 없다.
 - 760px 이하 Content 자식은 최소 너비 320px이고 Content 내부 가로 스크롤을 허용한다.
 - Header의 Sidebar 토글로 접으면 Content가 전체 너비로 확장된다. React 로컬 상태이며 새로고침하면 펼쳐진다.
 - Overview는 Foundations 5개, Components 5개다. 1024px 이상 3열, 360~1023px 2열, 359px 이하 1열이다.

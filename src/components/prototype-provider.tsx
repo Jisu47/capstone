@@ -201,10 +201,6 @@ function toErrorMessage(error: unknown) {
       return "Supabase 환경 변수가 비어 있어요.";
     }
 
-    if (error.message.includes("GEMINI_API_KEY")) {
-      return "Gemini API 키가 비어 있어요.";
-    }
-
     return error.message;
   }
 
@@ -1216,7 +1212,7 @@ export function PrototypeProvider({
     };
 
     if (!response.ok || !data.text?.trim()) {
-      throw new Error(data.error ?? "Gemini API returned an empty response.");
+      throw new Error(data.error ?? "AI 응답이 비어 있어요. 다시 시도해 주세요.");
     }
 
     return {

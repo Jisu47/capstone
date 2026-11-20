@@ -1,5 +1,7 @@
 import "server-only";
 
+import { requestOpenAI } from "@/lib/server/openai";
+
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
@@ -36,7 +38,6 @@ import {
 const DATA_DIRECTORY = path.join(process.cwd(), "data");
 const UPLOAD_DIRECTORY = path.join(DATA_DIRECTORY, "uploads");
 const DATABASE_PATH = path.join(DATA_DIRECTORY, "study-flow-db.json");
-const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 const MAX_SOURCE_CHUNKS = 3;
 
 let writeQueue = Promise.resolve<unknown>(undefined);
@@ -683,38 +684,19 @@ async function generateOpenAiAnswer(question: string, sources: SourceCardDto[]) 
     )
     .join("\n\n");
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: OPENAI_MODEL,
+  // Retained prototype API: share the same provider, model and safety policy.
+  try {
+    const response = await requestOpenAI({
+      instructions: "You answer in Korean. Only use the provided study material context. If the answer is not grounded in the context, say you could not find it in the materials.",
+      input: `질문: ${question}\n\n자료 근거:\n${context}\n\n2~4문장으로 간결하게 답하고, 과장하지 마세요.`,
       temperature: 0.2,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You answer in Korean. Only use the provided study material context. If the answer is not grounded in the context, say you could not find it in the materials.",
-        },
-        {
-          role: "user",
-          content: `질문: ${question}\n\n자료 근거:\n${context}\n\n2~4문장으로 간결하게 답하고, 과장하지 마세요.`,
-        },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
+      max_output_tokens: 384,
+    });
+    return response.status === "completed" ? response.output_text.trim() : null;
+  } catch {
+    // Keep the existing prototype's grounded fallback without exposing SDK errors.
     return null;
   }
-
-  const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-
-  return payload.choices?.[0]?.message?.content?.trim() ?? null;
 }
 
 async function writeUploadToDisk(groupId: string, fileName: string, buffer: Buffer) {

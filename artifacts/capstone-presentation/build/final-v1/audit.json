@@ -1,0 +1,59 @@
+{
+  "unchangedSlidesDifference": [],
+  "slideCount": 15,
+  "package": "pass",
+  "layoutFindings": 0,
+  "importPassed": true,
+  "unknownMedia": [],
+  "personalText": [],
+  "media": [
+    {
+      "name": "ppt/media/image.jpeg",
+      "source": "group-example.jpg"
+    },
+    {
+      "name": "ppt/media/image2.jpeg",
+      "source": "reference-input.jpg"
+    },
+    {
+      "name": "ppt/media/image3.jpeg",
+      "source": "materials-example.jpg"
+    },
+    {
+      "name": "ppt/media/image4.jpeg",
+      "source": "todo-settings.jpg"
+    },
+    {
+      "name": "ppt/media/image5.jpeg",
+      "source": "plan-agent.jpg"
+    },
+    {
+      "name": "ppt/media/image6.jpeg",
+      "source": "plan-edit.jpg"
+    },
+    {
+      "name": "ppt/media/image7.jpeg",
+      "source": "materials-upload-example.jpg"
+    },
+    {
+      "name": "ppt/media/image8.jpeg",
+      "source": "materials-chat-example.jpg"
+    },
+    {
+      "name": "ppt/media/image9.jpeg",
+      "source": "shared-plan.jpg"
+    },
+    {
+      "name": "ppt/media/image10.jpeg",
+      "source": "personal-review.jpg"
+    },
+    {
+      "name": "ppt/media/image11.jpeg",
+      "source": "design-overview.png"
+    },
+    {
+      "name": "ppt/media/image12.jpeg",
+      "source": "design-button-crop.png"
+    }
+  ]
+}

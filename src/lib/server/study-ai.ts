@@ -1,3 +1,7 @@
+import "server-only";
+
+import type { ResponseInput } from "openai/resources/responses/responses";
+import { AiRequestError, requestOpenAI } from "@/lib/server/openai";
 import type {
   AiChatGroupContext,
   AiChatHistoryEntry,
@@ -11,45 +15,7 @@ import {
   type PlanReferenceAnalysisResult,
 } from "@/lib/plan-flow";
 
-type GeminiTextPart = {
-  text: string;
-};
-
-type GeminiInlineDataPart = {
-  inline_data: {
-    mime_type: string;
-    data: string;
-  };
-};
-
-type GeminiMessagePart = GeminiTextPart | GeminiInlineDataPart;
-
-type GeminiContent = {
-  role: "user" | "model";
-  parts: GeminiMessagePart[];
-};
-
-type GeminiCandidate = {
-  content?: {
-    parts?: Array<{
-      text?: string;
-    }>;
-  };
-  finishReason?: string;
-  finishMessage?: string;
-};
-
-type GeminiResponse = {
-  candidates?: GeminiCandidate[];
-  promptFeedback?: {
-    blockReason?: string;
-  };
-  error?: {
-    message?: string;
-  };
-};
-
-export type GeminiAnswerResult = {
+export type AiAnswerResult = {
   text: string;
   finishReason: string | null;
   finishMessage: string | null;
@@ -65,13 +31,6 @@ export type PlanReferenceAnalysisRequest = {
   imageDataUrl: string;
 };
 
-const defaultGeminiModel = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
-const fallbackGeminiModel =
-  process.env.GEMINI_FALLBACK_MODEL?.trim() || "gemini-2.5-flash-lite";
-const secondaryFallbackGeminiModel =
-  process.env.GEMINI_SECONDARY_FALLBACK_MODEL?.trim() || "gemini-2.0-flash";
-const retriableStatusCodes = new Set([429, 500, 502, 503, 504]);
-const maxGeminiAttempts = 3;
 const planAgentMaxOutputTokens = 1536;
 const materialsMaxOutputTokens = 384;
 const maxPlanAgentContinuationTurns = 2;
@@ -86,65 +45,33 @@ const planContextRoadmapLimit = 4;
 const planContextWeeklyPlanLimit = 4;
 const maxContextLineLength = 88;
 
-export class GeminiRequestError extends Error {
-  status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.name = "GeminiRequestError";
-    this.status = status;
-  }
-}
-
-function delay(milliseconds: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, milliseconds);
-  });
-}
-
-function getRetryDelayMilliseconds(attempt: number, retryAfterHeader: string | null) {
-  const retryAfterSeconds = Number.parseInt(retryAfterHeader ?? "", 10);
-
-  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
-    return retryAfterSeconds * 1000;
-  }
-
-  return 800 * 2 ** Math.max(0, attempt - 1);
-}
-
-function getGeminiModelCandidates() {
-  return [...new Set([defaultGeminiModel, fallbackGeminiModel, secondaryFallbackGeminiModel])].filter(
-    (model) => model.trim().length > 0,
-  );
-}
-
-function trimHistory(scope: AiChatScope, history: AiChatHistoryEntry[]): GeminiContent[] {
+function trimHistory(scope: AiChatScope, history: AiChatHistoryEntry[]): ResponseInput {
   const historyLimit = scope === "materials" ? materialsHistoryLimit : planAgentHistoryLimit;
 
   return history
     .slice(-historyLimit)
     .filter((entry) => entry.text.trim().length > 0)
     .map((entry) => ({
-      role: entry.role === "assistant" ? ("model" as const) : ("user" as const),
-      parts: [{ text: entry.text.trim() }],
+      role: entry.role === "assistant" ? ("assistant" as const) : ("user" as const),
+      content: entry.text.trim(),
     }));
 }
 
-function buildGeminiContents(
+function buildChatInput(
   scope: AiChatScope,
   group: AiChatGroupContext,
   history: AiChatHistoryEntry[],
   question: string,
-): GeminiContent[] {
+): ResponseInput {
   return [
     {
       role: "user",
-      parts: [{ text: buildGroupContext(scope, group, question) }],
+      content: buildGroupContext(scope, group, question),
     },
     ...trimHistory(scope, history),
     {
       role: "user",
-      parts: [{ text: question.trim() }],
+      content: question.trim(),
     },
   ];
 }
@@ -514,7 +441,7 @@ function parseDataUrl(dataUrl: string) {
   const matched = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
 
   if (!matched) {
-    throw new Error("진도표 이미지 형식을 읽지 못했어요. 다시 업로드해 주세요.");
+    throw new AiRequestError(400, "진도표 이미지 형식을 읽지 못했어요. 다시 업로드해 주세요.");
   }
 
   const [, mimeType, base64Data] = matched;
@@ -703,57 +630,6 @@ function extractPlanAgentDraftFromAnswer(text: string) {
   }
 }
 
-function extractAnswerResult(
-  response: GeminiResponse,
-  model: string,
-  scope: AiChatScope,
-): GeminiAnswerResult {
-  const primaryCandidate = response.candidates?.[0];
-  const rawText = primaryCandidate?.content?.parts
-    ?.map((part) => part.text ?? "")
-    .join("")
-    .trim();
-
-  if (rawText) {
-    const finishReason = primaryCandidate?.finishReason ?? null;
-    const finishMessage = primaryCandidate?.finishMessage ?? null;
-    const parsedPlanAgentAnswer =
-      scope === "plan-agent"
-        ? extractPlanAgentDraftFromAnswer(rawText)
-        : { visibleText: rawText, draft: null as PlanAgentDraft | null };
-
-    return {
-      text: parsedPlanAgentAnswer.visibleText,
-      finishReason,
-      finishMessage,
-      isComplete: finishReason === null || finishReason === "STOP",
-      model,
-      planAgentDraft: parsedPlanAgentAnswer.draft,
-    };
-  }
-
-  if (response.promptFeedback?.blockReason) {
-    throw new Error(
-      `Gemini blocked the prompt: ${response.promptFeedback.blockReason}.`,
-    );
-  }
-
-  throw new Error("Gemini API returned an empty response.");
-}
-
-function extractApiError(payload: unknown) {
-  if (!payload || typeof payload !== "object") {
-    return null;
-  }
-
-  const maybePayload = payload as GeminiResponse;
-  return maybePayload.error?.message ?? null;
-}
-
-function getMaxOutputTokens(scope: AiChatScope) {
-  return scope === "materials" ? materialsMaxOutputTokens : planAgentMaxOutputTokens;
-}
-
 function buildContinuationPrompt() {
   return [
     "방금 답변이 길어서 중간에 끊겼습니다.",
@@ -762,290 +638,71 @@ function buildContinuationPrompt() {
   ].join(" ");
 }
 
-function mergeAnswerText(previous: string, next: string) {
-  if (!previous) {
-    return next;
-  }
-
-  if (!next) {
-    return previous;
-  }
-
-  if (previous.endsWith("\n") || next.startsWith("\n")) {
-    return `${previous}${next}`;
-  }
-
-  return `${previous}\n${next}`;
-}
-
-async function requestGeminiContent(
-  apiKey: string,
-  scope: AiChatScope,
-  contents: GeminiContent[],
-) {
-  const modelCandidates = getGeminiModelCandidates();
-  let lastRetriableError: GeminiRequestError | null = null;
-
-  for (const model of modelCandidates) {
-    for (let attempt = 1; attempt <= maxGeminiAttempts; attempt += 1) {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": apiKey,
-          },
-          body: JSON.stringify({
-            systemInstruction: {
-              parts: [{ text: buildSystemInstruction(scope) }],
-            },
-            contents,
-            generationConfig: {
-              temperature: scope === "materials" ? 0.45 : 0.65,
-              topP: 0.95,
-              maxOutputTokens: getMaxOutputTokens(scope),
-              responseMimeType: "text/plain",
-            },
-          }),
-          cache: "no-store",
-        },
-      );
-
-      if (response.ok) {
-        const payload = (await response.json()) as GeminiResponse;
-        return extractAnswerResult(payload, model, scope);
-      }
-
-      let detail = response.statusText;
-
-      try {
-        const payload = (await response.json()) as unknown;
-        detail = extractApiError(payload) ?? detail;
-      } catch {
-        detail = await response.text();
-      }
-
-      if (retriableStatusCodes.has(response.status) && attempt < maxGeminiAttempts) {
-        await delay(
-          getRetryDelayMilliseconds(attempt, response.headers.get("retry-after")),
-        );
-        continue;
-      }
-
-      const requestError = new GeminiRequestError(
-        response.status,
-        `Gemini API request failed (${response.status}) [${model}]: ${detail}`,
-      );
-
-      if ((response.status === 429 || response.status === 503) && model !== modelCandidates.at(-1)) {
-        lastRetriableError = requestError;
-        break;
-      }
-
-      throw requestError;
-    }
-  }
-
-  if (lastRetriableError) {
-    throw new GeminiRequestError(
-      lastRetriableError.status,
-      `${lastRetriableError.message}. All configured Gemini fallback models were unavailable.`,
-    );
-  }
-
-  throw new GeminiRequestError(
-    503,
-    "Gemini API request failed (503): The service remained unavailable after retries.",
-  );
-}
-
-async function requestPlanReferenceAnalysis(
-  apiKey: string,
-  request: PlanReferenceAnalysisRequest,
-) {
-  const parsedDataUrl = parseDataUrl(request.imageDataUrl);
-  const resolvedMimeType = request.mimeType.trim() || parsedDataUrl.mimeType;
-
-  if (!resolvedMimeType.startsWith("image/")) {
-    throw new Error("진도표 분석은 이미지 파일만 지원해요.");
-  }
-
-  const modelCandidates = getGeminiModelCandidates();
-  let lastRetriableError: GeminiRequestError | null = null;
-
-  for (const model of modelCandidates) {
-    for (let attempt = 1; attempt <= maxGeminiAttempts; attempt += 1) {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": apiKey,
-          },
-          body: JSON.stringify({
-            systemInstruction: {
-              parts: [{ text: buildPlanReferenceAnalysisInstruction() }],
-            },
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  {
-                    inline_data: {
-                      mime_type: resolvedMimeType,
-                      data: parsedDataUrl.base64Data,
-                    },
-                  },
-                  {
-                    text: buildPlanReferenceAnalysisPrompt(
-                      request.subject,
-                      request.fileName,
-                    ),
-                  },
-                ],
-              },
-            ],
-            generationConfig: {
-              temperature: 0.1,
-              topP: 0.8,
-              maxOutputTokens: planReferenceAnalysisMaxOutputTokens,
-              responseMimeType: "text/plain",
-            },
-          }),
-          cache: "no-store",
-        },
-      );
-
-      if (response.ok) {
-        const payload = (await response.json()) as GeminiResponse;
-        const answer = extractAnswerResult(payload, model, "materials");
-
-        try {
-          return parsePlanReferenceAnalysisText(answer.text, request.fileName);
-        } catch (error) {
-          throw new Error(
-            error instanceof Error
-              ? error.message
-              : "진도표 분석 결과를 해석하지 못했어요.",
-          );
-        }
-      }
-
-      let detail = response.statusText;
-
-      try {
-        const payload = (await response.json()) as unknown;
-        detail = extractApiError(payload) ?? detail;
-      } catch {
-        detail = await response.text();
-      }
-
-      if (retriableStatusCodes.has(response.status) && attempt < maxGeminiAttempts) {
-        await delay(
-          getRetryDelayMilliseconds(attempt, response.headers.get("retry-after")),
-        );
-        continue;
-      }
-
-      const requestError = new GeminiRequestError(
-        response.status,
-        `Gemini API request failed (${response.status}) [${model}]: ${detail}`,
-      );
-
-      if ((response.status === 429 || response.status === 503) && model !== modelCandidates.at(-1)) {
-        lastRetriableError = requestError;
-        break;
-      }
-
-      throw requestError;
-    }
-  }
-
-  if (lastRetriableError) {
-    throw new GeminiRequestError(
-      lastRetriableError.status,
-      `${lastRetriableError.message}. All configured Gemini fallback models were unavailable.`,
-    );
-  }
-
-  throw new GeminiRequestError(
-    503,
-    "Gemini API request failed (503): The service remained unavailable after retries.",
-  );
-}
-
-export function getGeminiModel() {
-  return defaultGeminiModel;
-}
-
-export async function generateGeminiAnswer({
-  scope,
-  question,
-  history,
-  group,
-}: AiChatRequest) {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-
-  if (!apiKey) {
-    throw new Error("Gemini API key is missing. Set GEMINI_API_KEY in .env.local.");
-  }
-
-  let contents = buildGeminiContents(scope, group, history, question);
+export async function generateAiAnswer({ scope, question, history, group }: AiChatRequest): Promise<AiAnswerResult> {
+  let input = buildChatInput(scope, group, history, question);
   let combinedText = "";
-  let lastResult: GeminiAnswerResult | null = null;
+  let result: AiAnswerResult | null = null;
   const maxContinuationTurns = scope === "plan-agent" ? maxPlanAgentContinuationTurns : 0;
 
-  for (let continuationTurn = 0; continuationTurn <= maxContinuationTurns; continuationTurn += 1) {
-    const result = await requestGeminiContent(apiKey, scope, contents);
-    const normalizedText = result.text.trim();
-
-    combinedText = mergeAnswerText(combinedText, normalizedText);
-    lastResult = result;
-
-    if (scope !== "plan-agent" || result.finishReason !== "MAX_TOKENS") {
-      break;
-    }
-
-    contents = [
-      ...contents,
-      {
-        role: "model",
-        parts: [{ text: normalizedText }],
-      },
-      {
-        role: "user",
-        parts: [{ text: buildContinuationPrompt() }],
-      },
-    ];
+  for (let turn = 0; turn <= maxContinuationTurns; turn += 1) {
+    const response = await requestOpenAI({
+      instructions: buildSystemInstruction(scope),
+      input,
+      temperature: scope === "materials" ? 0.45 : 0.65,
+      max_output_tokens: scope === "materials" ? materialsMaxOutputTokens : planAgentMaxOutputTokens,
+    });
+    // Keep raw text until all continuations are merged: a token boundary can split the draft JSON.
+    const text = response.output_text;
+    const separator = combinedText.includes(planAgentDraftMarker) ? "" : "\n";
+    combinedText = combinedText ? `${combinedText}${separator}${text}` : text;
+    const truncated = response.status === "incomplete" && response.incomplete_details?.reason === "max_output_tokens";
+    result = {
+      text: combinedText,
+      finishReason: truncated ? "MAX_TOKENS" : response.status === "completed" ? "STOP" : "INCOMPLETE",
+      finishMessage: null,
+      isComplete: response.status === "completed",
+      model: response.model,
+      planAgentDraft: null,
+    };
+    if (!truncated || scope !== "plan-agent") break;
+    input = [...input, { role: "assistant", content: text }, { role: "user", content: buildContinuationPrompt() }];
   }
 
-  if (!lastResult) {
-    throw new Error("Gemini API returned an empty response.");
+  if (!result) throw new AiRequestError(502, "AI 응답을 준비하지 못했어요.");
+  const parsed = scope === "plan-agent"
+    ? extractPlanAgentDraftFromAnswer(combinedText)
+    : { visibleText: combinedText, draft: null };
+  if (!parsed.visibleText || (result.isComplete && combinedText.includes(planAgentDraftMarker) && !parsed.draft)) {
+    throw new AiRequestError(502, "계획 초안 응답 형식을 읽지 못했어요. 다시 시도해 주세요.");
   }
-
-  const finalPlanAgentAnswer =
-    scope === "plan-agent"
-      ? extractPlanAgentDraftFromAnswer(combinedText)
-      : { visibleText: combinedText, draft: null as PlanAgentDraft | null };
-
-  return {
-    ...lastResult,
-    text: finalPlanAgentAnswer.visibleText,
-    isComplete: lastResult.finishReason === null || lastResult.finishReason === "STOP",
-    planAgentDraft: finalPlanAgentAnswer.draft ?? lastResult.planAgentDraft,
-  };
+  // An incomplete draft must never become an applicable plan.
+  return { ...result, text: parsed.visibleText, planAgentDraft: result.isComplete ? parsed.draft : null };
 }
 
-export async function analyzePlanReferenceImage(
-  request: PlanReferenceAnalysisRequest,
-) {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-
-  if (!apiKey) {
-    throw new Error("Gemini API key is missing. Set GEMINI_API_KEY in .env.local.");
+export async function analyzePlanReferenceImage(request: PlanReferenceAnalysisRequest) {
+  const parsed = parseDataUrl(request.imageDataUrl);
+  const mimeType = request.mimeType.trim() || parsed.mimeType;
+  if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(mimeType) || mimeType !== parsed.mimeType) {
+    throw new AiRequestError(400, "진도표 분석은 PNG, JPEG, WEBP, GIF 이미지 파일을 지원해요.");
   }
-
-  return requestPlanReferenceAnalysis(apiKey, request);
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(parsed.base64Data)) {
+    throw new AiRequestError(400, "진도표 이미지 형식을 읽지 못했어요. 다시 업로드해 주세요.");
+  }
+  const response = await requestOpenAI({
+    instructions: buildPlanReferenceAnalysisInstruction(),
+    input: [{ role: "user", content: [
+      { type: "input_text", text: buildPlanReferenceAnalysisPrompt(request.subject, request.fileName) },
+      { type: "input_image", image_url: request.imageDataUrl, detail: "high" },
+    ] }],
+    temperature: 0.1,
+    max_output_tokens: planReferenceAnalysisMaxOutputTokens,
+  });
+  if (response.status !== "completed") {
+    throw new AiRequestError(502, "진도표 이미지 분석이 완료되지 않았어요. 다시 시도해 주세요.");
+  }
+  try {
+    return parsePlanReferenceAnalysisText(response.output_text, request.fileName);
+  } catch {
+    throw new AiRequestError(502, "진도표에서 읽을 수 있는 계획 단위를 찾지 못했어요. 더 선명한 이미지로 다시 업로드해 주세요.");
+  }
 }

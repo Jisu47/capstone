@@ -1,0 +1,176 @@
+{
+  "basis": "현재 로컬 코드 및 실제 Preview 캡처",
+  "sourceCodeUnmodified": true,
+  "colors": {
+    "frame": "#205D40",
+    "green": "#27834F",
+    "soft": "#EEF7F1",
+    "line": "#E5E7E6",
+    "ink": "#242B27",
+    "muted": "#707773",
+    "white": "#FFFFFF",
+    "stage": "#FAFCFB"
+  },
+  "font": "Malgun Gothic",
+  "slides": [
+    {
+      "slide": 1,
+      "title": "STUDY FLOW",
+      "sources": [
+        "docs/midterm-checkpoint-report.md",
+        "src/lib/ai-chat.ts",
+        "src/lib/plan-flow.ts"
+      ]
+    },
+    {
+      "slide": 2,
+      "title": "학습 계획과 자료가 분리된 학습 과정",
+      "label": "Project background",
+      "sources": [
+        "docs/midterm-checkpoint-report.md"
+      ],
+      "notes": "기획 문서는 공용 자료가 늘어날수록 무엇을 언제 공부할지 정리하기 어렵고, 리더가 계획과 진도를 수동으로 관리해야 한다는 문제의식을 제시합니다. 이 슬라이드는 기획 배경이며 사용자 조사로 입증한 시장 성과를 뜻하지 않습니다."
+    },
+    {
+      "slide": 3,
+      "title": "계획과 자료를 같은 학습 맥락으로",
+      "label": "Project goal",
+      "sources": [
+        "src/lib/ai-chat.ts",
+        "src/components/prototype-provider.tsx",
+        "src/lib/gemini.ts"
+      ],
+      "notes": "계획 AI와 자료 AI는 같은 그룹 목표, 자료 요약, 주간 계획을 맥락으로 활용합니다. 계획 생성 자체와 자료 질의응답은 별도 scope이며, 모든 자료를 자동으로 주차에 매칭하는 기능이 완성됐다는 의미는 아닙니다."
+    },
+    {
+      "slide": 4,
+      "title": "서비스 전체 흐름",
+      "label": "Service overview",
+      "sources": [
+        "src/components/auth-provider.tsx",
+        "src/components/study-create-screen.tsx",
+        "src/components/plan-screen.tsx",
+        "src/components/materials-screen.tsx",
+        "src/lib/plan-flow.ts"
+      ],
+      "notes": "공통 진입점은 로그인과 그룹 생성·참여입니다. 계획 경로는 진도표·목차 업로드에서 학습 단위·주간 계획으로 이어집니다. 자료 경로는 공용 자료 업로드와 AI 질의응답입니다. 계획 항목의 완료·이해도 피드백 및 개인 복습 후보 관리 코드가 있습니다. 아래는 기능 연결을 설명하는 개념도이며 모든 경로의 운영 검증을 뜻하지 않습니다."
+    },
+    {
+      "slide": 5,
+      "title": "계획 AI: 학습 단위를 주간 할 일로",
+      "label": "Core feature / Plan AI",
+      "sources": [
+        "src/app/api/plan-reference/analyze/route.ts",
+        "src/lib/gemini.ts",
+        "src/lib/plan-flow.ts",
+        "src/components/plan-agent-screen.tsx",
+        "src/lib/prototype-repository.ts"
+      ],
+      "notes": "진도표·목차 이미지 분석 API가 학습 단위를 반환하고, plan-flow가 로드맵을 구성합니다. Gemini 계획 채팅은 주간 계획 초안을 반환하며 PlanAgentScreen에는 미리보기 편집과 적용 UI가 있습니다. 리더 권한과 실제 적용 방식은 관련 provider와 repository에 구현되어 있습니다. 인증 세션이 없어 현재 서비스 화면 캡처는 보류했습니다."
+    },
+    {
+      "slide": 6,
+      "title": "자료 AI: 업로드 자료를 질문의 맥락으로",
+      "label": "Core feature / Material AI",
+      "sources": [
+        "src/app/api/groups/[id]/materials/route.ts",
+        "src/lib/server/material-upload.ts",
+        "src/lib/gemini.ts",
+        "src/components/materials-screen.tsx"
+      ],
+      "notes": "자료 업로드 API는 토큰과 그룹 멤버십을 확인하고 Storage에 파일을 저장합니다. 현재 material-upload는 파일에서 텍스트를 단순 추출해 첫 문단을 최대 120자 요약으로 저장합니다. Gemini는 자료 요약을 최대 5개, 각 요약을 짧게 잘라 맥락에 넣습니다. 임베딩 생성·벡터 검색·OCR 기반 PDF 처리가 완성된 구조는 확인되지 않습니다. 코드의 chunkText는 임베딩 검색 파이프라인이 아닙니다."
+    },
+    {
+      "slide": 7,
+      "title": "계획과 자료의 연결 방식",
+      "label": "Plan × Material",
+      "sources": [
+        "src/lib/mock-data.ts",
+        "src/lib/plan-flow.ts",
+        "src/lib/ai-chat.ts",
+        "src/components/prototype-provider.tsx",
+        "supabase/bootstrap.sql"
+      ],
+      "notes": "현재 강한 연결은 계획 기준 자료(plan_reference_uploads)에서 추출한 학습 단위(plan_reference_units)와 주간 계획(plan_items)의 reference_unit_sequence입니다. 별도의 공용 materials는 자료 채팅 맥락에 들어가며 주간 계획도 함께 전달합니다. n주차에 1~n주차 공용 자료를 자동 누적 매칭하는 기능은 확인되지 않아 표현하지 않습니다. 도식의 연결은 현재 데이터 구조를 단순화한 것입니다."
+    },
+    {
+      "slide": 8,
+      "title": "현재 시스템 구조",
+      "label": "System architecture",
+      "sources": [
+        "package.json",
+        "src/components/auth-provider.tsx",
+        "src/components/prototype-provider.tsx",
+        "src/lib/prototype-repository.ts",
+        "src/lib/client-api.ts",
+        "src/lib/supabase/browser.ts",
+        "src/lib/supabase/server.ts",
+        "src/app/api/ai/chat/route.ts",
+        "supabase/bootstrap.sql"
+      ],
+      "notes": "현재 코드는 단일 Next.js 앱입니다. 모든 데이터가 Route Handler만 거치는 구조는 아닙니다. AuthProvider와 prototype-repository에는 Supabase 브라우저 SDK 직접 접근이 있으며 AI와 자료 업로드는 서버 API 경로를 사용합니다. bootstrap.sql에 테이블·RLS·Storage 정의가 있지만 다수 정책이 anon/authenticated에 true를 허용하여 운영 보안이 완성됐다고 볼 수 없습니다. AI chat 및 이미지 분석 Route에는 요청 검증은 있으나 사용자·멤버십 확인이 별도로 보이지 않습니다. 발표에서는 보안 강화를 후속 과제로 제시합니다."
+    },
+    {
+      "slide": 9,
+      "title": "AI 협업 개발의 공통 기준",
+      "label": "Development process",
+      "sources": [
+        "AGENTS.md",
+        "src/components/mobile-shell.tsx",
+        "src/components/weekly-plan-tabs.tsx",
+        "src/components/design-preview-v2/design-preview-v2-screen.tsx"
+      ],
+      "notes": "사용자가 설명한 AI 기반 기능별 개발 맥락과 AGENTS.md의 규칙을 바탕으로 개발 과정의 개선점을 설명합니다. 실제 merge conflict 횟수, 중복 코드 감소율, 생산성 향상 수치는 확인되지 않았습니다. 서로 다른 기존 화면 스타일과 독립적인 디자인 preview가 존재하며 공통 컴포넌트 재사용·공유 파일 변경 최소화가 규칙에 명시돼 있습니다."
+    },
+    {
+      "slide": 10,
+      "title": "디자인 시스템의 구성",
+      "label": "Design system",
+      "sources": [
+        "src/components/design-preview-v2/design-preview-v2-screen.tsx",
+        "src/components/design-preview-v2/preview-overview.tsx",
+        "src/components/design-preview-v2/preview-example.tsx",
+        "src/components/design-preview-v2/preview.module.css"
+      ],
+      "notes": "DesignPreviewV2Screen은 Foundations 5개와 Components 5개를 구분합니다. Overview에서 개별 Detail로 이동하고 다시 돌아올 수 있으며, 사이드바 접기·펼치기도 구현돼 있습니다. 이 페이지는 CSS module로 격리된 임시 디자인 탐색 시안입니다. 전체 서비스의 production design system 전환이나 공통 컴포넌트 배포가 완료됐다는 의미는 아닙니다."
+    },
+    {
+      "slide": 11,
+      "title": "Design Preview V2",
+      "label": "Design system preview",
+      "sources": [
+        "src/components/design-preview-v2/design-preview-v2-screen.tsx",
+        "src/components/design-preview-v2/preview.module.css",
+        "http://localhost:3000/design-preview-v2"
+      ],
+      "notes": "실제 로컬 /design-preview-v2의 Overview와 Button 상세 화면을 캡처했습니다. 화면 이미지는 편집할 수 없는 비트맵이며 슬라이드의 제목·annotation은 편집 가능합니다. 캡처 시 서비스 데이터나 사용자 계정을 수정하지 않았습니다. 기준 요소를 한눈에 확인하고 상세 예시로 탐색하는 흐름을 보여 줍니다."
+    },
+    {
+      "slide": 12,
+      "title": "현재 결과와 남은 검증",
+      "label": "Result / Improvement",
+      "sources": [
+        "AGENTS.md",
+        "src/components/auth-provider.tsx",
+        "src/components/plan-agent-screen.tsx",
+        "src/lib/gemini.ts",
+        "supabase/bootstrap.sql",
+        "src/components/design-preview-v2/design-preview-v2-screen.tsx"
+      ],
+      "notes": "구현 확인은 코드와 실제 Preview 화면으로 확인했다는 뜻입니다. 로그인·업로드·AI 응답의 실계정 통합 시연, 실제 Supabase 배포 스키마, 운영 데이터는 확인하지 않았습니다. 학습 효과, 사용자 수, 성능 개선률도 측정 근거가 없어 제시하지 않습니다. 기존 문서와 달리 현재 코드에는 연동이 존재하지만, 범용 RAG와 운영 권한은 보완이 필요합니다."
+    },
+    {
+      "slide": 13,
+      "title": "향후 개선 방향",
+      "label": "Future work",
+      "sources": [
+        "src/lib/server/material-upload.ts",
+        "src/lib/gemini.ts",
+        "src/app/api/ai/chat/route.ts",
+        "supabase/bootstrap.sql",
+        "src/components/design-preview-v2/preview.module.css"
+      ],
+      "notes": "향후 방향 제안입니다. 벡터 검색과 문서 추출 품질 개선, AI API 인증과 그룹 권한 검증, DB RLS 제한, 디자인 토큰·공통 UI의 서비스 반영, 실제 사용자 검증을 우선 과제로 정리했습니다. 일정과 담당자, 이미 완료된 성과로 단정하지 않습니다."
+    }
+  ]
+}

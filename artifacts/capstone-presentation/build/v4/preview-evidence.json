@@ -1,0 +1,37 @@
+{
+  "source": "C:\\GitHub\\capstone\\artifacts\\capstone-presentation\\output\\StudyFlow_Capstone_Draft_v3.pptx",
+  "sourceHash": "d41f39cb1fefd9cfde02bddadb510447769d0b0d12d46e7c7b89e8bcc25b67e1",
+  "totalSlides": 14,
+  "changedSlides": [
+    4,
+    5,
+    6,
+    8,
+    12,
+    14
+  ],
+  "designSystemSlide": 11,
+  "origin": "http://127.0.0.1:3100",
+  "routes": [
+    "/presentation-preview/plan",
+    "/presentation-preview/materials",
+    "/presentation-preview/todo",
+    "/presentation-preview/review",
+    "/presentation-preview/group"
+  ],
+  "reuse": [
+    "PlanAgentScreen",
+    "MaterialsScreen",
+    "PlanFlowScreen",
+    "GroupHomeScreen",
+    "AppShell",
+    "GroupPageHeader",
+    "BottomNavigation",
+    "WeeklyPlanTabs",
+    "ProfileAvatar",
+    "PlanReferenceViewerDialog"
+  ],
+  "sampleData": "캡스톤 스터디 / 머신러닝 중간고사 / 세 구성원 / 3개 학습 단위 / 7개 주간 항목 / 2개 자료 / 개인 Todo 및 복습 후보",
+  "productionFilesModified": false,
+  "liveAIOrDatabaseValidation": false
+}

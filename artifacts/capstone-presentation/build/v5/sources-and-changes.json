@@ -1,0 +1,27 @@
+{
+  "source": "C:\\GitHub\\capstone\\artifacts\\capstone-presentation\\output\\StudyFlow_Capstone_Draft_v4.pptx",
+  "sourceHash": "8dae15669a4c2b6121bd0cda9a6782fce104337faeccba1d93564f17fe1902a8",
+  "paper": "C:/GitHub/capstone/docs/(초안) StudyFlow 두단_논문_양식.hwp",
+  "slideCount": 15,
+  "teamRolesBasis": "Git author history; A/B labels confirmed by user",
+  "privacy": "Neutral demo names and synthetic IDs; email removed; greeting excluded from group crop",
+  "productionFilesModified": false,
+  "modifiedPreviewFiles": [
+    "src/components/presentation-preview/demo-data.ts",
+    "src/components/presentation-preview/demo-adapter.tsx"
+  ],
+  "replacedV4Slides": {
+    "12": "Results / Current Status; removed repeated demo montage",
+    "14": "Limitation and conclusion; removed repeated group screenshot"
+  },
+  "researchImplementationSlides": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "designSystemSlide": 13,
+  "paperEvaluation": "All six functional scenarios remain unevaluated"
+}

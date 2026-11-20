@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { colorSwatches } from "./color-tokens";
 import type { PreviewItem } from "./design-preview-v2-screen";
 import styles from "./preview.module.css";
 
@@ -23,13 +24,8 @@ export function PreviewExample({ item }: { item: PreviewItem }) {
       return (
         <div className={styles.exampleStack}>
           <div className={styles.swatches}>
-            {[
-              ["Green", "#27834F"],
-              ["Soft green", "#EEF7F1"],
-              ["White", "#FFFFFF"],
-              ["Border", "#E5E7E6"],
-            ].map(([name, color]) => (
-              <div key={name}>
+            {colorSwatches.map(([name, color, relatedTokens]) => (
+              <div key={name} title={relatedTokens}>
                 <div className={styles.swatch} style={{ background: color }} />
                 <strong>{name}</strong><span>{color}</span>
               </div>

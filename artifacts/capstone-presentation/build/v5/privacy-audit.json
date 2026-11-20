@@ -1,0 +1,55 @@
+{
+  "slides": 15,
+  "media": [
+    {
+      "asset": "ppt/media/image.jpeg",
+      "approved": "group-flow.png"
+    },
+    {
+      "asset": "ppt/media/image2.jpeg",
+      "approved": "reference-flow.png"
+    },
+    {
+      "asset": "ppt/media/image3.jpeg",
+      "approved": "materials-flow.png"
+    },
+    {
+      "asset": "ppt/media/image4.jpeg",
+      "approved": "todo-flow.png"
+    },
+    {
+      "asset": "ppt/media/image5.jpeg",
+      "approved": "plan-agent.png"
+    },
+    {
+      "asset": "ppt/media/image6.jpeg",
+      "approved": "plan-edit.png"
+    },
+    {
+      "asset": "ppt/media/image7.jpeg",
+      "approved": "materials-upload.png"
+    },
+    {
+      "asset": "ppt/media/image8.jpeg",
+      "approved": "materials-chat.png"
+    },
+    {
+      "asset": "ppt/media/image9.jpeg",
+      "approved": "personal-items.png"
+    },
+    {
+      "asset": "ppt/media/image10.jpeg",
+      "approved": "review.png"
+    },
+    {
+      "asset": "ppt/media/image11.jpeg",
+      "approved": "design-overview.png"
+    },
+    {
+      "asset": "ppt/media/image12.jpeg",
+      "approved": "design-detail-crop.png"
+    }
+  ],
+  "unapprovedMedia": [],
+  "blockedVisibleText": []
+}

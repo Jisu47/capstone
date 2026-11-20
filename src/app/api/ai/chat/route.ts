@@ -1,9 +1,7 @@
+import { aiErrorResponse } from "@/lib/server/openai";
 import type { NextRequest } from "next/server";
 import type { AiChatRequest, AiChatResponse } from "@/lib/ai-chat";
-import {
-  GeminiRequestError,
-  generateGeminiAnswer,
-} from "@/lib/gemini";
+import { generateAiAnswer } from "@/lib/server/study-ai";
 
 export const runtime = "nodejs";
 
@@ -15,12 +13,20 @@ function isValidRequest(body: unknown): body is AiChatRequest {
   const request = body as Partial<AiChatRequest>;
   return (
     (request.scope === "materials" || request.scope === "plan-agent") &&
-    typeof request.question === "string" &&
+    typeof request.question === "string" && request.question.trim().length > 0 &&
     Array.isArray(request.history) &&
+    request.history.every((entry) => entry &&
+      (entry.role === "user" || entry.role === "assistant") && typeof entry.text === "string") &&
     Boolean(request.group) &&
     typeof request.group?.id === "string" &&
     typeof request.group?.name === "string" &&
-    typeof request.group?.subject === "string"
+    typeof request.group?.subject === "string" &&
+    ["weeklyGoal", "overallGoal", "description", "recentUpdate"].every(
+      (key) => typeof (request.group as unknown as Record<string, unknown>)[key] === "string",
+    ) &&
+    ["materials", "plan", "roadmap", "planReferenceUploads", "planReferenceUnits"].every(
+      (key) => Array.isArray((request.group as unknown as Record<string, unknown>)[key]),
+    )
   );
 }
 
@@ -32,7 +38,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "Invalid AI chat request." }, { status: 400 });
     }
 
-    const answer = await generateGeminiAnswer(body);
+    const answer = await generateAiAnswer(body);
     const response: AiChatResponse = {
       text: answer.text,
       model: answer.model,
@@ -44,32 +50,6 @@ export async function POST(request: NextRequest) {
 
     return Response.json(response);
   } catch (error) {
-    if (error instanceof GeminiRequestError) {
-      if (error.status === 503 || error.status === 429) {
-        return Response.json(
-          {
-            error:
-              "현재 AI 응답 요청이 많아 답변이 잠시 지연되고 있어요. 잠시 후 다시 시도해 주세요.",
-          },
-          { status: error.status },
-        );
-      }
-
-      if (error.status >= 500) {
-        return Response.json(
-          {
-            error:
-              "AI 응답을 준비하는 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.",
-          },
-          { status: error.status },
-        );
-      }
-
-      return Response.json({ error: error.message }, { status: error.status });
-    }
-
-    const message = error instanceof Error ? error.message : "Failed to generate Gemini response.";
-
-    return Response.json({ error: message }, { status: 500 });
+    return aiErrorResponse(error, "AI 응답을 준비하는 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.");
   }
 }

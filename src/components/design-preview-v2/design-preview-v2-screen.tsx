@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { colorStyle } from "./color-tokens";
 import { PreviewExample } from "./preview-example";
 import { PreviewOverview } from "./preview-overview";
 import styles from "./preview.module.css";
@@ -45,7 +46,7 @@ export function DesignPreviewV2Screen() {
   }
 
   return (
-    <div className={styles.root}>
+    <div className={styles.root} style={colorStyle}>
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <div className={styles.headerLeading}>

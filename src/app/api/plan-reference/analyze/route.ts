@@ -1,8 +1,6 @@
+import { aiErrorResponse } from "@/lib/server/openai";
 import type { NextRequest } from "next/server";
-import {
-  analyzePlanReferenceImage,
-  GeminiRequestError,
-} from "@/lib/gemini";
+import { analyzePlanReferenceImage } from "@/lib/server/study-ai";
 
 export const runtime = "nodejs";
 
@@ -42,35 +40,6 @@ export async function POST(request: NextRequest) {
     const analysis = await analyzePlanReferenceImage(body);
     return Response.json(analysis);
   } catch (error) {
-    if (error instanceof GeminiRequestError) {
-      if (error.status === 503 || error.status === 429) {
-        return Response.json(
-          {
-            error:
-              "현재 진도표 분석 요청이 많아 응답이 잠시 지연되고 있어요. 잠시 후 다시 시도해 주세요.",
-          },
-          { status: error.status },
-        );
-      }
-
-      if (error.status >= 500) {
-        return Response.json(
-          {
-            error:
-              "진도표 이미지를 분석하는 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.",
-          },
-          { status: error.status },
-        );
-      }
-
-      return Response.json({ error: error.message }, { status: error.status });
-    }
-
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Failed to analyze the uploaded plan reference image.";
-
-    return Response.json({ error: message }, { status: 500 });
+    return aiErrorResponse(error, "진도표 이미지를 분석하는 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.");
   }
 }

@@ -1,0 +1,11 @@
+{"kind":"deck","id":"pr/t3e8wo","name":"Deck"}
+{"kind":"layout","id":"ly/587at47u","editable":false,"name":"Master","type":"master"}
+{"kind":"layout","id":"ly/9k7qd0fe","editable":false,"name":"Title Slide","type":"title","placeholders":[{"name":"title","type":"title"},{"name":"subtitle","type":"subtitle"}]}
+{"kind":"layout","id":"ly/y9k3mx8j","editable":false,"name":"Section Header","type":"sectionHeader","placeholders":[{"name":"title","type":"title"}]}
+{"kind":"layout","id":"ly/4fytcbux","editable":false,"name":"Title and Body","type":"tx","placeholders":[{"name":"title","type":"title"},{"name":"body","type":"body"}]}
+{"kind":"layout","id":"ly/at8zixs3","editable":false,"name":"Title and Two Column","type":"twoColTx","placeholders":[{"name":"title","type":"title"},{"name":"Left column","type":"body"},{"name":"Right column","type":"body"}]}
+{"kind":"layout","id":"ly/694vah47","editable":false,"name":"Title and One Column","type":"tx","placeholders":[{"name":"title","type":"title"},{"name":"body","type":"body"}]}
+{"kind":"layout","id":"ly/y987e547","editable":false,"name":"Blank","type":"blank"}
+{"kind":"slide","id":"sl/sin18t","slideIndex":0,"layout":{"id":"ly/y987e547","name":"Blank"},"title":"STUDY FLOW","textShapes":1,"backgroundColor":"rgba(32,93,64,1)"}
+{"kind":"textbox","id":"sh/xwz65cri","slideIndex":0,"position":{"left":80,"top":150,"width":1000,"height":180},"text":"STUDY FLOW\n학습 계획과 자료를 연결하다","geometry":"rect","lineWidth":0,"style":{"fontSize":48,"typeface":"Arial","color":"#FFFFFF","alignment":"left"}}
+{"kind":"notes","id":"nt/sin18t","slideIndex":0,"text":""}

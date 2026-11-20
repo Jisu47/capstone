@@ -1,0 +1,107 @@
+{
+  "source": "C:\\GitHub\\capstone\\artifacts\\capstone-presentation\\output\\StudyFlow_Capstone_Draft_v2.pptx",
+  "sourceHash": "ff7f910763840ae255e42db7ca7fb8caa94c9803c37fc35d6066d303862a76bf",
+  "slides": [
+    {
+      "slide": 1,
+      "title": "STUDY FLOW"
+    },
+    {
+      "slide": 2,
+      "title": "흩어진 정보, 서로 다른 학습 진도",
+      "label": "Background / Problem",
+      "note": "논문의 문제 정의를 자료·계획·진도라는 세 관계로 요약한 개념도입니다. 아이콘이나 화면처럼 보이는 가짜 UI를 사용하지 않았습니다."
+    },
+    {
+      "slide": 3,
+      "title": "계획과 자료를 동일한 학습 맥락으로",
+      "label": "Proposed solution",
+      "note": "그룹 목표와 공동·개인 학습이라는 맥락 안에서 Plan AI와 Material AI의 역할을 구분합니다. 자동 주차별 자료 매칭이나 RAG 구현 완료를 뜻하지 않습니다."
+    },
+    {
+      "slide": 4,
+      "title": "로그인부터 학습·복습까지",
+      "label": "Overall service flow",
+      "note": "왼쪽은 실제 로컬 로그인 캡처입니다. 오른쪽은 코드와 논문에 근거한 이후 사용자 흐름의 개념도입니다. 사용자의 지시에 따라 로그인 없이 진행했으며 그룹·계획·자료 화면을 직접 확인한 것으로 표현하지 않습니다."
+    },
+    {
+      "slide": 5,
+      "title": "Plan AI: 입력에서 공동 계획 적용까지",
+      "label": "Core feature / Plan AI",
+      "note": "진도표 이미지 분석, 학습 단위와 그룹 맥락을 반영한 주간 계획 생성, 사용자 수정 후 공동 계획 적용 흐름입니다. 인증 없이 진행하므로 화면 영역은 캡처 필요 상태로 유지합니다. AI가 제안한 초안과 DB에 적용한 계획을 구분합니다."
+    },
+    {
+      "slide": 6,
+      "title": "Material AI: 자료 정보로 질문에 응답",
+      "label": "Core feature / Material AI",
+      "note": "현재 방식은 자료 원본을 Storage에 저장하고 제목·축약된 요약을 Gemini 맥락에 넣는 방식입니다. 원문 검색 기반 RAG는 후속 과제입니다. 자료 목록과 AI 대화는 현재 인증 세션이 없어 캡처하지 않았습니다."
+    },
+    {
+      "slide": 7,
+      "title": "계획과 자료의 연결 구조",
+      "label": "Plan × Material",
+      "note": "현재 계획 기준 자료의 학습 단위를 로드맵과 주간 계획에서 참조하며, 공용 자료 요약과 주간 계획은 자료 AI의 맥락으로 공유합니다. 주간 계획의 낮은 이해도 항목은 복습 후보를 거쳐 개인 Todo로 연결됩니다. 일반적인 모든 공동 계획이 자동으로 개인 Todo로 복제되는 구조로 설명하지 않습니다."
+    },
+    {
+      "slide": 8,
+      "title": "공동 학습과 개인 학습의 연결",
+      "label": "Group / Shared × Personal learning",
+      "note": "공동 계획 항목과 구성원별 완료·이해도는 분리 저장합니다. 개인 Todo는 별도 관리하며, 낮은 이해도는 복습 후보가 되고 설정 시점 경과 후 데이터 갱신 과정에서 개인 Todo에 추가됩니다. 인증이 필요한 화면은 실제 캡처로 대체하지 않았습니다."
+    },
+    {
+      "slide": 9,
+      "title": "StudyFlow 시스템 구조",
+      "label": "System architecture",
+      "note": "사용자 인터페이스는 React·TypeScript, AI·업로드 서버 기능은 Next.js Route Handlers, 인증·데이터·파일 저장은 Supabase, AI 분석과 응답은 Gemini가 담당합니다. 브라우저에서 Supabase를 직접 조회·저장하는 현재 구조도 유지해서 표시합니다."
+    },
+    {
+      "slide": 10,
+      "title": "AI 처리와 데이터 반영",
+      "label": "AI / Data flow",
+      "note": "PrototypeProvider가 입력과 그룹 맥락을 서버 API로 전달합니다. 목적별 맥락과 대화 이력을 Gemini에 보내고 응답을 처리합니다. 계획 초안은 사용자가 편집·적용해야 공동 계획에 저장하며, 자료 응답과 대화 기록은 별도로 관리합니다."
+    },
+    {
+      "slide": 11,
+      "title": "Design System과 개발 일관성",
+      "label": "Development consistency",
+      "note": "실제 /design-preview-v2의 Overview와 Button Detail 핵심 영역을 캡처했습니다. Foundations와 Components를 탐색하고 상세 예시를 비교하는 개발 지원 페이지입니다. AGENTS.md와 함께 UI와 AI 협업 기준을 공유하는 맥락으로 소개합니다. 임시 탐색 시안이며 전 서비스 적용 완료나 협업 효율 개선이 측정되었다는 뜻은 아닙니다."
+    },
+    {
+      "slide": 12,
+      "title": "구현 화면과 현재 확인 범위",
+      "label": "Implementation / Demo summary",
+      "note": "왼쪽 세 이미지는 실제 공개 화면인 서비스 진입·로그인·회원가입입니다. 오른쪽은 인증이 필요한 그룹·계획·자료·개인 학습의 코드상 구현 범위이며 실제 UI 시연을 확인했다는 뜻이 아닙니다. 논문 표 2의 계획 생성·적용, 공동 학습, 개인 Todo, 복습, 자료 AI 6개 실행 평가 항목은 모두 미평가 상태입니다."
+    },
+    {
+      "slide": 13,
+      "title": "한계와 향후 과제",
+      "label": "Limitation / Future work",
+      "note": "논문은 주차별 계획·자료 연결, RAG 도입 검토, 시나리오 검증과 사용자 평가를 후속 연구로 제시합니다. 현재 코드 기준으로 문서 추출 품질과 인증·권한·RLS 검증도 보완 대상입니다. 현재 성과를 과장하지 않도록 실행 평가 미완료 상태를 유지합니다."
+    },
+    {
+      "slide": 14,
+      "title": "함께 실행하는 학습으로",
+      "label": "Conclusion",
+      "note": "공동 계획과 자료 활용을 개인의 학습 수행·복습으로 잇는 StudyFlow의 목표를 정리합니다. 오른쪽은 실제 서비스 진입 화면입니다. 현재 구현은 사용자 시나리오 검증과 평가를 남겨 둔 개발 단계입니다."
+    }
+  ],
+  "actualScreens": [
+    "서비스 진입",
+    "로그인",
+    "회원가입",
+    "Design Preview Overview",
+    "Button Detail"
+  ],
+  "missingScreens": [
+    "그룹 생성·참여/메인",
+    "Plan AI·초안",
+    "공동 계획·개인 Todo·복습",
+    "Materials·업로드·대화"
+  ],
+  "userPreference": "로그인 없이 확보 가능한 화면으로 진행",
+  "textCharacters": {
+    "v2": 2571,
+    "v3": 2081
+  },
+  "designSystemSlide": 11
+}

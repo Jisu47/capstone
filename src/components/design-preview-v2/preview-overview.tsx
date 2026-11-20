@@ -24,7 +24,7 @@ function OverviewSample({ item }: { item: PreviewItem }) {
       {item === "Radius" && <rect x="2" y="2" width="48" height="30" rx="10" />}
       {item === "Border" && <rect x="2" y="2" width="48" height="30" rx="2" strokeWidth="1.8" />}
       {item === "Card" && <><rect x="2" y="2" width="60" height="30" rx="4" /><path d="M10 11h22M10 18h43M10 24h32" /></>}
-      {item === "Modal" && <><rect x="2" y="2" width="58" height="27" rx="3" opacity=".4" /><rect x="15" y="9" width="47" height="23" rx="3" fill="white" /><path d="M23 17h23M43 25h11" /></>}
+      {item === "Modal" && <><rect x="2" y="2" width="58" height="27" rx="3" opacity=".4" /><rect x="15" y="9" width="47" height="23" rx="3" fill="var(--v2-surface)" /><path d="M23 17h23M43 25h11" /></>}
       {item === "Tabs" && <><path d="M2 26h72M3 25h22" /><path d="M5 10h16M30 10h16M55 10h16" strokeWidth="3" opacity=".5" /></>}
     </svg>
   );
