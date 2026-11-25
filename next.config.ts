@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["pdfjs-dist"],
   outputFileTracingIncludes: {
     "/api/groups/*/materials": ["./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"],
+    "/api/ai/chat": ["./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"],
   },
 };
 

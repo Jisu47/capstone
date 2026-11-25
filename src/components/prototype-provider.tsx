@@ -1345,11 +1345,7 @@ export function PrototypeProvider({
       return;
     }
 
-    const material = materialId === null ? null : (
-      group.materials.find(item => item.id === materialId)
-      ?? (materialId ? null : [...group.materials].sort((left, right) =>
-        right.uploadedAt.localeCompare(left.uploadedAt))[0])
-    );
+    const material = group.materials.find(item => item.id === materialId) ?? null;
     const selectedId = material?.id ?? materialId ?? null;
     const previous = materialSubmissions.current[groupId];
     const submission = previous?.question === trimmedQuestion
