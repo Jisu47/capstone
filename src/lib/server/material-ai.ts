@@ -7,6 +7,7 @@ import {
   getSupabaseUserServerClient,
 } from "@/lib/supabase/server";
 import { studyMaterialsBucket } from "@/lib/server/material-upload";
+import { logMaterialStep } from "@/lib/server/material-diagnostics";
 
 type StoredMaterial = {
   id: string;
@@ -64,6 +65,7 @@ async function loadSelectedMaterial(request: Request, input: AiChatRequest) {
   }
 
   if (typeof input.materialId !== "string" || !input.materialId.trim()) {
+    logMaterialStep("selection", "error");
     throw new MaterialAiError(400, "질문할 자료를 선택해 주세요.");
   }
 
@@ -71,16 +73,19 @@ async function loadSelectedMaterial(request: Request, input: AiChatRequest) {
     .eq("group_id", input.group.id).eq("id", input.materialId).maybeSingle();
 
   if (result.error) {
+    logMaterialStep("selection", "error");
     throw new MaterialAiError(503, "자료 정보를 불러오지 못했어요. 다시 시도해 주세요.");
   }
 
   const material = result.data as StoredMaterial | null;
 
   if (!material) {
+    logMaterialStep("selection", "error");
     throw new MaterialAiError(404, "선택한 자료를 찾지 못했어요. 자료 목록을 새로고침해 주세요.");
   }
 
   if (!material.storage_path) {
+    logMaterialStep("storage_path", "error");
     throw new MaterialAiError(404, "선택한 자료의 원본이 저장되어 있지 않아요. 파일을 다시 업로드해 주세요.");
   }
 
@@ -88,11 +93,21 @@ async function loadSelectedMaterial(request: Request, input: AiChatRequest) {
     throw new MaterialAiError(403, "이 그룹에서 읽을 수 있는 자료가 아니에요.");
   }
 
-  const download = await client.storage.from(studyMaterialsBucket).download(material.storage_path);
+  logMaterialStep("selection", "ok");
+  let download;
+  try {
+    download = await client.storage.from(studyMaterialsBucket).download(material.storage_path);
+  } catch (error) {
+    logMaterialStep("storage_download", "error", error);
+    throw error;
+  }
 
   if (download.error || !download.data) {
+    logMaterialStep("storage_download", "error");
     throw new MaterialAiError(503, "자료 원본을 읽지 못했어요. 잠시 후 다시 시도해 주세요.");
   }
+
+  logMaterialStep("storage_download", "ok");
 
   if (download.data.size >= 50 * 1024 * 1024) {
     throw new MaterialAiError(413, "AI가 읽을 자료는 50MB 미만으로 업로드해 주세요.");
@@ -137,9 +152,11 @@ export async function generateMaterialAnswer(request: Request, input: AiChatRequ
         await loadingTask.destroy();
       }
     } catch (error) {
+      logMaterialStep("ai_pdf_check", "error", error);
       if (error instanceof MaterialAiError) throw error;
       throw new MaterialAiError(422, "PDF 본문을 읽지 못했어요. 파일이 손상되었거나 암호로 보호되어 있는지 확인해 주세요.");
     }
+    logMaterialStep("ai_pdf_check", "ok");
     content.push({
       type: "input_file",
       filename: material.title,
@@ -204,13 +221,15 @@ export async function generateMaterialAnswer(request: Request, input: AiChatRequ
         },
       }),
     });
-  } catch {
+  } catch (error) {
+    logMaterialStep("openai_request", "error", error);
     throw new MaterialAiError(504, "AI 응답 연결이 지연되고 있어요. 질문을 다시 보내 주세요.");
   }
 
   const data = await response.json().catch(() => null) as OpenAiResponse | null;
 
   if (!response.ok) {
+    logMaterialStep("openai_request", "error");
     if (response.status === 429) {
       throw new MaterialAiError(429, data?.error?.code === "insufficient_quota"
         ? "OpenAI API 사용 한도가 부족해요. 운영 계정의 API 크레딧을 확인해 주세요."
@@ -224,20 +243,24 @@ export async function generateMaterialAnswer(request: Request, input: AiChatRequ
     throw new MaterialAiError(502, "AI가 자료를 처리하지 못했어요. 잠시 후 다시 시도해 주세요.");
   }
 
+  logMaterialStep("openai_request", "ok");
   const parts = data?.output?.flatMap(item => item.content ?? []) ?? [];
   const output = parts.filter(part => part.type === "output_text").map(part => part.text ?? "").join("");
   let answer: { text?: string; usedMaterial?: boolean };
 
   try {
     answer = JSON.parse(output);
-  } catch {
+  } catch (error) {
+    logMaterialStep("openai_response", "error", error);
     throw new MaterialAiError(502, "AI 답변을 끝까지 받지 못했어요. 다시 질문해 주세요.");
   }
 
   if (!answer || typeof answer.text !== "string" || !answer.text.trim() || data?.status !== "completed") {
+    logMaterialStep("openai_response", "error");
     throw new MaterialAiError(502, "AI 답변을 끝까지 받지 못했어요. 다시 질문해 주세요.");
   }
 
+  logMaterialStep("openai_response", "ok");
   const usedMaterial = Boolean(answer.usedMaterial === true && material && buffer);
 
   return {

@@ -1390,10 +1390,16 @@ export function PrototypeProvider({
           ...group,
           chat: group.chat.filter(message => !message.id.startsWith(submission.id)),
         }, trimmedQuestion, "materials", selectedId);
-        await addPrototypeAssistantAnswer(group, trimmedQuestion, "materials", submission.answer.text, null, {
-          id: `${submission.id}-assistant`,
-          sources: submission.answer.sources ?? [],
-        });
+        try {
+          await addPrototypeAssistantAnswer(group, trimmedQuestion, "materials", submission.answer.text, null, {
+            id: `${submission.id}-assistant`,
+            sources: submission.answer.sources ?? [],
+          });
+          console.info("[material-diagnostics]", { stage: "answer_save", status: "ok" });
+        } catch (error) {
+          console.error("[material-diagnostics]", { stage: "answer_save", status: "error", type: "save_error" });
+          throw error;
+        }
         await refreshGroups();
         delete materialSubmissions.current[groupId];
       });

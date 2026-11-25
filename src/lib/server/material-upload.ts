@@ -1,4 +1,5 @@
 import path from "node:path";
+import { logMaterialStep } from "@/lib/server/material-diagnostics";
 import type { Material } from "@/lib/mock-data";
 
 export const studyMaterialsBucket = "study-materials";
@@ -138,20 +139,26 @@ function chunkText(fileName: string, text: string) {
 }
 
 async function extractPdfText(buffer: Buffer) {
-  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  const loadingTask = getDocument({
-    data: new Uint8Array(buffer),
-    useSystemFonts: true,
-    isEvalSupported: false,
-  });
-
+  let stage = "upload_pdf_module";
   try {
-    const document = await loadingTask.promise;
-    const page = await document.getPage(1);
-    const content = await page.getTextContent();
-    return content.items.map(item => "str" in item ? item.str : "").join(" ").trim();
-  } finally {
-    await loadingTask.destroy();
+    const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    stage = "upload_pdf_open";
+    const loadingTask = getDocument({ data: new Uint8Array(buffer), useSystemFonts: true, isEvalSupported: false });
+    try {
+      const document = await loadingTask.promise;
+      stage = "upload_pdf_text";
+      const page = await document.getPage(1);
+      const content = await page.getTextContent();
+      const text = content.items.map(item => "str" in item ? item.str : "").join(" ").trim();
+      if (text) logMaterialStep(stage, "ok");
+      else logMaterialStep(stage, "error", new Error("텍스트를 추출하지 못했어요"));
+      return text;
+    } finally {
+      await loadingTask.destroy();
+    }
+  } catch (error) {
+    logMaterialStep(stage, "error", error);
+    throw error;
   }
 }
 
@@ -182,7 +189,10 @@ export async function extractMaterialSummary(
           : `${fileName}에서 텍스트를 추출하지 못했습니다.`,
       locationHint: chunks[0]?.locationHint ?? "본문 1",
     };
-  } catch {
+  } catch (error) {
+    if (path.extname(fileName).toLowerCase() !== ".pdf" && !mimeType.includes("pdf")) {
+      logMaterialStep("upload_text_extract", "error", error);
+    }
     return {
       summary: "문서 텍스트를 추출하지 못했습니다. 다른 자료를 업로드해 주세요.",
       locationHint: "처리 실패",

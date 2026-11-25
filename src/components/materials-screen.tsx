@@ -37,6 +37,38 @@ function sortMaterials(group: StudyGroup) {
   });
 }
 
+const safeAiErrors = new Set([
+  "로그인 후 다시 질문해 주세요.",
+  "로그인 상태를 확인하지 못했어요. 다시 로그인해 주세요.",
+  "그룹 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.",
+  "이 스터디 그룹의 멤버만 질문할 수 있어요.",
+  "질문할 자료를 선택해 주세요.",
+  "자료 정보를 불러오지 못했어요. 다시 시도해 주세요.",
+  "선택한 자료를 찾지 못했어요. 자료 목록을 새로고침해 주세요.",
+  "선택한 자료의 원본이 저장되어 있지 않아요. 파일을 다시 업로드해 주세요.",
+  "이 그룹에서 읽을 수 있는 자료가 아니에요.",
+  "자료 원본을 읽지 못했어요. 잠시 후 다시 시도해 주세요.",
+  "AI가 읽을 자료는 50MB 미만으로 업로드해 주세요.",
+  "자료 AI 연결 설정이 필요해요. 운영 서버의 OpenAI API 키를 확인해 주세요.",
+  "PDF에서 텍스트를 추출하지 못했어요. 이미지 기반 PDF는 지원하지 않아요.",
+  "PDF 본문을 읽지 못했어요. 파일이 손상되었거나 암호로 보호되어 있는지 확인해 주세요.",
+  "텍스트 파일을 읽지 못했어요. UTF-8 형식으로 저장해 주세요.",
+  "자료에 읽을 수 있는 본문이 없어요.",
+  "자료 AI는 PDF, TXT, MD 등 텍스트 자료만 지원해요.",
+  "AI 응답 연결이 지연되고 있어요. 질문을 다시 보내 주세요.",
+  "OpenAI API 사용 한도가 부족해요. 운영 계정의 API 크레딧을 확인해 주세요.",
+  "AI 요청이 많아 잠시 지연되고 있어요. 잠시 후 다시 질문해 주세요.",
+  "자료 AI의 API 키와 모델 이용 권한을 확인해 주세요.",
+  "AI가 자료를 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
+  "AI 답변을 끝까지 받지 못했어요. 다시 질문해 주세요.",
+]);
+
+function getSafeAiError(error: unknown) {
+  return error instanceof Error && safeAiErrors.has(error.message)
+    ? error.message
+    : "질문을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.";
+}
+
 function stripFileExtension(title: string) {
   return title.replace(/\.[^.]+$/, "");
 }
@@ -452,6 +484,7 @@ function MaterialRow({
 type AiPanelProps = {
   activeView: ActiveView;
   messages: ChatMessage[];
+  errorMessage: string | null;
   selectedMaterialTitle: string | null;
   draft: string;
   hasMaterials: boolean;
@@ -467,6 +500,7 @@ type AiPanelProps = {
 function AiPanel({
   activeView,
   messages,
+  errorMessage,
   selectedMaterialTitle,
   draft,
   hasMaterials,
@@ -554,6 +588,12 @@ function AiPanel({
         ) : null}
       </div>
 
+      {errorMessage ? (
+        <div role="alert" className="mt-4 rounded-[20px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {errorMessage}
+        </div>
+      ) : null}
+
       <form
         onSubmit={onSubmit}
         className={`mt-4 ${isFull ? "sticky bottom-[6.25rem] z-10 rounded-[24px] bg-[linear-gradient(180deg,rgba(247,252,249,0.2)_0%,#f7fcf9_28%)] pt-3" : ""}`}
@@ -599,6 +639,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
   const [draft, setDraft] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [chatError, setChatError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
   const [openMenuMaterialId, setOpenMenuMaterialId] = useState<string | null>(null);
@@ -745,6 +786,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
       return;
     }
     setSelectedMaterialId(material.id);
+    setChatError(null);
     setActiveView("chat-split");
     setOpenMenuMaterialId(null);
     setFeedbackMessage(null);
@@ -761,14 +803,14 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
     }
 
     setDraft("");
-    setErrorMessage(null);
+    setChatError(null);
     setFeedbackMessage(null);
 
     try {
       await sendQuestion(activeGroup.id, question, selectedMaterial?.id ?? null);
     } catch (error) {
       setDraft(question);
-      setErrorMessage(error instanceof Error ? error.message : "질문 전송 중 오류가 발생했어요.");
+      setChatError(getSafeAiError(error));
     }
   }
 
@@ -784,6 +826,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
             <AiPanel
               activeView={activeView}
               messages={thread}
+              errorMessage={chatError}
               selectedMaterialTitle={selectedMaterial?.title ?? null}
               draft={draft}
               hasMaterials={hasMaterials}
@@ -946,6 +989,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
               <AiPanel
                 activeView={activeView}
                 messages={thread}
+                errorMessage={chatError}
                 selectedMaterialTitle={selectedMaterial?.title ?? null}
                 draft={draft}
                 hasMaterials={hasMaterials}
