@@ -4,6 +4,7 @@ import {
   GeminiRequestError,
   generateGeminiAnswer,
 } from "@/lib/gemini";
+import { generateMaterialAnswer, MaterialAiError } from "@/lib/server/material-ai";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,10 @@ function isValidRequest(body: unknown): body is AiChatRequest {
   return (
     (request.scope === "materials" || request.scope === "plan-agent") &&
     typeof request.question === "string" &&
+    request.question.trim().length > 0 &&
     Array.isArray(request.history) &&
+    request.history.every(entry => entry && (entry.role === "user" || entry.role === "assistant") && typeof entry.text === "string") &&
+    (request.materialId === undefined || request.materialId === null || typeof request.materialId === "string") &&
     Boolean(request.group) &&
     typeof request.group?.id === "string" &&
     typeof request.group?.name === "string" &&
@@ -32,6 +36,10 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "Invalid AI chat request." }, { status: 400 });
     }
 
+    if (body.scope === "materials") {
+      return Response.json(await generateMaterialAnswer(request, body));
+    }
+
     const answer = await generateGeminiAnswer(body);
     const response: AiChatResponse = {
       text: answer.text,
@@ -44,6 +52,10 @@ export async function POST(request: NextRequest) {
 
     return Response.json(response);
   } catch (error) {
+    if (error instanceof MaterialAiError) {
+      return Response.json({ error: error.message }, { status: error.status });
+    }
+
     if (error instanceof GeminiRequestError) {
       if (error.status === 503 || error.status === 429) {
         return Response.json(

@@ -12,6 +12,7 @@ import type {
   PlanMutationResponse,
 } from "@/lib/api-contracts";
 import type { PlanReferenceAnalysisResult } from "@/lib/plan-flow";
+import type { AiChatRequest, AiChatResponse } from "@/lib/ai-chat";
 
 async function parseResponse<T>(response: Response): Promise<T> {
   if (response.ok) {
@@ -148,4 +149,17 @@ export async function analyzePlanReference(request: {
   });
 
   return parseResponse<PlanReferenceAnalysisResult>(response);
+}
+
+export async function askMaterialsAi(request: AiChatRequest, accessToken: string) {
+  const response = await fetch("/api/ai/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(request),
+  });
+
+  return parseResponse<AiChatResponse>(response);
 }

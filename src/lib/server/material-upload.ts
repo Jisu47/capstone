@@ -137,38 +137,22 @@ function chunkText(fileName: string, text: string) {
   return chunks.slice(0, 8);
 }
 
-function decodePdfLiteralText(value: string) {
-  return value
-    .replace(/\\([()\\])/g, "$1")
-    .replace(/\\n/g, "\n")
-    .replace(/\\r/g, "\r")
-    .replace(/\\t/g, "\t")
-    .replace(/\\b/g, " ")
-    .replace(/\\f/g, " ")
-    .replace(/\\\d{3}/g, " ");
-}
-
-function extractPrintablePdfText(raw: string) {
-  return raw
-    .replace(/\\r/g, "\n")
-    .replace(/\u0000/g, " ")
-    .replace(/[^\x20-\x7E\u00A0-\u00FF\n]+/g, " ")
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
 async function extractPdfText(buffer: Buffer) {
-  const raw = buffer.toString("latin1");
-  const literalSegments = [...raw.matchAll(/\(([^()]*)\)/g)]
-    .map((match) => decodePdfLiteralText(match[1] ?? "").trim())
-    .filter(Boolean);
+  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const loadingTask = getDocument({
+    data: new Uint8Array(buffer),
+    useSystemFonts: true,
+    isEvalSupported: false,
+  });
 
-  if (literalSegments.length > 0) {
-    return literalSegments.join("\n");
+  try {
+    const document = await loadingTask.promise;
+    const page = await document.getPage(1);
+    const content = await page.getTextContent();
+    return content.items.map(item => "str" in item ? item.str : "").join(" ").trim();
+  } finally {
+    await loadingTask.destroy();
   }
-
-  return extractPrintablePdfText(raw);
 }
 
 async function extractTextFromFile(fileName: string, mimeType: string, buffer: Buffer) {
@@ -191,7 +175,11 @@ export async function extractMaterialSummary(
     const chunks = chunkText(fileName, extractedText);
 
     return {
-      summary: summarizeText(fileName, extractedText),
+      summary: extractedText
+        ? summarizeText(fileName, extractedText)
+        : mimeType.includes("pdf") || path.extname(fileName).toLowerCase() === ".pdf"
+          ? "텍스트가 없는 PDF입니다. 자료 AI에서 원본을 확인할 수 있어요."
+          : `${fileName}에서 텍스트를 추출하지 못했습니다.`,
       locationHint: chunks[0]?.locationHint ?? "본문 1",
     };
   } catch {

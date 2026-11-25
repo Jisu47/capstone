@@ -1,3 +1,6 @@
+import type { SourceCard } from "@/lib/mock-data";
+import type { PlanAgentDraft } from "@/lib/plan-flow";
+
 export type AiChatScope = "materials" | "plan-agent";
 
 export type AiChatHistoryEntry = {
@@ -46,33 +49,16 @@ export type AiChatRequest = {
   question: string;
   history: AiChatHistoryEntry[];
   group: AiChatGroupContext;
+  materialId?: string | null;
 };
 
 export type AiChatResponse = {
   text: string;
   model: string;
+  usedMaterial?: boolean;
+  sources?: SourceCard[];
   finishReason?: string | null;
   finishMessage?: string | null;
   isComplete?: boolean;
-  planAgentDraft?: {
-    scope: "roadmap" | "weekly-plan" | "both";
-    weeklyGoal: string;
-    recentUpdate: string;
-    roadmap: Array<{
-      id: string;
-      weekNumber: number;
-      title: string;
-      summary: string;
-      unitStartSequence: number;
-      unitEndSequence: number;
-    }>;
-    weeklyPlan: Array<{
-      id: string;
-      day: string;
-      title: string;
-      detail: string;
-      duration: string;
-      referenceUnitSequence?: number | null;
-    }>;
-  } | null;
+  planAgentDraft?: PlanAgentDraft | null;
 };

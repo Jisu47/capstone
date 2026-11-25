@@ -403,6 +403,10 @@ function getUploadDraftCount(groupId: string, materials: MaterialRow[]) {
 }
 
 function getSourceMaterialId(group: StudyGroup, source: SourceCard) {
+  if (source.materialId) {
+    return group.materials.find(material => material.id === source.materialId)?.id ?? null;
+  }
+
   return group.materials.find((material) => material.title === source.title)?.id ?? null;
 }
 
@@ -2416,19 +2420,21 @@ export async function addPrototypeUserQuestion(
   groupId: string,
   question: string,
   scope: "materials" | "plan-agent" = "materials",
+  submission?: { id: string; createdAt: string },
 ) {
   const client = getSupabaseBrowserClient();
+  const row = {
+    id: submission?.id ?? createId("chat-user"),
+    group_id: groupId,
+    role: "user",
+    scope,
+    text: question,
+    created_at: submission?.createdAt ?? new Date().toISOString(),
+  };
 
   ensureSuccess(
     "Failed to save user question",
-    await client.from("chat_messages").insert({
-      id: createId("chat-user"),
-      group_id: groupId,
-      role: "user",
-      scope,
-      text: question,
-      created_at: new Date().toISOString(),
-    }),
+    await (submission ? client.from("chat_messages").upsert(row) : client.from("chat_messages").insert(row)),
   );
 }
 
@@ -2438,31 +2444,33 @@ export async function addPrototypeAssistantAnswer(
   scope: "materials" | "plan-agent" = "materials",
   answerTextOverride?: string,
   planAgentDraftOverride?: PlanAgentDraft | null,
+  options?: { id: string; sources: SourceCard[] },
 ) {
   const client = getSupabaseBrowserClient();
-  const mockMaterialsAnswer = scope === "materials" ? buildMockAnswer(group, question) : null;
+  const mockMaterialsAnswer = scope === "materials" && !options ? buildMockAnswer(group, question) : null;
   const fallbackDraft = scope === "plan-agent" ? buildPlanAgentDraft(group, question) : null;
   const fallbackText =
     scope === "materials"
       ? mockMaterialsAnswer?.text ?? ""
       : buildPlanAgentAnswer(group, fallbackDraft, question).text;
-  const messageId = createId("chat-assistant");
+  const messageId = options?.id ?? createId("chat-assistant");
   const answerText = answerTextOverride?.trim() || fallbackText;
   const storedAnswerText =
     scope === "plan-agent"
       ? buildStoredPlanAgentMessage(answerText, planAgentDraftOverride ?? fallbackDraft)
       : answerText;
 
+  const row = {
+    id: messageId,
+    group_id: group.id,
+    role: "assistant",
+    scope,
+    text: storedAnswerText,
+    created_at: new Date().toISOString(),
+  };
   ensureSuccess(
     "Failed to save assistant answer",
-    await client.from("chat_messages").insert({
-      id: messageId,
-      group_id: group.id,
-      role: "assistant",
-      scope,
-      text: storedAnswerText,
-      created_at: new Date().toISOString(),
-    }),
+    await (options ? client.from("chat_messages").upsert(row) : client.from("chat_messages").insert(row)),
   );
 
   if (scope !== "materials") {
@@ -2470,7 +2478,7 @@ export async function addPrototypeAssistantAnswer(
   }
 
   const sourceRows =
-    mockMaterialsAnswer?.sources?.map((source, index) => ({
+    (options?.sources ?? mockMaterialsAnswer?.sources ?? []).map((source, index) => ({
       id: `${messageId}-source-${index + 1}`,
       message_id: messageId,
       material_id: getSourceMaterialId(group, source),
@@ -2478,7 +2486,7 @@ export async function addPrototypeAssistantAnswer(
       location_hint: source.locationHint,
       summary: source.summary,
       sort_order: index,
-    })) ?? [];
+    }));
 
   if (sourceRows.length === 0) {
     return;
@@ -2487,7 +2495,7 @@ export async function addPrototypeAssistantAnswer(
   try {
     ensureSuccess(
       "Failed to save assistant sources",
-      await client.from("chat_message_sources").insert(sourceRows),
+      await (options ? client.from("chat_message_sources").upsert(sourceRows) : client.from("chat_message_sources").insert(sourceRows)),
     );
   } catch (error) {
     await client.from("chat_messages").delete().eq("id", messageId);

@@ -360,7 +360,7 @@ function SourcePill({
     <div className="rounded-[18px] border border-slate-200 bg-white p-3 shadow-[0_6px_16px_rgba(15,23,42,0.04)]">
       <p className="text-sm font-semibold text-slate-900">{title}</p>
       <p className="mt-1 text-[11px] font-semibold text-[#4CAF7A]">{locationHint}</p>
-      <p className="mt-1 text-xs leading-5 text-slate-500">{summary}</p>
+      {summary ? <p className="mt-1 text-xs leading-5 text-slate-500">{summary}</p> : null}
     </div>
   );
 }
@@ -519,7 +519,7 @@ function AiPanel({
   onClose,
 }: Readonly<AiPanelProps>) {
   const isFull = activeView === "chat-full";
-  const title = isFull ? "🤖 자료 AI (자료 기반 답변)" : "🤖 자료 AI";
+  const title = isFull && hasMaterials ? "🤖 자료 AI (자료 기반 답변)" : "🤖 자료 AI";
   const panelMessages = isFull ? messages : messages.slice(-4);
 
   return (
@@ -540,9 +540,9 @@ function AiPanel({
             ) : null}
           </div>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            {isFull
-              ? "자료 전체 문맥을 바탕으로 이어서 질문해도 자연스럽게 연결돼요."
-              : "선택한 자료를 기준으로 바로 이어서 질문할 수 있어요."}
+            {hasMaterials
+              ? "선택한 자료 내용과 공부하면서 궁금한 점을 질문해 보세요."
+              : "공부하면서 궁금한 점을 자유롭게 질문해 보세요."}
           </p>
         </div>
 
@@ -602,13 +602,14 @@ function AiPanel({
           <input
             value={draft}
             onChange={(event) => onDraftChange(event.target.value)}
-            placeholder="자료에서 궁금한 점을 입력하세요"
-            disabled={!hasMaterials || isSubmitting}
+            placeholder="궁금한 점을 입력하세요"
+            aria-label="자료 AI 질문"
+            disabled={isSubmitting}
             className="min-w-0 flex-1 bg-transparent px-2 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400"
           />
           <button
             type="submit"
-            disabled={!hasMaterials || !draft.trim() || isSubmitting}
+            disabled={!draft.trim() || isSubmitting}
             className="flex h-11 w-11 items-center justify-center rounded-full bg-[#4CAF7A] text-white shadow-[0_12px_24px_rgba(76,175,122,0.24)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
             aria-label="질문 보내기"
           >
@@ -652,7 +653,6 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
   useEffect(() => {
     if (materials.length === 0) {
       setSelectedMaterialId(null);
-      setActiveView("list");
       return;
     }
 
@@ -781,6 +781,9 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
   }
 
   function openMaterialChat(material: Material) {
+    if (isSubmitting) {
+      return;
+    }
     setSelectedMaterialId(material.id);
     setActiveView("chat-split");
     setOpenMenuMaterialId(null);
@@ -802,7 +805,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
     setFeedbackMessage(null);
 
     try {
-      await sendQuestion(activeGroup.id, question);
+      await sendQuestion(activeGroup.id, question, selectedMaterial?.id ?? null);
     } catch (error) {
       setDraft(question);
       setErrorMessage(error instanceof Error ? error.message : "질문 전송 중 오류가 발생했어요.");
@@ -956,7 +959,14 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
                 </div>
               ) : (
                 <div className="rounded-[22px] border border-dashed border-slate-200 bg-slate-50/70 px-4 py-5 text-sm leading-6 text-slate-500">
-                  아직 등록된 자료가 없어요. 자료를 먼저 올리면 AI 답변과 학습 분석이 더 풍부해집니다.
+                  <p>아직 등록된 자료가 없어요. 자료를 올리거나 공부하면서 궁금한 점을 질문해 보세요.</p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveView("chat-split")}
+                    className="mt-3 rounded-full bg-[#4CAF7A] px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    AI에게 질문하기
+                  </button>
                 </div>
               )}
 

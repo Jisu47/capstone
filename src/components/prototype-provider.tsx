@@ -10,9 +10,10 @@ import {
   useState,
 } from "react";
 import { type AuthUser, type UserRole, useAuth } from "@/components/auth-provider";
-import type { AiChatRequest, AiChatScope } from "@/lib/ai-chat";
+import type { AiChatRequest, AiChatResponse, AiChatScope } from "@/lib/ai-chat";
 import {
   analyzePlanReference,
+  askMaterialsAi,
   deleteMaterial,
   uploadMaterial,
 } from "@/lib/client-api";
@@ -149,7 +150,7 @@ type PrototypeContextValue = {
   ) => Promise<void>;
   deletePersonalTaskLibraryItem: (itemId: string) => Promise<void>;
   addSavedTaskToPersonalPlan: (groupId: string, savedTaskId: string) => Promise<void>;
-  sendQuestion: (groupId: string, question: string) => Promise<void>;
+  sendQuestion: (groupId: string, question: string, materialId?: string | null) => Promise<void>;
   sendPlanAgentMessage: (groupId: string, question: string) => Promise<void>;
   applyPlanAgentDraft: (groupId: string, draft: PlanAgentDraft) => Promise<void>;
   isAnswering: (groupId: string) => boolean;
@@ -366,6 +367,16 @@ export function PrototypeProvider({
   const [isLoading, setIsLoading] = useState(true);
   const [mutationCount, setMutationCount] = useState(0);
   const [pendingAnswers, setPendingAnswers] = useState<Record<string, boolean>>({});
+  const materialSubmissions = useRef<Record<string, {
+    id: string;
+    userId: string;
+    question: string;
+    materialId: string | null;
+    createdAt: string;
+    busy: boolean;
+    recorded: boolean;
+    answer?: AiChatResponse;
+  }>>({});
   const [planAgentStatuses, setPlanAgentStatuses] = useState<Record<string, string>>({});
   const timeoutIds = useRef<number[]>([]);
   const planAgentStatusSequences = useRef<Record<string, PlanAgentStatusSequence>>({});
@@ -1136,12 +1147,14 @@ export function PrototypeProvider({
     group: StudyGroup,
     question: string,
     scope: AiChatScope,
+    materialId?: string | null,
   ) {
     const history = scope === "materials" ? group.chat : group.planAgentChat;
 
     const payload: AiChatRequest = {
       scope,
       question,
+      materialId,
       history: history.map((message) => ({
         role: message.role,
         text: message.text,
@@ -1183,6 +1196,17 @@ export function PrototypeProvider({
       },
     };
 
+    if (scope === "materials") {
+      const session = await getSupabaseBrowserClient().auth.getSession();
+      const accessToken = session.data.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error("로그인 후 다시 질문해 주세요.");
+      }
+
+      return askMaterialsAi(payload, accessToken);
+    }
+
     const response = await fetch("/api/ai/chat", {
       method: "POST",
       headers: {
@@ -1192,6 +1216,7 @@ export function PrototypeProvider({
     });
 
     const data = (await response.json()) as {
+      model?: string;
       error?: string;
       text?: string;
       finishReason?: string | null;
@@ -1205,6 +1230,7 @@ export function PrototypeProvider({
     }
 
     return {
+      model: data.model ?? "gemini",
       text: data.text.trim(),
       finishReason: data.finishReason ?? null,
       finishMessage: data.finishMessage ?? null,
@@ -1311,8 +1337,74 @@ export function PrototypeProvider({
     timeoutIds.current.push(timeoutId);
   }
 
-  async function sendQuestion(groupId: string, question: string) {
-    await sendScopedQuestion(groupId, question, "materials");
+  async function sendQuestion(groupId: string, question: string, materialId?: string | null) {
+    const group = getGroupById(groups, groupId);
+    const trimmedQuestion = question.trim();
+
+    if (!group || !trimmedQuestion || materialSubmissions.current[groupId]?.busy) {
+      return;
+    }
+
+    const material = materialId === null ? null : (
+      group.materials.find(item => item.id === materialId)
+      ?? (materialId ? null : [...group.materials].sort((left, right) =>
+        right.uploadedAt.localeCompare(left.uploadedAt))[0])
+    );
+    const selectedId = material?.id ?? materialId ?? null;
+    const previous = materialSubmissions.current[groupId];
+    const submission = previous?.question === trimmedQuestion
+      && previous.materialId === selectedId
+      && previous.userId === resolvedCurrentUserId
+      ? previous
+      : {
+        id: `chat-material-${crypto.randomUUID()}`,
+        userId: resolvedCurrentUserId,
+        question: trimmedQuestion,
+        materialId: selectedId,
+        createdAt: new Date().toISOString(),
+        busy: false,
+        recorded: false,
+        answer: undefined as AiChatResponse | undefined,
+      };
+    materialSubmissions.current[groupId] = submission;
+    submission.busy = true;
+    const pendingKey = getPendingAnswerKey(groupId, "materials");
+    setPendingAnswers(previous => ({ ...previous, [pendingKey]: true }));
+
+    try {
+      await runMutation(async () => {
+        await addPrototypeUserQuestion(groupId, trimmedQuestion, "materials", {
+          id: `${submission.id}-user`, createdAt: submission.createdAt,
+        });
+
+        if (!submission.recorded) {
+          recordMaterialQuestion({
+            groupId,
+            memberId: resolvedCurrentUserId,
+            question: trimmedQuestion,
+            materialId: material?.id ?? null,
+            title: material?.title ?? null,
+            locationHint: material?.locationHint ?? null,
+          });
+          submission.recorded = true;
+        }
+
+        await refreshGroups();
+        submission.answer ??= await requestAiAnswer({
+          ...group,
+          chat: group.chat.filter(message => !message.id.startsWith(submission.id)),
+        }, trimmedQuestion, "materials", selectedId);
+        await addPrototypeAssistantAnswer(group, trimmedQuestion, "materials", submission.answer.text, null, {
+          id: `${submission.id}-assistant`,
+          sources: submission.answer.sources ?? [],
+        });
+        await refreshGroups();
+        delete materialSubmissions.current[groupId];
+      });
+    } finally {
+      submission.busy = false;
+      setPendingAnswers(previous => ({ ...previous, [pendingKey]: false }));
+    }
   }
 
   async function sendPlanAgentMessage(groupId: string, question: string) {
