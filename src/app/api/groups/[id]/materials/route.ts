@@ -85,6 +85,7 @@ async function saveMaterialMetadata(
     storage_path: string;
     mime_type: string;
   },
+  requireStoragePath = false,
 ) {
   const insertResponse = await databaseClient.from("materials").insert(row);
 
@@ -92,7 +93,7 @@ async function saveMaterialMetadata(
     return;
   }
 
-  if (!shouldRetryLegacyMaterialInsert(insertResponse.error.message)) {
+  if (requireStoragePath || !shouldRetryLegacyMaterialInsert(insertResponse.error.message)) {
     throw new Error(`자료 메타데이터를 저장하지 못했어요: ${insertResponse.error.message}`);
   }
 
@@ -242,6 +243,10 @@ export async function POST(
     const buffer = Buffer.from(await file.arrayBuffer());
     const resolvedMimeType = inferMaterialMimeType(file.name, file.type);
     const format = inferMaterialFormat(file.name);
+    const isPdf = format === "PDF" || resolvedMimeType === "application/pdf";
+    if (isPdf && !adminClient) {
+      return NextResponse.json({ error: "PDF 원본 저장 설정을 확인해 주세요." }, { status: 503 });
+    }
     const uploadedAt = new Date().toISOString();
     const materialId = `mat-${randomUUID()}`;
     let storagePath = "";
@@ -280,7 +285,7 @@ export async function POST(
         location_hint: locationHint,
         storage_path: storagePath,
         mime_type: resolvedMimeType,
-      });
+      }, isPdf);
 
       const groupUpdateResponse = await databaseClient
         .from("study_groups")

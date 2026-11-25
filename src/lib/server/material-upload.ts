@@ -185,7 +185,7 @@ export async function extractMaterialSummary(
       summary: extractedText
         ? summarizeText(fileName, extractedText)
         : mimeType.includes("pdf") || path.extname(fileName).toLowerCase() === ".pdf"
-          ? "텍스트가 없는 PDF입니다. 자료 AI에서 원본을 확인할 수 있어요."
+          ? "첫 페이지에서 텍스트를 찾지 못했어요. 원본 내용을 확인해 주세요."
           : `${fileName}에서 텍스트를 추출하지 못했습니다.`,
       locationHint: chunks[0]?.locationHint ?? "본문 1",
     };
@@ -193,9 +193,9 @@ export async function extractMaterialSummary(
     if (path.extname(fileName).toLowerCase() !== ".pdf" && !mimeType.includes("pdf")) {
       logMaterialStep("upload_text_extract", "error", error);
     }
-    return {
-      summary: "문서 텍스트를 추출하지 못했습니다. 다른 자료를 업로드해 주세요.",
-      locationHint: "처리 실패",
-    };
+    const isPdf = path.extname(fileName).toLowerCase() === ".pdf" || mimeType.includes("pdf");
+    return isPdf
+      ? { summary: "PDF 미리보기 텍스트를 추출하지 못했어요. 질문할 때 저장된 원본을 사용합니다.", locationHint: "미리보기 없음" }
+      : { summary: "문서 텍스트를 추출하지 못했습니다. 다른 자료를 업로드해 주세요.", locationHint: "처리 실패" };
   }
 }

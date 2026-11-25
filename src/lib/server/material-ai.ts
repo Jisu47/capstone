@@ -136,27 +136,13 @@ export async function generateMaterialAnswer(request: Request, input: AiChatRequ
     || material.mime_type?.startsWith("text/");
 
   if (isPdf) {
-    try {
-      const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
-      const loadingTask = getDocument({ data: new Uint8Array(buffer), useSystemFonts: true, isEvalSupported: false });
-      try {
-        const document = await loadingTask.promise;
-        let hasText = false;
-        for (let pageNumber = 1; pageNumber <= document.numPages && !hasText; pageNumber++) {
-          const page = await document.getPage(pageNumber);
-          const text = await page.getTextContent();
-          hasText = text.items.some(item => "str" in item && item.str.trim().length > 0);
-        }
-        if (!hasText) throw new MaterialAiError(422, "PDF에서 텍스트를 추출하지 못했어요. 이미지 기반 PDF는 지원하지 않아요.");
-      } finally {
-        await loadingTask.destroy();
-      }
-    } catch (error) {
-      logMaterialStep("ai_pdf_check", "error", error);
-      if (error instanceof MaterialAiError) throw error;
-      throw new MaterialAiError(422, "PDF 본문을 읽지 못했어요. 파일이 손상되었거나 암호로 보호되어 있는지 확인해 주세요.");
+    // PDF parsers accept a header within the first 1024 bytes. This checks only
+    // the basic signature; OpenAI still validates and reads the attached file.
+    if (!buffer.subarray(0, 1024).includes(Buffer.from("%PDF-"))) {
+      logMaterialStep("ai_pdf_signature", "error");
+      throw new MaterialAiError(422, "올바른 PDF 파일이 아니에요. 파일을 확인해 주세요.");
     }
-    logMaterialStep("ai_pdf_check", "ok");
+    logMaterialStep("ai_pdf_signature", "ok");
     content.push({
       type: "input_file",
       filename: material.title,
