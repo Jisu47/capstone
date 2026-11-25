@@ -148,7 +148,7 @@ type PrototypeContextValue = {
   ) => Promise<void>;
   deletePersonalTaskLibraryItem: (itemId: string) => Promise<void>;
   addSavedTaskToPersonalPlan: (groupId: string, savedTaskId: string) => Promise<void>;
-  sendQuestion: (groupId: string, question: string) => Promise<void>;
+  sendQuestion: (groupId: string, question: string, materialId?: string) => Promise<void>;
   sendPlanAgentMessage: (groupId: string, question: string) => Promise<void>;
   applyPlanAgentDraft: (groupId: string, draft: PlanAgentDraft) => Promise<void>;
   isAnswering: (groupId: string) => boolean;
@@ -306,29 +306,6 @@ function getMemberAuthRole(group: StudyGroup, memberId: string): UserRole | null
   }
 
   return currentMember.role === "팀장" ? "leader" : "member";
-}
-
-function findRelatedMaterial(group: StudyGroup, question: string) {
-  const normalizedQuestion = question.trim().toLowerCase();
-
-  if (!normalizedQuestion) {
-    return null;
-  }
-
-  return (
-    group.materials.find((material) => {
-      const candidates = [
-        material.title,
-        material.summary,
-        material.locationHint,
-      ].map((value) => value.toLowerCase());
-
-      return candidates.some(
-        (value) =>
-          normalizedQuestion.includes(value) || value.includes(normalizedQuestion),
-      );
-    }) ?? group.materials[0] ?? null
-  );
 }
 
 function extractRequestedWeekNumber(question: string) {
@@ -1147,11 +1124,13 @@ export function PrototypeProvider({
     group: StudyGroup,
     question: string,
     scope: AiChatScope,
+    materialId?: string,
   ) {
     const history = scope === "materials" ? group.chat : group.planAgentChat;
 
     const payload: AiChatRequest = {
       scope,
+      materialId,
       question,
       history: history.map((message) => ({
         role: message.role,
@@ -1194,10 +1173,16 @@ export function PrototypeProvider({
       },
     };
 
+    const accessToken = scope === "materials"
+      ? (await getSupabaseBrowserClient().auth.getSession()).data.session?.access_token
+      : undefined;
+    if (scope === "materials" && !accessToken) throw new Error("다시 로그인해 주세요.");
+
     const response = await fetch("/api/ai/chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
       body: JSON.stringify(payload),
     });
@@ -1228,6 +1213,7 @@ export function PrototypeProvider({
     groupId: string,
     question: string,
     scope: "materials" | "plan-agent",
+    materialId?: string,
   ) {
     const trimmedQuestion = question.trim();
     const group = getGroupById(groups, groupId);
@@ -1241,7 +1227,7 @@ export function PrototypeProvider({
       await addPrototypeUserQuestion(groupId, trimmedQuestion, scope);
 
       if (scope === "materials") {
-        const relatedMaterial = findRelatedMaterial(group, trimmedQuestion);
+        const relatedMaterial = group.materials.find((material) => material.id === materialId);
 
         recordMaterialQuestion({
           groupId,
@@ -1263,6 +1249,17 @@ export function PrototypeProvider({
 
     if (scope === "plan-agent") {
       startPlanAgentStatusSequence(group);
+    }
+
+    if (scope === "materials") {
+      try {
+        const answer = await requestAiAnswer(group, trimmedQuestion, scope, materialId);
+        await addPrototypeAssistantAnswer(group, trimmedQuestion, scope, answer.text);
+        await refreshGroups();
+      } finally {
+        setPendingAnswers((previous) => ({ ...previous, [pendingKey]: false }));
+      }
+      return;
     }
 
     const timeoutId = window.setTimeout(() => {
@@ -1322,8 +1319,8 @@ export function PrototypeProvider({
     timeoutIds.current.push(timeoutId);
   }
 
-  async function sendQuestion(groupId: string, question: string) {
-    await sendScopedQuestion(groupId, question, "materials");
+  async function sendQuestion(groupId: string, question: string, materialId?: string) {
+    await sendScopedQuestion(groupId, question, "materials", materialId);
   }
 
   async function sendPlanAgentMessage(groupId: string, question: string) {

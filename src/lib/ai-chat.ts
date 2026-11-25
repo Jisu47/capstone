@@ -43,6 +43,7 @@ export type AiChatGroupContext = {
 
 export type AiChatRequest = {
   scope: AiChatScope;
+  materialId?: string;
   question: string;
   history: AiChatHistoryEntry[];
   group: AiChatGroupContext;

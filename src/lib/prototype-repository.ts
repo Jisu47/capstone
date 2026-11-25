@@ -2486,7 +2486,7 @@ export async function addPrototypeAssistantAnswer(
   planAgentDraftOverride?: PlanAgentDraft | null,
 ) {
   const client = getSupabaseBrowserClient();
-  const mockMaterialsAnswer = scope === "materials" ? buildMockAnswer(group, question) : null;
+  const mockMaterialsAnswer = scope === "materials" && !answerTextOverride?.trim() ? buildMockAnswer(group, question) : null;
   const fallbackDraft = scope === "plan-agent" ? buildPlanAgentDraft(group, question) : null;
   const fallbackText =
     scope === "materials"

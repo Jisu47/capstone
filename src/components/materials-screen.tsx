@@ -63,46 +63,6 @@ function formatReadTime(totalMinutes: number) {
   return Number.isInteger(hours) ? `${hours}시간` : `${hours.toFixed(1)}시간`;
 }
 
-function buildPlaceholderThread(selectedMaterialTitle: string | null): ChatMessage[] {
-  const materialLabel = selectedMaterialTitle ?? "운영체제.pdf";
-
-  return [
-    {
-      id: "materials-mock-user-1",
-      role: "user",
-      text: "프로세스 상태를 설명해줘",
-      createdAt: "방금 전",
-    },
-    {
-      id: "materials-mock-ai-1",
-      role: "assistant",
-      text: `${materialLabel} 기준으로 보면 프로세스 상태는 Running, Ready, Waiting으로 나뉘고, 스케줄러와 인터럽트에 따라 상태 전이가 일어납니다.`,
-      createdAt: "방금 전",
-      sources: [
-        {
-          id: "materials-mock-source-1",
-          materialId: "materials-mock-source-1",
-          title: materialLabel,
-          locationHint: "3장 프로세스 관리",
-          summary: "프로세스 상태와 상태 전이 다이어그램을 간단히 정리한 구간입니다.",
-        },
-      ],
-    },
-    {
-      id: "materials-mock-user-2",
-      role: "user",
-      text: "데드락 조건 알려줘",
-      createdAt: "방금 전",
-    },
-    {
-      id: "materials-mock-ai-2",
-      role: "assistant",
-      text: "상호배제, 점유와 대기, 비선점, 순환 대기 네 가지 조건이 동시에 만족되면 데드락이 발생합니다.",
-      createdAt: "방금 전",
-    },
-  ];
-}
-
 function buildWeakPointBars(
   group: StudyGroup,
   leaderInsight: MemberWeaknessInsight | null,
@@ -720,7 +680,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
     null;
   const leaderProgress = leader ? getMemberProgress(activeGroup, leader.id) : 0;
   const weakPointBars = buildWeakPointBars(activeGroup, leaderInsight, materials);
-  const thread = activeGroup.chat.length > 0 ? activeGroup.chat : buildPlaceholderThread(selectedMaterial?.title ?? null);
+  const thread = activeGroup.chat;
   const isSubmitting = isAnswering(activeGroup.id);
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -793,7 +753,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
 
     const question = draft.trim();
 
-    if (!question) {
+    if (!question || !selectedMaterial) {
       return;
     }
 
@@ -802,7 +762,7 @@ export function MaterialsScreen({ groupId }: Readonly<{ groupId: string }>) {
     setFeedbackMessage(null);
 
     try {
-      await sendQuestion(activeGroup.id, question);
+      await sendQuestion(activeGroup.id, question, selectedMaterial.id);
     } catch (error) {
       setDraft(question);
       setErrorMessage(error instanceof Error ? error.message : "질문 전송 중 오류가 발생했어요.");

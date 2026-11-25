@@ -1,6 +1,7 @@
 import { aiErrorResponse } from "@/lib/server/openai";
 import type { NextRequest } from "next/server";
 import type { AiChatRequest, AiChatResponse } from "@/lib/ai-chat";
+import { readSelectedMaterial } from "@/lib/server/material-ai";
 import { generateAiAnswer } from "@/lib/server/study-ai";
 
 export const runtime = "nodejs";
@@ -38,7 +39,10 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "Invalid AI chat request." }, { status: 400 });
     }
 
-    const answer = await generateAiAnswer(body);
+    const material = body.scope === "materials"
+      ? await readSelectedMaterial(request, body.group.id, body.materialId)
+      : undefined;
+    const answer = await generateAiAnswer(body, material);
     const response: AiChatResponse = {
       text: answer.text,
       model: answer.model,
